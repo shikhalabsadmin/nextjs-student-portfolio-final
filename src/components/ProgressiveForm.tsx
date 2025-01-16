@@ -105,16 +105,16 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
   const step = currentStep;
 
   const initialFormState: FormAnswers = {
-    title: '',
-    subject: '',
-    grade: '',
+        title: '',
+        subject: '',
+        grade: '',
     month: '',
     artifact_type: '',
-    is_team_work: false,
-    is_original_work: true,
+        is_team_work: false,
+        is_original_work: true,
     team_contribution: null,
     originality_explanation: null,
-    selected_skills: [],
+        selected_skills: [],
     skills_justification: null,
     pride_reason: null,
     creation_process: null,
@@ -159,7 +159,7 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
   // Reset form handler
   const resetForm = () => {
     setAnswers(initialFormState);
-    onStepChange(1);
+      onStepChange(1);
   };
 
   // Handle form changes with proper dirty state management
@@ -171,8 +171,8 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
         description: "This assignment has already been submitted and cannot be edited.",
         variant: "destructive"
       });
-      return;
-    }
+        return;
+      }
 
     console.log('[CHANGE] Field updated:', {
       fieldId,
@@ -205,13 +205,13 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
 
     // Prevent uploads if already submitted
     if (answers.status === 'SUBMITTED') {
-      toast({
+          toast({
         title: "Cannot Upload",
         description: "This assignment has already been submitted and cannot be modified.",
         variant: "destructive"
-      });
-      return;
-    }
+          });
+          return;
+        }
 
     // Validate file types and sizes
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -497,7 +497,7 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
       });
       return;
     }
-    
+
     const currentAnswersJson = JSON.stringify(answers);
     if (currentAnswersJson === lastSavedAnswers) {
       console.log('[SAVE] No changes detected:', {
@@ -505,8 +505,8 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
         isDirty
       });
       setIsDirty(false);
-      return;
-    }
+          return;
+        }
 
     const timeSinceLastSave = lastSavedAt ? Date.now() - lastSavedAt.getTime() : Infinity;
     if (timeSinceLastSave < AUTO_SAVE_CONFIG.MIN_TIME_BETWEEN_SAVES) {
@@ -514,9 +514,9 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
         timeSinceLastSave,
         minTime: AUTO_SAVE_CONFIG.MIN_TIME_BETWEEN_SAVES
       });
-      return;
-    }
-    
+          return;
+        }
+
     let saveTimeoutId: NodeJS.Timeout | null = null;
     let isLatestSave = true;
 
@@ -576,7 +576,7 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
     };
 
     saveTimeoutId = setTimeout(performSave, 1000);
-    
+
     return () => {
       if (saveTimeoutId) {
         clearTimeout(saveTimeoutId);
@@ -740,7 +740,7 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
 
   // Handle save as draft
   const handleSaveAsDraft = async (isAutoSave: boolean = false) => {
-    setIsSavingDraft(true);
+      setIsSavingDraft(true);
     try {
       const result = await saveDraft({
         ...answers,
@@ -753,8 +753,8 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
         newUrl.searchParams.set('id', result.id);
         window.history.replaceState({}, '', newUrl.toString());
       }
-      setIsDirty(false);
-      setLastSavedAt(new Date());
+        setIsDirty(false);
+        setLastSavedAt(new Date());
       // Only show toast for manual saves
       if (!isAutoSave) {
         toast({
@@ -805,7 +805,7 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
       });
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
       await submitWork({
@@ -867,11 +867,11 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
       );
     }
 
-    // Render preview section for step 5
-    if (step === 5) {
-      return (
+  // Render preview section for step 5
+  if (step === 5) {
+    return (
         <div className="space-y-8">
-          <PreviewSection title="Basic Information">
+        <PreviewSection title="Basic Information">
             <PreviewField label="Artifact Name" value={answers.title} />
             <PreviewField label="Subject" value={answers.subject} />
             <PreviewField label="Grade" value={answers.grade} />
@@ -893,70 +893,70 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
                 </a>
               </div>
             ))}
-          </PreviewSection>
+        </PreviewSection>
 
-          <PreviewSection title="Collaboration and Originality">
-            <PreviewField 
+        <PreviewSection title="Collaboration and Originality">
+          <PreviewField 
               label="Is this a team project?" 
               value={answers.is_team_work ? 'Yes' : 'No'} 
-            />
+          />
             {answers.is_team_work && answers.team_contribution && (
-              <PreviewField 
-                label="Describe your role and experience" 
-                value={answers.team_contribution} 
-              />
-            )}
             <PreviewField 
-              label="Did you create something new or original?" 
-              value={answers.is_original_work ? 'Yes' : 'No'} 
+              label="Describe your role and experience" 
+              value={answers.team_contribution} 
             />
+          )}
+          <PreviewField 
+            label="Did you create something new or original?" 
+              value={answers.is_original_work ? 'Yes' : 'No'} 
+          />
             {answers.is_original_work && answers.originality_explanation && (
-              <PreviewField 
-                label="Explain what was new" 
-                value={answers.originality_explanation} 
-              />
-            )}
-          </PreviewSection>
-
-          <PreviewSection title="Skills and Pride">
             <PreviewField 
-              label="What skills did you practice? Select Top 3" 
+              label="Explain what was new" 
+              value={answers.originality_explanation} 
+            />
+          )}
+        </PreviewSection>
+
+        <PreviewSection title="Skills and Pride">
+          <PreviewField 
+            label="What skills did you practice? Select Top 3" 
               value={answers.selected_skills?.map(skill => 
                 SKILLS.find(s => s.id === skill)?.name || skill
               ).join(', ')} 
-            />
-            <PreviewField 
-              label="Justify the selected skills" 
-              value={answers.skills_justification} 
-            />
-            <PreviewField 
-              label="Why are you proud of this artifact?" 
-              value={answers.pride_reason} 
-            />
-          </PreviewSection>
+          />
+          <PreviewField 
+            label="Justify the selected skills" 
+            value={answers.skills_justification} 
+          />
+          <PreviewField 
+            label="Why are you proud of this artifact?" 
+            value={answers.pride_reason} 
+          />
+        </PreviewSection>
 
-          <PreviewSection title="Process, Learning, and Reflection">
-            <PreviewField 
-              label="Describe the process you used to create it" 
-              value={answers.creation_process} 
-            />
-            <PreviewField 
-              label="Your learnings and future applications" 
-              value={answers.learnings} 
-            />
-            <PreviewField 
-              label="Your challenges" 
-              value={answers.challenges} 
-            />
-            <PreviewField 
-              label="Your improvements" 
-              value={answers.improvements} 
-            />
-            <PreviewField 
-              label="Your thanks" 
+        <PreviewSection title="Process, Learning, and Reflection">
+          <PreviewField 
+            label="Describe the process you used to create it" 
+            value={answers.creation_process} 
+          />
+          <PreviewField 
+            label="Your learnings and future applications" 
+            value={answers.learnings} 
+          />
+          <PreviewField 
+            label="Your challenges" 
+            value={answers.challenges} 
+          />
+          <PreviewField 
+            label="Your improvements" 
+            value={answers.improvements} 
+          />
+          <PreviewField 
+            label="Your thanks" 
               value={answers.acknowledgments || ''} 
-            />
-          </PreviewSection>
+          />
+        </PreviewSection>
 
           <div className="flex justify-end gap-3 mt-8">
             <Button
@@ -977,119 +977,119 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
             >
               {isSubmitting ? 'Submitting...' : 'Submit'}
             </Button>
-          </div>
         </div>
-      );
-    }
-
-    // Regular form steps (1-4)
-    return (
-      <div className="w-full max-w-[800px] mx-auto">
-        <Card className="bg-white/60 backdrop-blur-sm border-black/5 shadow-[0_0_1px_1px_rgba(0,0,0,0.05)] rounded-xl overflow-hidden">
-          <div className="px-6 py-5">
-            <div className="space-y-4">
-              {/* Title field always comes first */}
-              {title && (
-                <FormStep
-                  key={title.id}
-                  label={title.label}
-                  hint={title.hint}
-                >
-                  <QuestionField
-                    question={title}
-                    value={answers[title.id as keyof FormAnswers]}
-                    onChange={(value) => handleFormChange(title.id, value)}
-                    uploadProgress={uploadProgress}
-                  />
-                </FormStep>
-              )}
-
-              {/* Subject and Month side by side */}
-              {sideBySide.length > 0 && (
-                <div className="grid grid-cols-2 gap-4">
-                  {sideBySide.map((question) => {
-                    const shouldShow = !question.condition || question.condition(answers);
-                    if (!shouldShow) return null;
-
-                    return (
-                      <FormStep
-                        key={question.id}
-                        label={question.label}
-                        hint={question.hint}
-                      >
-                        <QuestionField
-                          question={question}
-                          value={answers[question.id as keyof FormAnswers]}
-                          onChange={(value) => handleFormChange(question.id, value)}
-                          uploadProgress={uploadProgress}
-                          handleFileUpload={question.id === 'artifact' ? handleFileUpload : undefined}
-                        />
-                      </FormStep>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Remaining questions */}
-              {regular.map((question) => {
-                const shouldShow = !question.condition || question.condition(answers);
-                if (!shouldShow) return null;
-
-                return (
-                  <FormStep
-                    key={question.id}
-                    label={question.label}
-                    hint={question.hint}
-                  >
-                    <QuestionField
-                      question={question}
-                      value={answers[question.id as keyof FormAnswers]}
-                      onChange={(value) => handleFormChange(question.id, value)}
-                      uploadProgress={uploadProgress}
-                      handleFileUpload={question.id === 'artifact' ? handleFileUpload : undefined}
-                    />
-                  </FormStep>
-                );
-              })}
-            </div>
-
-            <div className="flex justify-between items-center mt-6 pt-5 border-t border-gray-200/80">
-              <Button
-                variant="ghost"
-                onClick={handlePrevious}
-                disabled={step === 1 || isSubmitting}
-                size="sm"
-                className="text-gray-600 hover:text-gray-900 h-9 px-4 -ml-2 transition-colors"
-              >
-                Previous
-              </Button>
-
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => handleSaveAsDraft(false)}
-                  disabled={isSubmitting || isSavingDraft || !answers.title || !isDirty}
-                  size="sm"
-                  className="text-gray-700 hover:text-gray-900 border-gray-200 hover:border-gray-300 h-9 px-4 transition-all"
-                >
-                  {isSavingDraft ? 'Saving...' : isDirty ? 'Save Draft' : 'Saved'}
-                </Button>
-
-                <Button
-                  onClick={handleContinue}
-                  disabled={step === 1 ? !isFirstStepComplete() : isSubmitting}
-                  size="sm"
-                  className="bg-[#62C59F] hover:bg-[#62C59F]/90 text-white font-medium shadow-sm h-9 px-4 transition-all"
-                >
-                  {isSubmitting ? 'Submitting...' : 'Continue'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </Card>
       </div>
     );
-  };
+  }
+
+  // Regular form steps (1-4)
+  return (
+    <div className="w-full max-w-[800px] mx-auto">
+      <Card className="bg-white/60 backdrop-blur-sm border-black/5 shadow-[0_0_1px_1px_rgba(0,0,0,0.05)] rounded-xl overflow-hidden">
+        <div className="px-6 py-5">
+          <div className="space-y-4">
+            {/* Title field always comes first */}
+            {title && (
+              <FormStep
+                key={title.id}
+                label={title.label}
+                hint={title.hint}
+              >
+                <QuestionField
+                  question={title}
+                  value={answers[title.id as keyof FormAnswers]}
+                  onChange={(value) => handleFormChange(title.id, value)}
+                  uploadProgress={uploadProgress}
+                />
+              </FormStep>
+            )}
+
+            {/* Subject and Month side by side */}
+            {sideBySide.length > 0 && (
+              <div className="grid grid-cols-2 gap-4">
+                {sideBySide.map((question) => {
+                  const shouldShow = !question.condition || question.condition(answers);
+                  if (!shouldShow) return null;
+
+                  return (
+                    <FormStep
+                      key={question.id}
+                      label={question.label}
+                      hint={question.hint}
+                    >
+                      <QuestionField
+                        question={question}
+                        value={answers[question.id as keyof FormAnswers]}
+                        onChange={(value) => handleFormChange(question.id, value)}
+                        uploadProgress={uploadProgress}
+                        handleFileUpload={question.id === 'artifact' ? handleFileUpload : undefined}
+                      />
+                    </FormStep>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Remaining questions */}
+            {regular.map((question) => {
+              const shouldShow = !question.condition || question.condition(answers);
+              if (!shouldShow) return null;
+
+              return (
+                <FormStep
+                  key={question.id}
+                  label={question.label}
+                  hint={question.hint}
+                >
+                  <QuestionField
+                    question={question}
+                    value={answers[question.id as keyof FormAnswers]}
+                    onChange={(value) => handleFormChange(question.id, value)}
+                    uploadProgress={uploadProgress}
+                    handleFileUpload={question.id === 'artifact' ? handleFileUpload : undefined}
+                  />
+                </FormStep>
+              );
+            })}
+          </div>
+
+          <div className="flex justify-between items-center mt-6 pt-5 border-t border-gray-200/80">
+            <Button
+              variant="ghost"
+              onClick={handlePrevious}
+              disabled={step === 1 || isSubmitting}
+              size="sm"
+              className="text-gray-600 hover:text-gray-900 h-9 px-4 -ml-2 transition-colors"
+            >
+              Previous
+            </Button>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                  onClick={() => handleSaveAsDraft(false)}
+                disabled={isSubmitting || isSavingDraft || !answers.title || !isDirty}
+                size="sm"
+                className="text-gray-700 hover:text-gray-900 border-gray-200 hover:border-gray-300 h-9 px-4 transition-all"
+              >
+                {isSavingDraft ? 'Saving...' : isDirty ? 'Save Draft' : 'Saved'}
+              </Button>
+
+              <Button
+                  onClick={handleContinue}
+                  disabled={step === 1 ? !isFirstStepComplete() : isSubmitting}
+                size="sm"
+                className="bg-[#62C59F] hover:bg-[#62C59F]/90 text-white font-medium shadow-sm h-9 px-4 transition-all"
+              >
+                  {isSubmitting ? 'Submitting...' : 'Continue'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+};
 
   return renderContent();
 }
