@@ -38,6 +38,7 @@ const FormField = <
     </FormFieldContext.Provider>
   )
 }
+FormField.displayName = "FormField"
 
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext)

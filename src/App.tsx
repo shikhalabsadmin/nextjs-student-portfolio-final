@@ -1,16 +1,15 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
-import { useAuthState } from "@/hooks/useAuthState";
+import { useAuthState, initAuth } from "@/hooks/useAuthState";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import AssignmentDetail from '@/pages/AssignmentDetail';
 import { RootLayout } from "@/components/layouts/RootLayout";
 import Index from "@/pages/Index";
 import StudentDashboard from "@/pages/StudentDashboard";
-import StudentAssignments from "@/pages/StudentAssignments";
 import Submit from "@/pages/Submit";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AuthLayout } from "@/components/layouts/AuthLayout";
@@ -19,113 +18,165 @@ import { FormLayout } from "@/components/layouts/FormLayout";
 import { RoleBasedAssignments } from "@/pages/RoleBasedAssignments";
 import { AssignmentForm } from "@/pages/AssignmentForm";
 import { VerifyAssignment } from "@/pages/VerifyAssignment";
+import { TeacherProfile } from "@/pages/TeacherProfile";
+import { StudentProfile } from "@/pages/StudentProfile";
+import { AssignmentView } from "@/components/assignment-form/AssignmentView";
+import ViewAssignment from "@/pages/ViewAssignment";
+
+console.log('App.tsx loaded');
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: false,
       refetchOnWindowFocus: false,
-      staleTime: 1000 * 60 * 5,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
+      staleTime: Infinity
     },
   },
 });
 
 const App: React.FC = () => {
-  const { isAuthenticated, userRole } = useAuthState();
+  const { user, userRole, isLoading } = useAuthState();
 
-  if (isAuthenticated === null) {
+  useEffect(() => {
+    console.log('App mounted with:', { user, userRole, isLoading });
+    initAuth();
+  }, []);
+
+  useEffect(() => {
+    console.log('App auth state changed:', { user, userRole, isLoading });
+  }, [user, userRole, isLoading]);
+
+  const router = createBrowserRouter([
+    {
+      path: "/",
+      element: <RootLayout />,
+      errorElement: <ErrorPage />,
+      children: [
+        {
+          index: true,
+          element: user ? 
+            <Navigate to={`/app/${userRole === 'STUDENT' ? 'dashboard' : 'assignments'}`} replace /> : 
+            <Index />
+        }
+      ]
+    },
+    {
+      path: "/app/submit",
+      element: (
+        <ProtectedRoute>
+          <Submit />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "/app/submit/:id",
+      element: (
+        <ProtectedRoute>
+          <Submit />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "/app/drafts/:id/edit",
+      element: (
+        <ProtectedRoute>
+          <Submit />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "/app",
+      element: <AuthLayout />,
+      errorElement: <ErrorPage />,
+      children: [
+        {
+          path: "dashboard",
+          element: (
+            <ProtectedRoute roles={['STUDENT']}>
+              <StudentDashboard />
+            </ProtectedRoute>
+          )
+        },
+        {
+          path: "assignments",
+          element: (
+            <ProtectedRoute>
+              <RoleBasedAssignments />
+            </ProtectedRoute>
+          )
+        },
+        {
+          path: "assignments/:id",
+          element: (
+            <ProtectedRoute>
+              <AssignmentDetail />
+            </ProtectedRoute>
+          )
+        },
+        {
+          path: "assignments/:id/edit",
+          element: (
+            <ProtectedRoute>
+              <AssignmentForm />
+            </ProtectedRoute>
+          )
+        },
+        {
+          path: "assignments/:id/view",
+          element: (
+            <ProtectedRoute>
+              <ViewAssignment />
+            </ProtectedRoute>
+          )
+        },
+        {
+          path: "teacher/assignments/new",
+          element: (
+            <ProtectedRoute roles={['TEACHER']}>
+              <AssignmentForm />
+            </ProtectedRoute>
+          )
+        },
+        {
+          path: "verify/:id",
+          element: (
+            <ProtectedRoute roles={['TEACHER']}>
+              <VerifyAssignment />
+            </ProtectedRoute>
+          )
+        },
+        {
+          path: "teacher/profile",
+          element: (
+            <ProtectedRoute roles={['TEACHER']}>
+              <TeacherProfile />
+            </ProtectedRoute>
+          )
+        },
+        {
+          path: "student/profile",
+          element: (
+            <ProtectedRoute roles={['STUDENT']}>
+              <StudentProfile />
+            </ProtectedRoute>
+          )
+        }
+      ]
+    }
+  ]);
+
+  console.log('App rendering with:', { user, userRole, isLoading });
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
       </div>
     );
   }
-
-  const router = createBrowserRouter([
-    {
-      path: "/",
-      element: <RootLayout />,
-      children: [
-        {
-          index: true,
-          element: isAuthenticated ? 
-            <Navigate to={`/app/${userRole === 'student' ? 'dashboard' : 'assignments'}`} replace /> : 
-            <Index />
-        }
-      ]
-    },
-    {
-      path: "/app",
-      children: [
-        {
-          element: <AuthLayout />,
-          errorElement: <ErrorPage />,
-          children: [
-            {
-              path: "dashboard",
-              element: (
-                <ProtectedRoute roles={['student']}>
-                  <StudentDashboard />
-                </ProtectedRoute>
-              ),
-            },
-            {
-              path: "assignments",
-              element: (
-                <ProtectedRoute>
-                  <RoleBasedAssignments />
-                </ProtectedRoute>
-              ),
-            },
-            {
-              path: "assignments/:id",
-              element: (
-                <ProtectedRoute>
-                  <AssignmentDetail />
-                </ProtectedRoute>
-              ),
-            },
-            {
-              path: "assign",
-              element: (
-                <ProtectedRoute roles={['teacher']}>
-                  <AssignmentForm />
-                </ProtectedRoute>
-              ),
-            },
-            {
-              path: "verify/:id",
-              element: (
-                <ProtectedRoute roles={['teacher']}>
-                  <VerifyAssignment />
-                </ProtectedRoute>
-              ),
-            }
-          ],
-        },
-        {
-          path: "submit",
-          element: (
-            <ProtectedRoute>
-              <FormLayout>
-                <Submit />
-              </FormLayout>
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: "drafts/:id/edit",
-          element: (
-            <ProtectedRoute>
-              <FormLayout>
-                <Submit />
-              </FormLayout>
-            </ProtectedRoute>
-          ),
-        },
-      ],
-    }
-  ]);
 
   return (
     <ErrorBoundary>

@@ -30,10 +30,10 @@ export default function StudentDashboard() {
       console.log('Raw assignments:', assignments);
 
       const counts = {
-        total: assignments?.filter(a => a.status === 'submitted' || a.status === 'verified').length || 0,
-        drafts: assignments?.filter(a => a.status === 'draft').length || 0,
+        total: assignments?.filter(a => a.status === 'SUBMITTED' || a.status === 'VERIFIED').length || 0,
+        drafts: assignments?.filter(a => a.status === 'DRAFT').length || 0,
         verified: assignments?.filter(a => a.status === 'verified').length || 0,
-        underReview: assignments?.filter(a => a.status === 'submitted').length || 0
+        underReview: assignments?.filter(a => a.status === 'SUBMITTED').length || 0
       };
 
       console.log('Calculated counts:', counts);

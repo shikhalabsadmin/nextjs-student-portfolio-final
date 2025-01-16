@@ -9,16 +9,18 @@ interface FormStepProps {
 
 export const FormStep = ({ label, hint, children }: FormStepProps) => {
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Label className="text-lg font-semibold text-gray-900">
+    <div className="space-y-2.5">
+      <div className="space-y-1">
+        <Label className="text-sm font-medium tracking-tight text-gray-700">
           {label}
         </Label>
         {hint && (
-          <p className="text-sm text-gray-500">{hint}</p>
+          <p className="text-[13px] leading-normal text-gray-500/90">{hint}</p>
         )}
       </div>
-      {children}
+      <div className="[&>*]:w-full [&>*]:transition-shadow [&>*]:duration-200">
+        {children}
+      </div>
     </div>
   );
 };

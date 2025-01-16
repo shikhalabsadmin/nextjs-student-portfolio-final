@@ -77,7 +77,7 @@ export const RecentActivity = () => {
                 <p className="text-sm text-gray-600">{activity.subject}</p>
               </div>
               <span className={`capitalize ${getStatusColor(activity.status)}`}>
-                {activity.status === 'submitted' ? 'Under Review' : activity.status}
+                {activity.status === 'SUBMITTED' ? 'Under Review' : activity.status}
               </span>
             </div>
           ))}

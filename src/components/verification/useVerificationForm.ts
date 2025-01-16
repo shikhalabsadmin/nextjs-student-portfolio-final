@@ -1,7 +1,11 @@
 import { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
+import type { Database } from "@/integrations/supabase/types";
+
+type Verification = Database['public']['Tables']['verifications']['Insert'];
+type TeacherAssessment = Database['public']['Tables']['teacher_assessments']['Insert'];
 
 export const useVerificationForm = (assignmentId: string, onVerified?: () => void) => {
   const [feedback, setFeedback] = useState("");
@@ -44,37 +48,84 @@ export const useVerificationForm = (assignmentId: string, onVerified?: () => voi
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
-      const { data: verification, error: verificationError } = await supabase
-        .from("verifications")
-        .insert({
+      // First check if this is a submission or a regular assignment
+      const { data: submission } = await supabase
+        .from("submissions")
+        .select("id")
+        .eq("assignment_id", assignmentId)
+        .single();
+
+      let verificationId: string;
+
+      if (submission) {
+        // This is a submission verification
+        const verificationData: Verification = {
           assignment_id: assignmentId,
           teacher_id: user.id,
           status,
-          feedback,
-        })
-        .select()
-        .single();
+          feedback
+        };
 
-      if (verificationError) throw verificationError;
+        const { error: verificationError, data: verification } = await supabase
+          .from("verifications")
+          .insert(verificationData)
+          .select()
+          .single();
+
+        if (verificationError) throw verificationError;
+
+        verificationId = verification.id;
+
+        // Update submission status
+        const { error: submissionError } = await supabase
+          .from("submissions")
+          .update({ status })
+          .eq("id", submission.id);
+
+        if (submissionError) throw submissionError;
+      } else {
+        // Regular assignment verification
+        const verificationData: Verification = {
+          assignment_id: assignmentId,
+          teacher_id: user.id,
+          status,
+          feedback
+        };
+
+        const { error: verificationError, data: verification } = await supabase
+          .from("verifications")
+          .insert(verificationData)
+          .select()
+          .single();
+
+        if (verificationError) throw verificationError;
+
+        verificationId = verification.id;
+
+        // Update assignment status
+        const { error: assignmentError } = await supabase
+          .from("assignments")
+          .update({ status })
+          .eq("id", assignmentId);
+
+        if (assignmentError) throw assignmentError;
+      }
+
+      // Insert teacher assessment
+      const assessmentData: TeacherAssessment = {
+        verification_id: verificationId,
+        selected_skills: selectedSkills,
+        skills_justification: skillsJustification,
+        remarks
+      };
 
       const { error: assessmentError } = await supabase
         .from("teacher_assessments")
-        .insert({
-          verification_id: verification.id,
-          selected_skills: selectedSkills,
-          skills_justification: skillsJustification,
-          remarks,
-        });
+        .insert(assessmentData);
 
       if (assessmentError) throw assessmentError;
 
-      const { error: assignmentError } = await supabase
-        .from("assignments")
-        .update({ status })
-        .eq("id", assignmentId);
-
-      if (assignmentError) throw assignmentError;
-
+      // Send notification
       const { error: notificationError } = await supabase
         .functions.invoke("send-notification", {
           body: {
@@ -104,7 +155,7 @@ export const useVerificationForm = (assignmentId: string, onVerified?: () => voi
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }
 
   return {
     status,
@@ -122,4 +173,4 @@ export const useVerificationForm = (assignmentId: string, onVerified?: () => voi
     skills,
     studentSkills,
   };
-};
+}

@@ -17,6 +17,8 @@ import { CalendarIcon, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { useAssignmentFilters } from "@/hooks/useAssignmentFilters";
 import { STATUS_OPTIONS } from "@/hooks/useAssignmentFilters";
+import { subjects, subjectDisplayMap } from '@/constants/subjects';
+import { grades } from '@/constants/grades';
 
 export function Filters() {
   const { status, setStatus, subject, setSubject, date, setDate } = useAssignmentFilters();
@@ -36,14 +38,17 @@ export function Filters() {
         </SelectContent>
       </Select>
 
-      <Select>
+      <Select value={subject} onValueChange={setSubject}>
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Subject" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="math">Mathematics</SelectItem>
-          <SelectItem value="science">Science</SelectItem>
-          <SelectItem value="english">English</SelectItem>
+          <SelectItem value="all">All Subjects</SelectItem>
+          {subjects.map(subject => (
+            <SelectItem key={subject.value} value={subject.value}>
+              {subject.label}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
 

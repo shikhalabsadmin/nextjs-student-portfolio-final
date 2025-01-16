@@ -1,28 +1,25 @@
 import { create } from 'zustand';
 
-interface FiltersState {
-  status: string;
-  subject: string;
-  date: Date | null;
-  setStatus: (status: string) => void;
-  setSubject: (subject: string) => void;
-  setDate: (date: Date | null) => void;
-  resetFilters: () => void;
-}
-
 export const STATUS_OPTIONS = [
-  { value: 'all', label: 'All' },
-  { value: 'draft', label: 'Drafts' },
-  { value: 'submitted', label: 'Under Review' },
-  { value: 'verified', label: 'Verified' }
+  { value: 'all', label: 'All Status' },
+  { value: 'DRAFT', label: 'Draft' },
+  { value: 'SUBMITTED', label: 'Submitted' },
+  { value: 'APPROVED', label: 'Approved' },
+  { value: 'NEEDS_REVISION', label: 'Needs Revision' }
 ] as const;
 
-export const useAssignmentFilters = create<FiltersState>((set) => ({
+type Status = typeof STATUS_OPTIONS[number]['value'];
+
+interface AssignmentFiltersState {
+  status: Status;
+  setStatus: (status: Status) => void;
+  subject: string;
+  setSubject: (subject: string) => void;
+}
+
+export const useAssignmentFilters = create<AssignmentFiltersState>((set) => ({
   status: 'all',
-  subject: 'all',
-  date: null,
   setStatus: (status) => set({ status }),
-  setSubject: (subject) => set({ subject }),
-  setDate: (date) => set({ date }),
-  resetFilters: () => set({ status: 'all', subject: 'all', date: null })
+  subject: 'all',
+  setSubject: (subject) => set({ subject })
 })); 

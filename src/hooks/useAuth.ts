@@ -34,9 +34,9 @@ export const useAuth = () => {
         if (!profile?.role) {
           setShowRoleModal(true);
         } else {
-          if (profile.role === 'student') {
+          if (profile.role === 'STUDENT') {
             navigate("/dashboard");
-          } else if (profile.role === 'teacher') {
+          } else if (profile.role === 'TEACHER') {
             navigate("/assignments");
           }
         }

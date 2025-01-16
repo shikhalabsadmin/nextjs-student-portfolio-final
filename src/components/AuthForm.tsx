@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
@@ -11,96 +11,257 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Grade } from '@/types/profile';
+import type { Database } from '@/types/supabase';
+import { grades } from '@/constants/grades';
+import { formatGrade } from '@/lib/utils';
+type Grade = Database['public']['Tables']['profiles']['Row']['grade'];
+
+type Role = 'STUDENT' | 'TEACHER';
 
 export function AuthForm() {
+  console.log('[AuthForm] Component mounted');
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("");
+  const [role, setRole] = useState<Role | "">("");
   const [grade, setGrade] = useState<Grade>(null);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    console.log('[AuthForm] State updated:', { 
+      isSignUp, 
+      role, 
+      grade, 
+      loading,
+      hasEmail: !!email,
+      hasPassword: !!password
+    });
+  }, [isSignUp, role, grade, loading, email, password]);
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('[AuthForm] handleAuth started with:', { 
+      isSignUp, 
+      email, 
+      role, 
+      grade,
+      hasPassword: !!password 
+    });
     setLoading(true);
 
     try {
       if (isSignUp) {
-        console.log('1. Starting signup process...');
+        console.log('[AuthForm] Starting signup process');
         
-        // Sign up
+        // First sign up the user
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { role }
+            data: { 
+              role,
+              grade: role === 'STUDENT' ? grade : null 
+            },
+            emailRedirectTo: window.location.origin
           }
         });
         
-        console.log('2. Signup response:', { signUpData, signUpError });
+        console.log('[AuthForm] Signup response:', {
+          success: !!signUpData?.user,
+          userId: signUpData?.user?.id,
+          error: signUpError,
+          errorCode: signUpError?.status,
+          errorMessage: signUpError?.message,
+          metadata: signUpData?.user?.user_metadata,
+          identities: signUpData?.user?.identities?.length
+        });
         
-        if (signUpError) throw signUpError;
+        if (signUpError) {
+          console.error('[AuthForm] Signup error:', {
+            error: signUpError,
+            context: {
+              email,
+              role,
+              grade: role === 'STUDENT' ? grade : null
+            }
+          });
+          throw signUpError;
+        }
         if (!signUpData.user) throw new Error('No user data returned');
 
-        console.log('3. User created with ID:', signUpData.user.id);
-        console.log('4. User metadata:', signUpData.user.user_metadata);
-
-        // Create or update profile with grade for students
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: signUpData.user.id,
-            role: role,
-            grade: role === 'student' ? grade : null,
-          }, { onConflict: 'id' });
-
-        console.log('5. Profile upsert result:', { profileData: signUpData.user, profileError });
-        
-        if (profileError) throw profileError;
-
-        // Get session to confirm auth state
+        // Get current session to verify auth state
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        console.log('6. Current session:', { session, sessionError });
-
-        toast({
-          title: "Account created!",
-          description: "Welcome to Portfolio System",
+        console.log('[AuthForm] Current session state:', { 
+          sessionExists: !!session,
+          accessToken: !!session?.access_token,
+          userId: session?.user?.id,
+          error: sessionError,
+          errorMessage: sessionError?.message
         });
 
-        console.log('7. Redirecting to:', role === 'student' ? '/app/dashboard' : '/app/assignments');
+        // Check if profile exists
+        console.log('[AuthForm] Checking for existing profile');
+        const { data: existingProfile, error: existingProfileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', signUpData.user.id)
+          .single();
+
+        console.log('[AuthForm] Profile check result:', { 
+          exists: !!existingProfile,
+          error: existingProfileError,
+          errorCode: existingProfileError?.code,
+          errorMessage: existingProfileError?.message,
+          details: existingProfileError?.details
+        });
+
+        // Prepare profile data
+        const profileInput = {
+          id: signUpData.user.id,
+          role: role,
+          grade: role === 'STUDENT' ? grade : null,
+          full_name: email.split('@')[0],
+          created_at: new Date().toISOString(),
+          subjects: [],
+          grade_levels: role === 'TEACHER' ? [] : null,
+          teaching_subjects: role === 'TEACHER' ? [] : null,
+        };
+
+        console.log('[AuthForm] Attempting profile upsert with:', profileInput);
+
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .upsert(profileInput, {
+            onConflict: 'id',
+            ignoreDuplicates: false
+          })
+          .select()
+          .single();
+
+        console.log('[AuthForm] Profile upsert result:', {
+          success: !!profileData,
+          error: profileError,
+          errorCode: profileError?.code,
+          errorMessage: profileError?.message,
+          details: profileError?.details,
+          data: profileData
+        });
         
-        // Delay navigation slightly to ensure toast is visible
-        setTimeout(() => {
-          window.location.href = role === 'student' ? '/app/dashboard' : '/app/assignments';
-        }, 1000);
+        if (profileError) {
+          console.error('[AuthForm] Profile creation failed:', {
+            error: profileError,
+            context: {
+              userId: signUpData.user.id,
+              hasSession: !!session,
+              sessionUser: session?.user?.id,
+              profileInput
+            }
+          });
+          throw profileError;
+        }
+
+        // Check if email confirmation is required
+        if (signUpData.user.identities?.length === 0) {
+          console.log('[AuthForm] Email confirmation required');
+          toast({
+            title: "Account created!",
+            description: "Please check your email to verify your account. You'll be able to sign in after verification.",
+          });
+          // Stay on the auth page for now
+          setIsSignUp(false); // Switch to sign-in mode
+          setEmail("");
+          setPassword("");
+          setRole("");
+          setGrade(null);
+        } else {
+          console.log('[AuthForm] Email confirmation not required, proceeding with redirect');
+          toast({
+            title: "Account created!",
+            description: "Your account has been created successfully.",
+          });
+          // Redirect to profile page for first-time setup
+          const profilePath = role === 'STUDENT' ? '/app/student/profile' : '/app/teacher/profile';
+          console.log('[AuthForm] Redirecting to:', profilePath);
+          window.location.href = profilePath;
+        }
 
       } else {
         // Sign in flow
+        console.log('[AuthForm] Starting sign in process');
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password
         });
 
-        if (signInError) throw signInError;
+        console.log('[AuthForm] Sign in response:', {
+          success: !!signInData?.user,
+          userId: signInData?.user?.id,
+          error: signInError,
+          errorCode: signInError?.status,
+          errorMessage: signInError?.message
+        });
 
-        const { data: profile } = await supabase
+        if (signInError) {
+          console.error('[AuthForm] Sign in error:', {
+            error: signInError,
+            context: { email }
+          });
+          throw signInError;
+        }
+
+        console.log('[AuthForm] Fetching user profile');
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, full_name')
           .eq('id', signInData.user.id)
           .single();
+
+        console.log('[AuthForm] Profile fetch result:', {
+          success: !!profile,
+          error: profileError,
+          errorCode: profileError?.code,
+          errorMessage: profileError?.message,
+          data: profile
+        });
+
+        if (profileError) {
+          console.error('[AuthForm] Profile fetch error:', {
+            error: profileError,
+            context: {
+              userId: signInData.user.id
+            }
+          });
+          throw profileError;
+        }
+
+        console.log('[AuthForm] Sign in successful, profile:', profile);
 
         toast({
           title: "Welcome back!"
         });
 
+        // If full_name is just the email prefix, redirect to profile page
+        const isDefaultName = profile?.full_name === email.split('@')[0];
+        const redirectPath = isDefaultName
+          ? (profile?.role === 'STUDENT' ? '/app/student/profile' : '/app/teacher/profile')
+          : (profile?.role === 'STUDENT' ? '/app/dashboard' : '/app/assignments');
+
+        console.log('[AuthForm] Redirecting to:', redirectPath);
         // Use window.location for full page reload
-        window.location.href = profile?.role === 'student' ? '/app/dashboard' : '/app/assignments';
+        window.location.href = redirectPath;
       }
     } catch (error) {
-      console.error('Auth error:', error);
+      console.error('[AuthForm] Auth error:', {
+        error,
+        context: {
+          isSignUp,
+          email,
+          role,
+          grade: role === 'STUDENT' ? grade : null
+        }
+      });
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Authentication failed",
@@ -113,6 +274,7 @@ export function AuthForm() {
 
   const toggleAuthMode = (e: React.MouseEvent) => {
     e.preventDefault();
+    console.log('[AuthForm] Toggling auth mode from', isSignUp ? 'signup' : 'signin', 'to', !isSignUp ? 'signup' : 'signin');
     setIsSignUp(!isSignUp);
   };
 
@@ -137,11 +299,11 @@ export function AuthForm() {
                   <button
                     type="button"
                     onClick={() => {
-                      setRole('student');
+                      setRole('STUDENT');
                       setGrade(null);
                     }}
                     className={`flex-1 py-2.5 px-4 rounded-full text-sm font-medium transition-all
-                      ${role === 'student'
+                      ${role === 'STUDENT'
                         ? 'bg-[#62C59F] text-white'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
@@ -151,11 +313,11 @@ export function AuthForm() {
                   <button
                     type="button"
                     onClick={() => {
-                      setRole('teacher');
+                      setRole('TEACHER');
                       setGrade(null);
                     }}
                     className={`flex-1 py-2.5 px-4 rounded-full text-sm font-medium transition-all
-                      ${role === 'teacher'
+                      ${role === 'TEACHER'
                         ? 'bg-[#62C59F] text-white'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
@@ -165,7 +327,7 @@ export function AuthForm() {
                 </div>
 
                 {/* Grade dropdown for students */}
-                {role === 'student' && (
+                {role === 'STUDENT' && (
                   <Select 
                     value={grade || ''} 
                     onValueChange={(value) => setGrade(value as Grade)}
@@ -174,9 +336,9 @@ export function AuthForm() {
                       <SelectValue placeholder="Select your grade" />
                     </SelectTrigger>
                     <SelectContent>
-                      {[7, 8, 9, 10, 11, 12].map((g) => (
-                        <SelectItem key={g} value={g.toString()}>
-                          Grade {g}
+                      {grades.map((g) => (
+                        <SelectItem key={g.value} value={g.value}>
+                          {g.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -204,7 +366,7 @@ export function AuthForm() {
           <Button 
             type="submit" 
             className="w-full bg-[#62C59F] hover:bg-[#51b88e]"
-            disabled={loading || (isSignUp && (!role || (role === 'student' && !grade)))}
+            disabled={loading || (isSignUp && (!role || (role === 'STUDENT' && !grade)))}
           >
             {loading ? "Loading..." : (isSignUp ? "Create Account" : "Sign In")}
           </Button>

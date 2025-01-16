@@ -1,24 +1,30 @@
-import { ChangeEvent, useRef } from "react";
+import { ChangeEvent, useRef, useState } from "react";
 import { Button } from "./button";
 import { Upload } from "lucide-react";
 
-interface FileUploadProps {
+export interface FileUploadProps {
   onUpload: (files: (File | string)[]) => void;
+  maxFiles?: number;
   accept?: string;
   multiple?: boolean;
-  currentFiles?: (File | string)[];
 }
 
-export const FileUpload: React.FC<FileUploadProps> = ({ onUpload, accept, multiple, currentFiles = [] }) => {
+export function FileUpload({ 
+  onUpload, 
+  maxFiles = 1,
+  accept = ".pdf,.doc,.docx,.jpg,.png",
+  multiple = false
+}: FileUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [currentFiles, setCurrentFiles] = useState<(File | string)[]>([]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
-      const updatedFiles = [...currentFiles, ...newFiles];
+      const updatedFiles = [...currentFiles, ...newFiles].slice(0, maxFiles);
+      setCurrentFiles(updatedFiles);
       onUpload(updatedFiles);
       
-      // Reset the file input so the same file can be selected again
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -45,4 +51,4 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onUpload, accept, multip
       </label>
     </div>
   );
-}; 
+} 

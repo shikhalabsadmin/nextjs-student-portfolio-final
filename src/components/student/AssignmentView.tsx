@@ -1,0 +1,52 @@
+import { Assignment } from '@/types/assignments';
+
+interface AssignmentViewProps {
+  assignment: Assignment & {
+    is_parent?: boolean;
+    submissions?: Assignment[];
+  };
+  showActions?: boolean;
+  onDelete?: () => void;
+  onEdit?: () => void;
+  onSubmit?: () => void;
+  onDuplicate?: () => void;
+  onShare?: () => void;
+  onView?: () => void;
+  onDownload?: () => void;
+  onPreview?: () => void;
+  onClose?: () => void;
+  onSave?: () => void;
+  onCancel?: () => void;
+  onCopy?: () => void;
+  onPrint?: () => void;
+  onExport?: () => void;
+  onImport?: () => void;
+  onUpload?: () => void;
+  onDownloadTemplate?: () => void;
+  onUploadTemplate?: () => void;
+  onPreviewTemplate?: () => void;
+  onSaveTemplate?: () => void;
+  onCancelTemplate?: () => void;
+  onCopyTemplate?: () => void;
+  onPrintTemplate?: () => void;
+  onExportTemplate?: () => void;
+  onImportTemplate?: () => void;
+  onUploadTemplateFile?: () => void;
+  onDownloadTemplateFile?: () => void;
+  onPreviewTemplateFile?: () => void;
+  onSaveTemplateFile?: () => void;
+  onCancelTemplateFile?: () => void;
+  onCopyTemplateFile?: () => void;
+  onPrintTemplateFile?: () => void;
+  onExportTemplateFile?: () => void;
+  onImportTemplateFile?: () => void;
+  onUploadTemplateFileFile?: () => void;
+  onDownloadTemplateFileFile?: () => void;
+  onPreviewTemplateFileFile?: () => void;
+  onSaveTemplateFileFile?: () => void;
+  onCancelTemplateFileFile?: () => void;
+  onCopyTemplateFileFile?: () => void;
+  onPrintTemplateFileFile?: () => void;
+  onExportTemplateFileFile?: () => void;
+  onImportTemplateFileFile?: () => void;
+} 

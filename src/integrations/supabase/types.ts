@@ -75,7 +75,7 @@ export type Database = {
           artifact_url: string | null
           created_at: string
           display_layout: Json | null
-          grade: number | null
+          grade: string
           id: string
           is_original_work: boolean
           is_team_project: boolean
@@ -84,15 +84,17 @@ export type Database = {
           status: string
           student_id: string
           subject: string
+          teacher_id: string | null
           title: string
           updated_at: string
+          original_assignment_id: string | null
         }
         Insert: {
           artifact_type: string
           artifact_url?: string | null
           created_at?: string
           display_layout?: Json | null
-          grade?: number | null
+          grade: string
           id?: string
           is_original_work?: boolean
           is_team_project?: boolean
@@ -101,15 +103,17 @@ export type Database = {
           status?: string
           student_id: string
           subject: string
+          teacher_id?: string | null
           title: string
           updated_at?: string
+          original_assignment_id?: string | null
         }
         Update: {
           artifact_type?: string
           artifact_url?: string | null
           created_at?: string
           display_layout?: Json | null
-          grade?: number | null
+          grade?: string
           id?: string
           is_original_work?: boolean
           is_team_project?: boolean
@@ -118,8 +122,10 @@ export type Database = {
           status?: string
           student_id?: string
           subject?: string
+          teacher_id?: string | null
           title?: string
           updated_at?: string
+          original_assignment_id?: string | null
         }
         Relationships: [
           {
@@ -129,6 +135,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "assignments_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
         ]
       }
       notifications: {
@@ -214,23 +227,38 @@ export type Database = {
         Row: {
           created_at: string
           full_name: string | null
+          first_name: string | null
+          last_name: string | null
           id: string
           role: string | null
           updated_at: string
+          teaching_subjects: Array<{ subject: string; grade: string }> | null
+          teaching_grades: string[] | null
+          grade: string | null
         }
         Insert: {
           created_at?: string
           full_name?: string | null
+          first_name?: string | null
+          last_name?: string | null
           id: string
           role?: string | null
           updated_at?: string
+          teaching_subjects?: Array<{ subject: string; grade: string }> | null
+          teaching_grades?: string[] | null
+          grade?: string | null
         }
         Update: {
           created_at?: string
           full_name?: string | null
+          first_name?: string | null
+          last_name?: string | null
           id?: string
           role?: string | null
           updated_at?: string
+          teaching_subjects?: Array<{ subject: string; grade: string }> | null
+          teaching_grades?: string[] | null
+          grade?: string | null
         }
         Relationships: []
       }
@@ -459,6 +487,75 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      submissions: {
+        Row: {
+          id: string
+          assignment_id: string
+          student_id: string
+          title: string
+          subject: string
+          artifact_type: string
+          artifact_url: string | null
+          is_team_project: boolean
+          team_contribution: string | null
+          is_original_work: boolean
+          month: string
+          status: string
+          grade: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          assignment_id: string
+          student_id: string
+          title: string
+          subject: string
+          artifact_type: string
+          artifact_url?: string | null
+          is_team_project?: boolean
+          team_contribution?: string | null
+          is_original_work?: boolean
+          month: string
+          status?: string
+          grade: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          assignment_id?: string
+          student_id?: string
+          title?: string
+          subject?: string
+          artifact_type?: string
+          artifact_url?: string | null
+          is_team_project?: boolean
+          team_contribution?: string | null
+          is_original_work?: boolean
+          month?: string
+          status?: string
+          grade?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
         ]
       }
     }

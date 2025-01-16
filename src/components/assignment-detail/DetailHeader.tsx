@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { formatSubject } from '@/lib/utils';
 
 interface DetailHeaderProps {
   title: string;
@@ -22,7 +23,7 @@ export const DetailHeader = ({
           <h1 className="text-2xl font-bold text-gray-900 mb-2">{title}</h1>
           <div className="flex gap-2">
             <span className="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
-              {subject}
+              {formatSubject(subject)}
             </span>
             <span className="bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full">
               {artifactType}

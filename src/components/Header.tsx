@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/ui/notifications/NotificationBell";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useLocation } from "react-router-dom";
+import { formatSubject, formatGrade } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,48 +14,165 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { UserCircle, LogOut, GraduationCap, Mail } from "lucide-react";
+import { Link } from "react-router-dom";
 
-export const Header = () => {
-  const { isAuthenticated, userRole } = useAuthState();
+// Add this helper function to get unique subjects
+const getUniqueSubjects = (teachingSubjects: { subject: string; grade: string }[] | null) => {
+  if (!teachingSubjects) return [];
+  return [...new Set(teachingSubjects.map(ts => formatSubject(ts.subject)))]
+    .join(', ');
+};
+
+export function Header() {
   const navigate = useNavigate();
+  const { user, userRole, signOut } = useAuthState();
   const location = useLocation();
   const [userEmail, setUserEmail] = useState<string>("");
   const [userDetails, setUserDetails] = useState<any>(null);
 
+  useEffect(() => {
+    console.log('[Header] Component mounted with:', { 
+      userId: user?.id,
+      userRole,
+      pathname: location.pathname,
+      userEmail,
+      userDetails
+    });
+    return () => {
+      console.log('[Header] Component unmounted');
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log('[Header] Auth state changed:', { 
+      userId: user?.id,
+      userRole,
+      hasUser: !!user,
+      userMetadata: user?.user_metadata
+    });
+  }, [user, userRole]);
+
+  console.log('[Header] Rendering with:', { 
+    userId: user?.id,
+    userRole,
+    pathname: location.pathname,
+    hasUserDetails: !!userDetails,
+    userEmail
+  });
+
   // Fetch user details when component mounts
   useEffect(() => {
     const getUserDetails = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserEmail(user.email || "");
+      try {
+        console.log('[Header] Fetching user details');
+        const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
         
-        // Fetch additional details based on role
-        if (userRole === 'teacher') {
-          const { data } = await supabase
+        console.log('[Header] Auth getUser result:', {
+          success: !!currentUser,
+          error: userError,
+          userId: currentUser?.id,
+          userEmail: currentUser?.email,
+          userMetadata: currentUser?.user_metadata
+        });
+
+        if (currentUser) {
+          setUserEmail(currentUser.email || "");
+          
+          console.log('[Header] Fetching profile data for user:', currentUser.id);
+          const { data, error } = await supabase
             .from('profiles')
-            .select('subjects, grade_levels')
-            .eq('id', user.id)
+            .select(userRole === 'TEACHER' ? 'full_name, teaching_subjects, grade_levels' : 'full_name, grade')
+            .eq('id', currentUser.id)
             .single();
-          setUserDetails(data);
-        } else if (userRole === 'student') {
-          const { data } = await supabase
-            .from('profiles')
-            .select('grade')
-            .eq('id', user.id)
-            .single();
-          setUserDetails(data);
+            
+          console.log('[Header] Profile fetch result:', {
+            success: !!data,
+            error,
+            errorCode: error?.code,
+            errorMessage: error?.message,
+            data
+          });
+
+          if (!error) {
+            setUserDetails(data);
+          } else {
+            console.error('[Header] Profile fetch error:', {
+              error,
+              context: {
+                userId: currentUser.id,
+                userRole
+              }
+            });
+          }
         }
+      } catch (error) {
+        console.error('[Header] Error in getUserDetails:', {
+          error,
+          context: {
+            userId: user?.id,
+            userRole
+          }
+        });
       }
     };
 
-    if (isAuthenticated) {
+    if (user) {
       getUserDetails();
     }
-  }, [isAuthenticated, userRole]);
+  }, [user, userRole]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/');
+    try {
+      console.log('[Header] Starting sign out process');
+      
+      // First, clear all local storage
+      console.log('[Header] Clearing local storage');
+      Object.keys(localStorage).forEach(key => {
+        console.log('[Header] Clearing localStorage key:', key);
+        localStorage.removeItem(key);
+      });
+      
+      // Set up auth state change listener before signing out
+      console.log('[Header] Setting up auth state change listener');
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        console.log('[Header] Auth state change:', { event, hasSession: !!session });
+        if (event === 'SIGNED_OUT') {
+          console.log('[Header] Received SIGNED_OUT event, redirecting...');
+          subscription.unsubscribe();
+          window.location.replace('/auth/login');
+        }
+      });
+      
+      // Then sign out from Supabase
+      console.log('[Header] Calling Supabase sign out');
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('[Header] Sign out error:', error);
+        throw error;
+      }
+      
+      // Start a timeout to force reload if auth state change doesn't happen
+      const timeoutId = setTimeout(() => {
+        console.log('[Header] Sign out timeout reached, forcing reload');
+        subscription.unsubscribe();
+        window.location.replace('/auth/login');
+      }, 2000);
+      
+      // Verify sign out was successful
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('[Header] Session cleared immediately');
+        clearTimeout(timeoutId);
+        subscription.unsubscribe();
+        window.location.replace('/auth/login');
+      }
+      
+    } catch (error) {
+      console.error('[Header] Unexpected error during sign out:', error);
+      // Force reload on error
+      window.location.replace('/auth/login');
+    }
   };
 
   // Update the navigation links
@@ -68,53 +186,83 @@ export const Header = () => {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <h1 className="text-xl font-bold">Portfolio System</h1>
-          {isAuthenticated && (
+          {user ? (
             <nav className="hidden md:flex space-x-4">
-              {userRole === "student" ? (
+              {userRole === "STUDENT" ? (
                 <>
-                  <a 
-                    href="/app/dashboard" 
+                  <Link 
+                    to="/app/dashboard" 
                     className={`text-gray-600 hover:text-gray-900 ${
                       location.pathname === '/app/dashboard' ? 'text-blue-600 font-medium' : ''
                     }`}
                   >
                     Dashboard
-                  </a>
-                  <a 
-                    href="/app/assignments" 
+                  </Link>
+                  <Link 
+                    to="/app/assignments" 
                     className={`text-gray-600 hover:text-gray-900 ${
                       location.pathname === '/app/assignments' ? 'text-blue-600 font-medium' : ''
                     }`}
                   >
                     My Assignments
-                  </a>
+                  </Link>
+                  <Link 
+                    to="/app/student/profile" 
+                    className={`text-gray-600 hover:text-gray-900 ${
+                      location.pathname === '/app/student/profile' ? 'text-blue-600 font-medium' : ''
+                    }`}
+                  >
+                    My Profile
+                  </Link>
                 </>
               ) : (
                 <>
-                  <a 
-                    href="/app/assignments" 
+                  <Link 
+                    to="/app/assignments" 
                     className={`text-gray-600 hover:text-gray-900 ${
                       location.pathname === '/app/assignments' ? 'text-blue-600 font-medium' : ''
                     }`}
                   >
                     Review Assignments
-                  </a>
-                  <a 
-                    href="/app/templates" 
+                  </Link>
+                  <Link 
+                    to="/app/templates" 
                     className={`text-gray-600 hover:text-gray-900 ${
                       location.pathname === '/app/templates' ? 'text-blue-600 font-medium' : ''
                     }`}
                   >
                     Templates
-                  </a>
+                  </Link>
+                  {userRole === 'TEACHER' ? (
+                    <>
+                      <Link 
+                        to="/app/assignments" 
+                        className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                      >
+                        Verify Assignments
+                      </Link>
+                      <Link 
+                        to="/app/teacher/assignments/new" 
+                        className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                      >
+                        Create Assignment
+                      </Link>
+                      <Link 
+                        to="/app/teacher/profile" 
+                        className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                      >
+                        Teaching Profile
+                      </Link>
+                    </>
+                  ) : null}
                 </>
               )}
             </nav>
-          )}
+          ) : null}
         </div>
         
         <div className="flex items-center space-x-4">
-          {isAuthenticated ? (
+          {user ? (
             <>
               <NotificationBell />
               <DropdownMenu>
@@ -124,53 +272,69 @@ export const Header = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-72">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuLabel className="font-semibold">My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   
+                  {/* Name for all users */}
+                  {userDetails?.full_name && (
+                    <div className="px-2 py-1.5 flex items-center gap-2">
+                      <UserCircle className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm text-gray-700">{userDetails.full_name}</span>
+                    </div>
+                  )}
+                  
                   {/* Email for all users */}
-                  <div className="px-2 py-1.5 flex items-center text-sm">
-                    <Mail className="mr-2 h-4 w-4 text-gray-500" />
-                    <span className="text-gray-700">{userEmail}</span>
+                  <div className="px-2 py-1.5 flex items-center">
+                    <Mail className="h-4 w-4 text-gray-500 mr-2" />
+                    <span className="text-sm text-gray-700">{userEmail}</span>
                   </div>
 
                   {/* Role for all users */}
-                  <div className="px-2 py-1.5 flex items-center text-sm">
-                    <GraduationCap className="mr-2 h-4 w-4 text-gray-500" />
-                    <span className="text-gray-700 capitalize">{userRole}</span>
+                  <div className="px-2 py-1.5 flex items-center">
+                    <GraduationCap className="h-4 w-4 text-gray-500 mr-2" />
+                    <span className="text-sm text-gray-700">
+                      {userRole === 'STUDENT' ? 'Student' : 'Teacher'}
+                    </span>
                   </div>
 
                   {/* Role-specific information */}
-                  {userRole === 'student' && userDetails && (
-                    <div className="px-2 py-1.5 text-sm">
-                      <span className="text-gray-500">Grade:</span>
-                      <span className="ml-2 text-gray-700">{userDetails.grade}</span>
+                  {userRole === 'STUDENT' && userDetails?.grade && (
+                    <div className="px-2 py-1.5 flex items-center">
+                      <span className="text-sm text-gray-500 mr-2">Grade:</span>
+                      <span className="text-sm text-gray-700">
+                        {formatGrade(userDetails.grade, false)}
+                      </span>
                     </div>
                   )}
 
-                  {userRole === 'teacher' && userDetails && (
+                  {userRole === 'TEACHER' && userDetails && (
                     <>
-                      <div className="px-2 py-1.5 text-sm">
-                        <span className="text-gray-500">Subjects:</span>
-                        <span className="ml-2 text-gray-700">
-                          {userDetails.subjects?.join(', ') || 'Not set'}
-                        </span>
-                      </div>
-                      <div className="px-2 py-1.5 text-sm">
-                        <span className="text-gray-500">Grade Levels:</span>
-                        <span className="ml-2 text-gray-700">
-                          {userDetails.grade_levels?.join(', ') || 'Not set'}
-                        </span>
-                      </div>
+                      {userDetails.teaching_subjects?.length > 0 && (
+                        <div className="px-2 py-1.5">
+                          <span className="text-sm text-gray-500 block mb-1">Subjects:</span>
+                          <span className="text-sm text-gray-700">
+                            {getUniqueSubjects(userDetails.teaching_subjects)}
+                          </span>
+                        </div>
+                      )}
+                      {userDetails.grade_levels?.length > 0 && (
+                        <div className="px-2 py-1.5">
+                          <span className="text-sm text-gray-500 block mb-1">Grade Levels:</span>
+                          <span className="text-sm text-gray-700">
+                            {userDetails.grade_levels.join(', ')}
+                          </span>
+                        </div>
+                      )}
                     </>
                   )}
 
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     onClick={handleSignOut}
-                    className="text-red-600 focus:text-red-600"
+                    className="text-red-600 focus:text-red-600 cursor-pointer"
                   >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign Out
+                    <LogOut className="h-4 w-4 mr-2" />
+                    <span className="text-sm">Sign Out</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -188,4 +352,4 @@ export const Header = () => {
       </div>
     </header>
   );
-};
+}

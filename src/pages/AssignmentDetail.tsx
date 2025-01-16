@@ -6,20 +6,17 @@ import { Button } from '@/components/ui/button';
 import { AssignmentView } from '@/components/assignments/AssignmentView';
 import { ArrowLeft } from 'lucide-react';
 
-
-
-const assignmentDrafts = (supabase: any) => supabase.from('assignment_drafts') as any;
-
 export default function AssignmentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
 
   useEffect(() => {
     const checkIfDraft = async () => {
-      // First try to get it as a draft
-      const { data: draft } = await assignmentDrafts(supabase)
+      const { data: draft } = await supabase
+        .from('assignments')
         .select('*')
         .eq('id', id)
+        .eq('status', 'DRAFT')
         .single();
 
       if (draft) {
@@ -27,7 +24,7 @@ export default function AssignmentDetail() {
           replace: true,
           state: { 
             draftId: draft.id,
-            draftData: draft.data 
+            draftData: draft
           }
         });
       }

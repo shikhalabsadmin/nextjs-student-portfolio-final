@@ -1,36 +1,37 @@
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuthState } from '@/hooks/useAuthState';
+import { Navigate } from "react-router-dom";
+import { useAuthState } from "@/hooks/useAuthState";
+import { useEffect } from "react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   roles?: string[];
 }
 
-export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
-  const { isAuthenticated, userRole } = useAuthState();
-  const location = useLocation();
+export const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
+  const { user, userRole } = useAuthState();
 
-  console.log('ProtectedRoute check:', { 
-    isAuthenticated, 
-    userRole,
-    currentPath: location.pathname,
-    roles 
-  });
+  useEffect(() => {
+    console.log('ProtectedRoute mounted with:', { user, userRole, roles });
+    return () => {
+      console.log('ProtectedRoute unmounted');
+    };
+  }, []);
 
-  // Wait for auth state to be determined
-  if (isAuthenticated === null) {
-    return null;
-  }
+  useEffect(() => {
+    console.log('ProtectedRoute auth state changed:', { user, userRole });
+  }, [user, userRole]);
 
-  if (!isAuthenticated) {
-    console.log('Not authenticated, redirecting to /');
-    return <Navigate to="/" replace state={{ from: location }} />;
+  console.log('ProtectedRoute rendering with:', { user, userRole, roles });
+
+  if (!user) {
+    console.log('ProtectedRoute: No user, redirecting to /');
+    return <Navigate to="/" replace />;
   }
 
   if (roles && !roles.includes(userRole)) {
-    console.log('Unauthorized role, redirecting to dashboard');
-    return <Navigate to="/app/dashboard" replace />;
+    console.log('ProtectedRoute: Invalid role, redirecting to /app/assignments');
+    return <Navigate to="/app/assignments" replace />;
   }
 
   return <>{children}</>;
-} 
+}; 

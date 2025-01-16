@@ -1,4 +1,5 @@
 import { Users, Lightbulb, Book } from 'lucide-react';
+import { formatSubject } from '@/lib/utils';
 
 interface KeyDetailsProps {
   isTeamProject: boolean;
@@ -34,7 +35,7 @@ export const KeyDetails = ({ isTeamProject, isOriginalWork, subject }: KeyDetail
           <Book className="h-5 w-5 text-[#62C59F]" />
           <h3 className="font-medium">Subject Area</h3>
         </div>
-        <p className="text-sm text-gray-600">{subject}</p>
+        <p className="text-sm text-gray-600">{formatSubject(subject)}</p>
       </div>
     </div>
   );

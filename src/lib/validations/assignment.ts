@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const assignmentSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
-  type: z.enum(["Project", "Essay", "Model", "Performance", "Presentation", "Other"], {
+  artifact_type: z.enum(["Project", "Essay", "Model", "Performance", "Presentation", "Other"], {
     required_error: "Please select a type",
   }),
   subject: z.enum(["Mathematics", "Science", "English", "History", "Art", "Music", "Physical Education", "Other"], {
@@ -14,12 +14,23 @@ export const assignmentSchema = z.object({
   ], {
     required_error: "Please select a month",
   }),
-  is_team_project: z.boolean(),
-  team_description: z.string().optional(),
+  grade: z.string({
+    required_error: "Please select a grade",
+  }),
+  is_team_work: z.boolean(),
+  team_contribution: z.string().nullable().optional(),
   is_original_work: z.boolean(),
-  originality_description: z.string().optional(),
-  description: z.string().min(10, "Description must be at least 10 characters"),
-  artifact: z.instanceof(File, { message: "Please upload your work" }),
+  artifact_url: z.string().optional(),
+  artifact: z.union([z.instanceof(File), z.array(z.union([z.instanceof(File), z.string()]))]).optional(),
+  files: z.array(z.object({
+    id: z.string(),
+    file_url: z.string(),
+    file_name: z.string(),
+    file_size: z.number(),
+    file_type: z.string(),
+    created_at: z.string().optional(),
+    assignment_id: z.string().optional()
+  })).optional()
 });
 
 export type AssignmentFormData = z.infer<typeof assignmentSchema>;

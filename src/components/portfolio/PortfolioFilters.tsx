@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, Filter } from 'lucide-react';
+import { formatSubject } from '@/lib/utils';
 
 interface PortfolioFiltersProps {
   searchTerm: string;
@@ -40,7 +41,7 @@ export const PortfolioFilters = ({
               >
                 <option value="">All Subjects</option>
                 {subjects.map(subject => (
-                  <option key={subject} value={subject}>{subject}</option>
+                  <option key={subject} value={subject}>{formatSubject(subject)}</option>
                 ))}
               </select>
             </div>

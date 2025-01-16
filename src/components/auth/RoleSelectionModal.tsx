@@ -4,78 +4,56 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthState } from '@/hooks/useAuthState';
+import { MultiSelect } from '@/components/ui/multi-select/index';
 
-interface RoleSelectionModalProps {
-  isOpen: boolean;
-  onRoleSelected: (role: string) => void;
-}
-
-export const RoleSelectionModal = ({ isOpen, onRoleSelected }: RoleSelectionModalProps) => {
-  const [role, setRole] = useState<string>("student");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export function RoleSelectionModal() {
+  const [role, setRole] = useState<'student' | 'teacher' | null>(null);
   const navigate = useNavigate();
+  const { setUserRole, user } = useAuthState();
 
-  const handleSubmit = async () => {
+  const handleRoleSelect = async (selectedRole: 'student' | 'teacher') => {
     try {
-      setIsSubmitting(true);
-      setError(null);
-      
-      // 1. Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      console.log('1. Current user:', user);
-      
-      if (userError || !user) {
-        throw new Error('Authentication error. Please try logging in again.');
-      }
+      if (!user) return;
 
-      // 2. Update profile
-      console.log('2. Updating profile with role:', role);
+      // Update user metadata
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { role: selectedRole }
+      });
+      if (updateError) throw updateError;
+
+      // Update profiles table
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ 
-          role: role,
+        .upsert({
+          id: user.id,
+          role: selectedRole,
           updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
+        });
+      if (profileError) throw profileError;
 
-      if (profileError) {
-        console.error('Profile error:', profileError);
-        throw profileError;
-      }
+      // Update local state
+      setUserRole(selectedRole);
 
-      // 3. Update metadata
-      console.log('3. Updating user metadata...');
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: { role }
-      });
-
-      if (updateError) {
-        console.error('Metadata update error:', updateError);
-        throw updateError;
-      }
-
-      console.log('4. All updates successful, reloading...');
-      onRoleSelected(role);
-      window.location.reload();
-      
-    } catch (err) {
-      console.error('Error in role selection:', err);
-      setError(err instanceof Error ? err.message : 'Failed to set role');
-    } finally {
-      setIsSubmitting(false);
+      // Navigate based on role
+      navigate(selectedRole === 'teacher' ? '/app/assignments' : '/app/dashboard');
+    } catch (error) {
+      console.error('Error setting role:', error);
     }
   };
 
   return (
-    <Dialog open={isOpen}>
+    <Dialog open={true}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Select Your Role</DialogTitle>
           <DialogDescription>Choose your role to continue</DialogDescription>
         </DialogHeader>
         
-        <RadioGroup value={role} onValueChange={setRole}>
+        <RadioGroup 
+          value={role ?? undefined} 
+          onValueChange={(value: 'student' | 'teacher') => setRole(value)}
+        >
           <div className="flex gap-4">
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="student" id="student" />
@@ -88,18 +66,14 @@ export const RoleSelectionModal = ({ isOpen, onRoleSelected }: RoleSelectionModa
           </div>
         </RadioGroup>
 
-        {error && (
-          <p className="text-sm text-red-500">{error}</p>
-        )}
-
         <Button 
-          onClick={handleSubmit} 
-          disabled={isSubmitting}
+          onClick={() => handleRoleSelect(role as 'student' | 'teacher')} 
+          disabled={!role}
           className="w-full"
         >
-          {isSubmitting ? "Setting role..." : "Continue"}
+          {role ? "Continue" : "Select a role"}
         </Button>
       </DialogContent>
     </Dialog>
   );
-};
+}

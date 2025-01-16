@@ -30,8 +30,22 @@ export interface Assignment {
   id: string;
   title: string;
   subject: string;
+  grade: string;
   artifact_type: string;
-  month: string;
   artifact_url: string | null;
+  month: string;
   created_at: string;
+  description?: string | null;
+  selected_skills?: string[] | null;
+  is_team_work?: boolean;
+  team_contribution?: string | null;
+  is_original_work?: boolean;
+  originality_explanation?: string | null;
+  skills_justification?: string | null;
+  pride_reason?: string | null;
+  creation_process?: string | null;
+  learnings?: string | null;
+  challenges?: string | null;
+  improvements?: string | null;
+  acknowledgments?: string | null;
 }
