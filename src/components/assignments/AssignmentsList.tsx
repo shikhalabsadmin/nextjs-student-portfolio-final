@@ -184,7 +184,7 @@ export const AssignmentsList = () => {
         artifact_type: assignment.artifact_type,
         raw: assignment
       });
-      navigate(`/app/submit?draftId=${assignment.id}`, {
+      navigate(`/app/submit?id=${assignment.id}`, {
         state: {
           draftData: assignment
         }
