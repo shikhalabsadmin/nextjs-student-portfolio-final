@@ -12,7 +12,7 @@ export interface FileUploadProps {
 export function FileUpload({ 
   onUpload, 
   maxFiles = 1,
-  accept = ".pdf,.doc,.docx,.jpg,.png",
+  accept = "*",
   multiple = false
 }: FileUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);

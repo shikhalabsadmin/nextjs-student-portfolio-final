@@ -216,11 +216,15 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
     // Validate file types and sizes
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     const ALLOWED_TYPES = [
+      // Images
       'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+      // Documents
       'application/pdf', 'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      // Videos
+      'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm'
     ];
 
     // Validate all files before starting upload

@@ -22,6 +22,7 @@ import { TeacherProfile } from "@/pages/TeacherProfile";
 import { StudentProfile } from "@/pages/StudentProfile";
 import { AssignmentView } from "@/components/assignment-form/AssignmentView";
 import ViewAssignment from "@/pages/ViewAssignment";
+import AdminDashboard from '@/pages/AdminDashboard';
 
 console.log('App.tsx loaded');
 
@@ -60,6 +61,21 @@ const App: React.FC = () => {
           element: user ? 
             <Navigate to={`/app/${userRole === 'STUDENT' ? 'dashboard' : 'assignments'}`} replace /> : 
             <Index />
+        }
+      ]
+    },
+    {
+      path: "/auth",
+      element: user ? <Navigate to="/app/dashboard" replace /> : <RootLayout />,
+      errorElement: <ErrorPage />,
+      children: [
+        {
+          path: "login",
+          element: user ? <Navigate to="/app/dashboard" replace /> : <Index />
+        },
+        {
+          path: "signup",
+          element: user ? <Navigate to="/app/dashboard" replace /> : <Index />
         }
       ]
     },
@@ -163,7 +179,15 @@ const App: React.FC = () => {
               <StudentProfile />
             </ProtectedRoute>
           )
-        }
+        },
+        {
+          path: 'admin',
+          element: (
+            <ProtectedRoute roles={['ADMIN']}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          ),
+        },
       ]
     }
   ]);

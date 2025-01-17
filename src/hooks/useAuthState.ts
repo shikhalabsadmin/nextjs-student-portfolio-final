@@ -21,27 +21,33 @@ export const useAuthState = create<AuthState>()((set) => ({
   profile: null,
   signOut: async () => {
     try {
+      console.log('[Auth] Starting sign out process');
+      
       // Clear all local storage first
+      console.log('[Auth] Clearing local storage');
       localStorage.clear();
       
       // Sign out from Supabase
+      console.log('[Auth] Calling Supabase sign out');
       const { error } = await supabase.auth.signOut();
       if (error) {
-        console.error('Error during sign out:', error);
+        console.error('[Auth] Error during sign out:', error);
         throw error;
       }
       
       // Clear the state
+      console.log('[Auth] Clearing auth state');
       set({ user: null, userRole: null, profile: null });
       
-      // Force a page reload to clear any cached state
-      window.location.replace('/');
+      // Use navigate to go to login page
+      console.log('[Auth] Redirecting to login page');
+      window.location.href = '/auth/login';
     } catch (error) {
-      console.error('Unexpected error during sign out:', error);
+      console.error('[Auth] Unexpected error during sign out:', error);
       // Still clear the state even if there's an error
       set({ user: null, userRole: null, profile: null });
       // Force reload anyway to ensure clean state
-      window.location.replace('/');
+      window.location.href = '/auth/login';
     }
   }
 }));

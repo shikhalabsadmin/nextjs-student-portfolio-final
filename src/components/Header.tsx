@@ -124,52 +124,9 @@ export function Header() {
   const handleSignOut = async () => {
     try {
       console.log('[Header] Starting sign out process');
-      
-      // First, clear all local storage
-      console.log('[Header] Clearing local storage');
-      Object.keys(localStorage).forEach(key => {
-        console.log('[Header] Clearing localStorage key:', key);
-        localStorage.removeItem(key);
-      });
-      
-      // Set up auth state change listener before signing out
-      console.log('[Header] Setting up auth state change listener');
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        console.log('[Header] Auth state change:', { event, hasSession: !!session });
-        if (event === 'SIGNED_OUT') {
-          console.log('[Header] Received SIGNED_OUT event, redirecting...');
-          subscription.unsubscribe();
-          window.location.replace('/auth/login');
-        }
-      });
-      
-      // Then sign out from Supabase
-      console.log('[Header] Calling Supabase sign out');
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.error('[Header] Sign out error:', error);
-        throw error;
-      }
-      
-      // Start a timeout to force reload if auth state change doesn't happen
-      const timeoutId = setTimeout(() => {
-        console.log('[Header] Sign out timeout reached, forcing reload');
-        subscription.unsubscribe();
-        window.location.replace('/auth/login');
-      }, 2000);
-      
-      // Verify sign out was successful
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.log('[Header] Session cleared immediately');
-        clearTimeout(timeoutId);
-        subscription.unsubscribe();
-        window.location.replace('/auth/login');
-      }
-      
+      await signOut();
     } catch (error) {
-      console.error('[Header] Unexpected error during sign out:', error);
+      console.error('[Header] Error during sign out:', error);
       // Force reload on error
       window.location.replace('/auth/login');
     }
