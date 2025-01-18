@@ -13,6 +13,7 @@ import { Assignment } from '@/types/assignments';
 import { SKILLS } from '@/lib/constants';
 import { formatSubject, formatGrade } from '@/lib/utils';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { INITIAL_QUESTIONS } from '@/components/assignment-form/QuestionTypes';
 
 export const VerifyAssignment = () => {
   const { id } = useParams();
@@ -20,34 +21,70 @@ export const VerifyAssignment = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  console.log('[DEBUG] Assignment ID:', id);
+
   const [remarks, setRemarks] = useState('');
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [skillJustification, setSkillJustification] = useState('');
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(true);
 
-  const { data: assignment, isLoading } = useQuery({
+  const { data: assignment, isLoading, error } = useQuery<Assignment>({
     queryKey: ['assignment', id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('assignments')
         .select(`
           *,
-          student:profiles!student_id (
+          student:profiles!assignments_student_id_fkey(
             id,
             full_name,
             grade
           ),
-          responses (
-            question_key,
-            response_text
+          files:assignment_files (
+            id,
+            file_url,
+            file_name,
+            file_size,
+            file_type,
+            created_at
           )
         `)
         .eq('id', id)
         .single();
 
-      if (error) throw error;
+      console.log('[DEBUG] Query response:', { data, error });
+
+      if (error) {
+        console.error('[DEBUG] Supabase error:', error);
+        console.error('[DEBUG] Error details:', error.details);
+        console.error('[DEBUG] Error hint:', error.hint);
+        throw error;
+      }
+      
       console.log('[DEBUG] Raw assignment data:', data);
-      return data as unknown as Assignment;
+      console.log('[DEBUG] Student data:', data?.student);
+      console.log('[DEBUG] Teacher View - Files:', {
+        id: data.id,
+        artifact_url: data.artifact_url,
+        files: data.files,
+        filesCount: data.files?.length,
+        artifact_urls: data.artifact_url?.split(',') || []
+      });
+      
+      if (!data?.student) {
+        throw new Error('Student data not found');
+      }
+      
+      // Transform the response to match the Assignment type
+      const transformedData = {
+        ...data,
+        student: data.student, // Student is already an object
+        files: data.files || [] // Keep files array as is, default to empty array
+      };
+      
+      console.log('[DEBUG] Transformed data:', transformedData);
+      
+      return transformedData as Assignment;
     }
   });
 
@@ -100,11 +137,62 @@ export const VerifyAssignment = () => {
     }
   });
 
+  const renderQuestionWithFollowUps = (questionId: string, answer: any) => {
+    const question = INITIAL_QUESTIONS.find(q => q.id === questionId);
+    if (!question) return null;
+
+    return (
+      <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+        <div>
+          <h4 className="text-base font-semibold text-gray-800">{question.label}</h4>
+          
+          {/* Show follow-up questions if they exist */}
+          {question.followUpQuestions && (
+            <div className="mt-2 space-y-1">
+              {question.followUpQuestions.map((followUp, index) => (
+                <p key={index} className="text-sm text-gray-600">
+                  • {followUp}
+                </p>
+              ))}
+            </div>
+          )}
+
+          {/* Show answer based on question type */}
+          <div className="mt-4 border-t pt-3">
+            <div className="text-sm font-medium text-gray-500 mb-1">Student's Response:</div>
+            {question.type === 'boolean' ? (
+              <p className="text-sm text-gray-800">{answer ? 'Yes' : 'No'}</p>
+            ) : (
+              <p className="text-sm text-gray-800 whitespace-pre-wrap">{answer}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
-  const files = (assignment.files || []).filter(Boolean);
+  if (error) {
+    console.error('[DEBUG] Query error:', error);
+    return <div>Error loading assignment: {error.message}</div>;
+  }
+
+  if (!assignment || !assignment.student) {
+    return <div>Assignment or student data not found</div>;
+  }
+
+  // Deduplicate files based on file_url
+  const uniqueFiles = assignment.files?.reduce((acc, current) => {
+    const x = acc.find(item => item.file_url === current.file_url);
+    if (!x) {
+      return acc.concat([current]);
+    } else {
+      return acc;
+    }
+  }, [] as typeof assignment.files) || [];
 
   return (
     <div className="container mx-auto py-8 max-w-4xl space-y-6">
@@ -114,7 +202,7 @@ export const VerifyAssignment = () => {
           <div className="flex justify-between items-start">
             <h1 className="text-2xl font-bold">{assignment.title}</h1>
             <div className="flex gap-2">
-              {files.map((file, index) => (
+              {uniqueFiles.map((file, index) => (
                 <Button 
                   key={index}
                   variant="outline"
@@ -168,63 +256,49 @@ export const VerifyAssignment = () => {
             </AccordionTrigger>
             <AccordionContent>
               <div className="px-6 pb-6 space-y-6">
-                {assignment.is_team_work && (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-gray-600">Team Contribution</h4>
-                    <p className="text-sm">{assignment.team_contribution}</p>
+                {/* Basic Information - Step 1 */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Basic Information</h3>
+                  {renderQuestionWithFollowUps('artifact_type', assignment.artifact_type)}
+                  {renderQuestionWithFollowUps('month', assignment.month)}
+                  {renderQuestionWithFollowUps('subject', assignment.subject)}
+                </div>
+
+                {/* Collaboration and Originality - Step 2 */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Collaboration and Originality</h3>
+                  {renderQuestionWithFollowUps('is_team_work', assignment.is_team_work)}
+                  {assignment.is_team_work && renderQuestionWithFollowUps('team_contribution', assignment.team_contribution)}
+                  {renderQuestionWithFollowUps('is_original_work', assignment.is_original_work)}
+                  {assignment.is_original_work && renderQuestionWithFollowUps('originality_explanation', assignment.originality_explanation)}
+                </div>
+
+                {/* Skills and Pride - Step 3 */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Skills and Pride</h3>
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <h4 className="text-base font-semibold text-gray-800">Skills Demonstrated</h4>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {assignment.selected_skills?.map((skill) => (
+                        <Badge key={skill} variant="secondary">
+                          {SKILLS.find(s => s.id === skill)?.name || skill}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
-                )}
-
-                {!assignment.is_original_work && (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-gray-600">Originality Explanation</h4>
-                    <p className="text-sm">{assignment.originality_explanation}</p>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-600">Skills Demonstrated</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {assignment.selected_skills?.map((skill) => (
-                      <Badge key={skill} variant="secondary">
-                        {SKILLS.find(s => s.id === skill)?.name || skill}
-                      </Badge>
-                    ))}
-                  </div>
-                  <p className="text-sm mt-2">{assignment.skills_justification}</p>
-                </div>
-                
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-600">Pride Reason</h4>
-                  <p className="text-sm">{assignment.pride_reason}</p>
+                  {renderQuestionWithFollowUps('skills_justification', assignment.skills_justification)}
+                  {renderQuestionWithFollowUps('pride_reason', assignment.pride_reason)}
                 </div>
 
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-600">Creation Process</h4>
-                  <p className="text-sm">{assignment.creation_process}</p>
+                {/* Process, Learning, and Reflection - Step 4 */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Process, Learning, and Reflection</h3>
+                  {renderQuestionWithFollowUps('creation_process', assignment.creation_process)}
+                  {renderQuestionWithFollowUps('learnings', assignment.learnings)}
+                  {renderQuestionWithFollowUps('challenges', assignment.challenges)}
+                  {renderQuestionWithFollowUps('improvements', assignment.improvements)}
+                  {renderQuestionWithFollowUps('acknowledgments', assignment.acknowledgments)}
                 </div>
-
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-600">Learnings</h4>
-                  <p className="text-sm">{assignment.learnings}</p>
-                </div>
-
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-600">Challenges</h4>
-                  <p className="text-sm">{assignment.challenges}</p>
-                </div>
-
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-600">Future Improvements</h4>
-                  <p className="text-sm">{assignment.improvements}</p>
-                </div>
-
-                {assignment.acknowledgments && (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-gray-600">Acknowledgments</h4>
-                    <p className="text-sm">{assignment.acknowledgments}</p>
-                  </div>
-                )}
               </div>
             </AccordionContent>
           </Card>

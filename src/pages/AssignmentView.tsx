@@ -24,12 +24,26 @@ export default function AssignmentView() {
               id,
               full_name,
               grade
+            ),
+            files:assignment_files (
+              id,
+              file_url,
+              file_name,
+              file_size,
+              file_type,
+              created_at
             )
           `)
           .eq('id', id)
           .single();
 
         if (error) throw error;
+        console.log('[DEBUG] Student View - Assignment Data:', {
+          id: data.id,
+          artifact_url: data.artifact_url,
+          files: data.files,
+          filesCount: data.files?.length
+        });
         setAssignment(data);
       } catch (error) {
         console.error('Error fetching assignment:', error);
@@ -65,6 +79,16 @@ export default function AssignmentView() {
     );
   }
 
+  // Deduplicate files based on file_url
+  const uniqueFiles = assignment.files?.reduce((acc, current) => {
+    const x = acc.find(item => item.file_url === current.file_url);
+    if (!x) {
+      return acc.concat([current]);
+    } else {
+      return acc;
+    }
+  }, [] as typeof assignment.files) || [];
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-3xl mx-auto space-y-8">
@@ -79,16 +103,16 @@ export default function AssignmentView() {
         </PreviewSection>
 
         <PreviewSection title="Artifact">
-          {(assignment.artifact_url?.split(',') || []).filter(Boolean).map((file, index) => (
+          {uniqueFiles.map((file, index) => (
             <div key={index} className="flex items-center gap-2 p-2 rounded-lg bg-white/40">
               <FileText className="w-4 h-4 text-gray-500" />
               <a 
-                href={file} 
+                href={file.file_url} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 hover:text-blue-800 truncate"
               >
-                {file.split('/').pop()}
+                {file.file_name}
               </a>
             </div>
           ))}
