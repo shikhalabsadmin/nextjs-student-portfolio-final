@@ -74,7 +74,6 @@ export function MultiSelect({
                   variant="secondary"
                   key={label}
                   className="mr-1"
-                  onRemove={() => handleUnselect(label)}
                 >
                   {label}
                   <div 

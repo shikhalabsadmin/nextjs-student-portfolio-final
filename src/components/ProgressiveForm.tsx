@@ -253,7 +253,7 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
     try {
       setUploadProgress({});
       const currentAnswers = { ...answers };
-      const uploadedUrls: string[] = [];
+      const uploadedFiles: AssignmentFile[] = [];
       const uploadErrors: string[] = [];
 
       // Process each file with retry logic
@@ -264,7 +264,7 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
 
         while (retries > 0) {
           try {
-            const { url } = await uploadFile(
+            const { metadata } = await uploadFile(
               file, 
               (progress) => {
                 setUploadProgress(prev => ({
@@ -275,8 +275,8 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
               currentId
             );
 
-            if (url) {
-              uploadedUrls.push(url);
+            if (metadata) {
+              uploadedFiles.push(metadata);
               break;
             }
           } catch (error) {
@@ -302,19 +302,14 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
         });
       }
 
-      // Combine with existing URLs if any
-      if (Array.isArray(currentAnswers.artifact)) {
-        const existingUrls = currentAnswers.artifact
-          .filter(item => typeof item === 'string')
-          .map(url => url as string);
-        uploadedUrls.push(...existingUrls);
-      }
-
-      // Update form state
+      // Update form state with new files
       const updatedAnswers = {
         ...currentAnswers,
-        artifact: uploadedUrls,
-        artifact_url: uploadedUrls.join(',')
+        files: [...(currentAnswers.files || []), ...uploadedFiles],
+        artifact: [...(currentAnswers.artifact || []), ...uploadedFiles.map(f => f.file_url)],
+        artifact_url: [...(currentAnswers.files || []), ...uploadedFiles]
+          .map(f => typeof f === 'string' ? f : f.file_url)
+          .join(',')
       };
       setAnswers(updatedAnswers);
       setIsDirty(true);
@@ -347,8 +342,6 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
         description: "Failed to upload files. Please try again.",
         variant: "destructive"
       });
-    } finally {
-      setUploadProgress({});
     }
   };
 

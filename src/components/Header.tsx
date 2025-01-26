@@ -25,101 +25,15 @@ const getUniqueSubjects = (teachingSubjects: { subject: string; grade: string }[
 
 export function Header() {
   const navigate = useNavigate();
-  const { user, userRole, signOut } = useAuthState();
+  const { user, userRole, profile, signOut } = useAuthState();
   const location = useLocation();
   const [userEmail, setUserEmail] = useState<string>("");
-  const [userDetails, setUserDetails] = useState<any>(null);
 
   useEffect(() => {
-    console.log('[Header] Component mounted with:', { 
-      userId: user?.id,
-      userRole,
-      pathname: location.pathname,
-      userEmail,
-      userDetails
-    });
-    return () => {
-      console.log('[Header] Component unmounted');
-    };
-  }, []);
-
-  useEffect(() => {
-    console.log('[Header] Auth state changed:', { 
-      userId: user?.id,
-      userRole,
-      hasUser: !!user,
-      userMetadata: user?.user_metadata
-    });
-  }, [user, userRole]);
-
-  console.log('[Header] Rendering with:', { 
-    userId: user?.id,
-    userRole,
-    pathname: location.pathname,
-    hasUserDetails: !!userDetails,
-    userEmail
-  });
-
-  // Fetch user details when component mounts
-  useEffect(() => {
-    const getUserDetails = async () => {
-      try {
-        console.log('[Header] Fetching user details');
-        const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
-        
-        console.log('[Header] Auth getUser result:', {
-          success: !!currentUser,
-          error: userError,
-          userId: currentUser?.id,
-          userEmail: currentUser?.email,
-          userMetadata: currentUser?.user_metadata
-        });
-
-        if (currentUser) {
-          setUserEmail(currentUser.email || "");
-          
-          console.log('[Header] Fetching profile data for user:', currentUser.id);
-          const { data, error } = await supabase
-            .from('profiles')
-            .select(userRole === 'TEACHER' ? 'full_name, teaching_subjects, grade_levels' : 'full_name, grade')
-            .eq('id', currentUser.id)
-            .single();
-            
-          console.log('[Header] Profile fetch result:', {
-            success: !!data,
-            error,
-            errorCode: error?.code,
-            errorMessage: error?.message,
-            data
-          });
-
-          if (!error) {
-            setUserDetails(data);
-          } else {
-            console.error('[Header] Profile fetch error:', {
-              error,
-              context: {
-                userId: currentUser.id,
-                userRole
-              }
-            });
-          }
-        }
-      } catch (error) {
-        console.error('[Header] Error in getUserDetails:', {
-          error,
-          context: {
-            userId: user?.id,
-            userRole
-          }
-        });
-      }
-    };
-
-    if (user) {
-      getUserDetails();
+    if (user?.email) {
+      setUserEmail(user.email);
     }
-  }, [user, userRole]);
+  }, [user]);
 
   const handleSignOut = async () => {
     try {
@@ -180,38 +94,18 @@ export function Header() {
                       location.pathname === '/app/assignments' ? 'text-blue-600 font-medium' : ''
                     }`}
                   >
-                    Review Assignments
+                    Assignments
                   </Link>
-                  <Link 
-                    to="/app/templates" 
-                    className={`text-gray-600 hover:text-gray-900 ${
-                      location.pathname === '/app/templates' ? 'text-blue-600 font-medium' : ''
-                    }`}
-                  >
-                    Templates
-                  </Link>
-                  {userRole === 'TEACHER' ? (
-                    <>
-                      <Link 
-                        to="/app/assignments" 
-                        className="text-sm font-medium text-gray-700 hover:text-gray-900"
-                      >
-                        Verify Assignments
-                      </Link>
-                      <Link 
-                        to="/app/teacher/assignments/new" 
-                        className="text-sm font-medium text-gray-700 hover:text-gray-900"
-                      >
-                        Create Assignment
-                      </Link>
-                      <Link 
-                        to="/app/teacher/profile" 
-                        className="text-sm font-medium text-gray-700 hover:text-gray-900"
-                      >
-                        Teaching Profile
-                      </Link>
-                    </>
-                  ) : null}
+                  {userRole === 'TEACHER' && (
+                    <Link 
+                      to="/app/teacher/profile" 
+                      className={`text-gray-600 hover:text-gray-900 ${
+                        location.pathname === '/app/teacher/profile' ? 'text-blue-600 font-medium' : ''
+                      }`}
+                    >
+                      Profile
+                    </Link>
+                  )}
                 </>
               )}
             </nav>
@@ -233,10 +127,10 @@ export function Header() {
                   <DropdownMenuSeparator />
                   
                   {/* Name for all users */}
-                  {userDetails?.full_name && (
+                  {profile?.full_name && (
                     <div className="px-2 py-1.5 flex items-center gap-2">
                       <UserCircle className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-700">{userDetails.full_name}</span>
+                      <span className="text-sm text-gray-700">{profile.full_name}</span>
                     </div>
                   )}
                   
@@ -255,31 +149,31 @@ export function Header() {
                   </div>
 
                   {/* Role-specific information */}
-                  {userRole === 'STUDENT' && userDetails?.grade && (
+                  {userRole === 'STUDENT' && profile?.grade && (
                     <div className="px-2 py-1.5 flex items-center">
                       <span className="text-sm text-gray-500 mr-2">Grade:</span>
                       <span className="text-sm text-gray-700">
-                        {formatGrade(userDetails.grade, false)}
+                        {formatGrade(profile.grade, false)}
                       </span>
                     </div>
                   )}
 
-                  {userRole === 'TEACHER' && userDetails && (
+                  {userRole === 'TEACHER' && profile && (
                     <>
-                      {userDetails.teaching_subjects?.length > 0 && (
+                      {profile.teaching_subjects?.length > 0 && (
                         <div className="px-2 py-1.5">
-                          <span className="text-sm text-gray-500 block mb-1">Subjects:</span>
-                          <span className="text-sm text-gray-700">
-                            {getUniqueSubjects(userDetails.teaching_subjects)}
-                          </span>
+                          <div className="text-sm text-gray-500 mb-1">Teaching:</div>
+                          <div className="text-sm text-gray-700">
+                            {getUniqueSubjects(profile.teaching_subjects)}
+                          </div>
                         </div>
                       )}
-                      {userDetails.grade_levels?.length > 0 && (
+                      {profile.grade_levels?.length > 0 && (
                         <div className="px-2 py-1.5">
-                          <span className="text-sm text-gray-500 block mb-1">Grade Levels:</span>
-                          <span className="text-sm text-gray-700">
-                            {userDetails.grade_levels.join(', ')}
-                          </span>
+                          <div className="text-sm text-gray-500 mb-1">Grades:</div>
+                          <div className="text-sm text-gray-700">
+                            {profile.grade_levels.map(g => formatGrade(g, false)).join(', ')}
+                          </div>
                         </div>
                       )}
                     </>
@@ -287,24 +181,16 @@ export function Header() {
 
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
+                    className="text-red-600 cursor-pointer"
                     onClick={handleSignOut}
-                    className="text-red-600 focus:text-red-600 cursor-pointer"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
-                    <span className="text-sm">Sign Out</span>
+                    Sign out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </>
-          ) : (
-            <Button 
-              variant="default"
-              className="bg-[#62C59F] hover:bg-[#51b88e] transition-colors text-white"
-              onClick={() => navigate('/')}
-            >
-              Sign In
-            </Button>
-          )}
+          ) : null}
         </div>
       </div>
     </header>

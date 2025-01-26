@@ -63,16 +63,8 @@ export const QuestionField = ({ question, value, onChange, uploadProgress = {}, 
     setIsDragActive(false);
 
     const droppedFiles = Array.from(e.dataTransfer.files);
-    if (droppedFiles.length > 0) {
-      // Update form state
-      const existingFiles = Array.isArray(value) ? value : value ? [value] : [];
-      const newFiles = [...existingFiles, ...droppedFiles];
-      onChange(newFiles);
-      
-      // Start upload if handler provided
-      if (handleFileUpload) {
-        handleFileUpload(droppedFiles);
-      }
+    if (droppedFiles.length > 0 && handleFileUpload) {
+      handleFileUpload(droppedFiles);
     }
   };
 
@@ -118,15 +110,8 @@ export const QuestionField = ({ question, value, onChange, uploadProgress = {}, 
       console.log('[DEBUG] File input change event:', files);
       console.log('[DEBUG] Existing files:', value);
       
-      // Combine with existing files
-      const existingFiles = Array.isArray(value) ? value : value ? [value] : [];
-      const newFiles = [...existingFiles, ...fileArray];
-      console.log('[DEBUG] New combined files:', newFiles);
-      
-      // Update form state
-      onChange(newFiles);
-      
-      // Start upload if handler provided
+      // Only update the form state with the new files
+      // The actual file list will be updated after successful upload
       if (handleFileUpload && fileArray.length > 0) {
         handleFileUpload(fileArray);
       }

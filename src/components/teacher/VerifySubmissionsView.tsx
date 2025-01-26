@@ -1,268 +1,247 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Search } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { formatSubject } from '@/lib/utils';
-import { AssignmentFilters } from './AssignmentFilters';
-
-interface TeachingSubject {
-  subject: string;
-  grade: string;
-}
-
-interface TeacherProfile {
-  teaching_subjects: { subject: string; grade: string }[] | null;
-  grade_levels: string[] | null;
-}
+import { AssignmentFilters } from '../assignments/AssignmentFilters';
+import { useAuthState } from '@/hooks/useAuthState';
+import { subjectDisplayMap } from '@/constants/subjects';
 
 interface StudentProfile {
   id: string;
-  full_name: string | null;
-  grade: string | null;
+  full_name: string;
+  grade: string;
 }
 
 interface Assignment {
   id: string;
   title: string;
   subject: string;
-  status: string;
-  student: StudentProfile | null;
-  created_at: string;
-  teacher_id: string | null;
+  grade: string;
+  status: 'SUBMITTED' | 'VERIFIED' | 'NEEDS_REVISION';
+  submitted_at: string;
+  student: StudentProfile;
+  month: string;
 }
 
-interface VerifySubmissionsViewProps {
-  selectedTopic: string | null;
-}
-
-interface Submission {
-  id: string;
-  title: string;
+interface TeachingSubject {
   subject: string;
-  status: string;
-  created_at: string;
-  student: {
-    id: string;
-    full_name: string | null;
-    grade: string | null;
-  } | null;
-  assignment: {
-    id: string;
-    teacher_id: string | null;
-  } | null;
+  grade: string;
 }
 
-export const VerifySubmissionsView = ({ selectedTopic }: VerifySubmissionsViewProps) => {
+// Helper function to normalize subject names
+const normalizeSubject = (subject: string) => {
+  if (subject in subjectDisplayMap) {
+    return subject.toLowerCase();
+  }
+  const shortForm = Object.entries(subjectDisplayMap).find(
+    ([_, displayName]) => displayName.toLowerCase() === subject.toLowerCase()
+  )?.[0];
+  return shortForm?.toLowerCase() || subject.toLowerCase();
+};
+
+export function VerifySubmissionsView() {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
+  const { profile } = useAuthState();
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [selectedGrade, setSelectedGrade] = useState('all');
-  const [selectedWeek, setSelectedWeek] = useState('all');
-  const [isTeacherAssigned, setIsTeacherAssigned] = useState<boolean | undefined>();
+  const [selectedMonth, setSelectedMonth] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedStudent, setSelectedStudent] = useState('all');
 
-  // Update search when topic changes
-  useEffect(() => {
-    if (selectedTopic) {
-      setSearchTerm(selectedTopic);
-    }
-  }, [selectedTopic]);
+  // Get teacher's teaching assignments
+  const teachingSubjects = profile?.teaching_subjects as TeachingSubject[] || [];
+  const teacherGrades = [...new Set(teachingSubjects.map(ts => ts.grade))];
+  const teacherSubjectsForGrade = (grade: string) => 
+    teachingSubjects
+      .filter(ts => ts.grade === grade)
+      .map(ts => ts.subject);
 
-  const { data: submissions, isLoading, error } = useQuery({
-    queryKey: ['submissions-to-verify', selectedSubject, selectedGrade, selectedWeek, isTeacherAssigned, searchTerm],
+  // Fetch unique students for the filter (only from teacher's grades)
+  const { data: students } = useQuery({
+    queryKey: ['students', teacherGrades],
     queryFn: async () => {
-      try {
-        // First get the teacher's profile
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Not authenticated');
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, grade')
+        .eq('role', 'STUDENT')
+        .in('grade', teacherGrades)
+        .order('full_name');
 
-        // Get teacher's profile with teaching subjects and grades
-        const { data: rawProfile, error: profileError } = await supabase
-          .from('profiles')
-          .select('teaching_subjects, grade_levels')
-          .eq('id', user.id)
-          .single();
-
-        if (profileError) throw profileError;
-        if (!rawProfile) throw new Error('Teacher profile not found');
-
-        const profile: TeacherProfile = {
-          teaching_subjects: (rawProfile as any).teaching_subjects || null,
-          grade_levels: (rawProfile as any).grade_levels || null
-        };
-        console.log('Teacher profile:', profile);
-
-        // Get all submitted submissions that haven't been verified
-        const { data: verifications } = await supabase
-          .from('verifications')
-          .select('assignment_id, status');
-
-        console.log('Verifications:', verifications);
-
-        // Only exclude submissions that have been verified (not rejected)
-        const verifiedIds = verifications
-          ?.filter(v => v.status !== 'rejected')
-          .map(v => v.assignment_id) || [];
-
-        console.log('Verified IDs to exclude:', verifiedIds);
-
-        // Get submitted submissions that haven't been verified
-        const { data: submissions, error: submissionsError } = await supabase
-          .from('submissions')
-          .select(`
-            id,
-            title,
-            subject,
-            status,
-            created_at,
-            student:profiles!student_id (
-              id,
-              full_name,
-              grade
-            ),
-            assignment:assignments!assignment_id (
-              id,
-              teacher_id
-            )
-          `)
-          .eq('status', 'SUBMITTED')
-          .not(verifiedIds.length > 0 ? 'id' : 'id', 'in', `(${verifiedIds.join(',')})`)
-          .order('created_at', { ascending: false }) as { 
-            data: Submission[] | null;
-            error: any;
-          };
-
-        console.log('All submitted submissions:', submissions);
-
-        if (submissionsError) {
-          console.error('Error fetching submissions:', submissionsError);
-          throw submissionsError;
-        }
-        if (!submissions) return [];
-
-        // Filter submissions based on teacher's subjects and grades
-        const teachingSubjectGradePairs = new Set(
-          (profile.teaching_subjects || []).map(ts => `${ts.subject.toLowerCase()}-${ts.grade}`)
-        );
-
-        console.log('Teacher subject-grade pairs:', teachingSubjectGradePairs);
-        
-        let filteredData = submissions.filter(submission => {
-          const studentGrade = submission.student?.grade;
-          if (!studentGrade) return false;
-          
-          const pair = `${submission.subject.toLowerCase()}-${studentGrade}`;
-          const matches = teachingSubjectGradePairs.has(pair);
-          console.log(`Checking ${pair} against teacher pairs:`, matches);
-          return matches;
-        });
-
-        console.log('After teacher subject/grade filter:', filteredData);
-
-        // Apply additional filters
-        if (selectedSubject && selectedSubject !== 'all') {
-          filteredData = filteredData.filter(d => d.subject.toLowerCase() === selectedSubject.toLowerCase());
-          console.log('After subject filter:', filteredData);
-        }
-        if (selectedGrade && selectedGrade !== 'all') {
-          filteredData = filteredData.filter(d => d.student?.grade === selectedGrade);
-          console.log('After grade filter:', filteredData);
-        }
-        if (selectedWeek && selectedWeek !== 'all') {
-          filteredData = filteredData.filter(d => d.created_at && d.created_at.startsWith(selectedWeek));
-          console.log('After week filter:', filteredData);
-        }
-        if (isTeacherAssigned !== undefined) {
-          filteredData = filteredData.filter(d => isTeacherAssigned ? !!d.assignment?.teacher_id : !d.assignment?.teacher_id);
-          console.log('After teacher assigned filter:', filteredData);
-        }
-        if (searchTerm) {
-          filteredData = filteredData.filter(d => {
-            const studentName = d.student?.full_name;
-            return d.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                   studentName?.toLowerCase().includes(searchTerm.toLowerCase());
-          });
-          console.log('After search filter:', filteredData);
-        }
-
-        return filteredData;
-      } catch (error) {
-        console.error('Error in submissions query:', error);
-        throw error;
-      }
-    }
+      if (error) throw error;
+      return (data || []) as StudentProfile[];
+    },
+    enabled: teacherGrades.length > 0
   });
 
-  if (isLoading) return (
-    <div className="flex items-center justify-center py-8">
-      <div className="text-gray-500">Loading submissions...</div>
-    </div>
-  );
+  const { data: assignments, isLoading, error } = useQuery({
+    queryKey: ['assignments-to-verify', selectedSubject, selectedGrade, selectedMonth, selectedStatus, selectedStudent, teachingSubjects],
+    queryFn: async () => {
+      // Get all non-draft assignments
+      const { data: allAssignments, error: allError } = await supabase
+        .from('assignments')
+        .select(`
+          id,
+          title,
+          subject,
+          grade,
+          status,
+          submitted_at,
+          student:student_id (
+            id,
+            full_name,
+            grade
+          ),
+          month
+        `)
+        .neq('status', 'DRAFT');
 
-  if (error) return (
-    <div className="text-center text-red-500 py-8">
-      <p>Failed to load submissions. Please try again.</p>
-      <p className="text-sm mt-2">{error instanceof Error ? error.message : 'Unknown error'}</p>
-    </div>
-  );
+      if (allError) throw allError;
+
+      // Filter assignments by teacher's grades
+      const matchingGradeAssignments = allAssignments?.filter(assignment => 
+        teacherGrades.includes(assignment.grade)
+      ) || [];
+
+      // Filter assignments by teacher's subjects for each grade
+      const matchingGradeAndSubject = matchingGradeAssignments.filter(assignment => {
+        const subjectsForGrade = teacherSubjectsForGrade(assignment.grade);
+        const normalizedAssignmentSubject = normalizeSubject(assignment.subject);
+        const normalizedTeacherSubjects = subjectsForGrade.map(s => normalizeSubject(s));
+        return normalizedTeacherSubjects.includes(normalizedAssignmentSubject);
+      });
+
+      // Apply filters
+      let filteredAssignments = matchingGradeAndSubject.map(assignment => ({
+        ...assignment,
+        student: assignment.student as unknown as StudentProfile
+      })) as Assignment[];
+
+      if (selectedStatus !== 'all') {
+        filteredAssignments = filteredAssignments.filter(a => a.status === selectedStatus);
+      }
+
+      if (selectedGrade !== 'all') {
+        filteredAssignments = filteredAssignments.filter(a => a.grade === selectedGrade);
+      }
+
+      if (selectedSubject !== 'all') {
+        filteredAssignments = filteredAssignments.filter(a => a.subject === selectedSubject);
+      }
+
+      if (selectedStudent !== 'all') {
+        filteredAssignments = filteredAssignments.filter(a => a.student.id === selectedStudent);
+      }
+
+      return filteredAssignments;
+    },
+    enabled: teachingSubjects.length > 0
+  });
+
+  if (isLoading) return <div>Loading assignments...</div>;
+  if (error) return <div>Error loading assignments: {error.message}</div>;
+
+  // Check if teacher has any teaching subjects configured
+  if (!teachingSubjects?.length) {
+    return (
+      <div className="text-center py-8">
+        <h2 className="text-xl font-semibold mb-4">No Teaching Subjects Configured</h2>
+        <p className="text-gray-600 mb-4">
+          Please set up your teaching profile by selecting the grades and subjects you teach.
+        </p>
+        <Button onClick={() => navigate('/app/teacher/profile')} variant="default">
+          Set Up Teaching Profile
+        </Button>
+      </div>
+    );
+  }
+
+  if (!assignments?.length) return <div>No assignments found</div>;
+
+  // Filter assignments based on selected filters
+  const filteredAssignments = assignments.filter(assignment => {
+    if (selectedSubject !== 'all' && assignment.subject !== selectedSubject) return false;
+    if (selectedGrade !== 'all' && assignment.grade !== selectedGrade) return false;
+    if (selectedMonth !== 'all' && assignment.month !== selectedMonth) return false;
+    if (selectedStudent !== 'all' && assignment.student.id !== selectedStudent) return false;
+    if (searchQuery) {
+      const search = searchQuery.toLowerCase();
+      return assignment.title.toLowerCase().includes(search);
+    }
+    return true;
+  });
+
+  // Filter available subjects based on selected grade
+  const availableSubjects = selectedGrade === 'all' 
+    ? [...new Set(teachingSubjects.map(ts => ts.subject))]
+    : teacherSubjectsForGrade(selectedGrade);
 
   return (
     <div className="space-y-4">
-      <AssignmentFilters
-        searchQuery={searchTerm}
-        onSearchChange={setSearchTerm}
+      <AssignmentFilters 
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
         selectedSubject={selectedSubject}
         onSubjectChange={setSelectedSubject}
         selectedGrade={selectedGrade}
         onGradeChange={setSelectedGrade}
-        selectedWeek={selectedWeek}
-        onWeekChange={setSelectedWeek}
-        isTeacherAssigned={isTeacherAssigned}
-        onTeacherAssignedChange={setIsTeacherAssigned}
+        selectedMonth={selectedMonth}
+        onMonthChange={setSelectedMonth}
+        selectedStatus={selectedStatus}
+        onStatusChange={setSelectedStatus}
+        students={students || []}
+        selectedStudent={selectedStudent}
+        onStudentChange={setSelectedStudent}
+        availableGrades={teacherGrades}
+        availableSubjects={availableSubjects}
       />
 
-      {/* Submissions List */}
-      <div className="space-y-4">
-        {submissions?.map((submission) => (
-          <Card 
-            key={submission.id}
-            className="p-4 hover:border-blue-200 cursor-pointer"
-            onClick={() => navigate(`/app/verify/${submission.id}`)}
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="font-medium">{submission.title}</h3>
-                <div className="text-sm text-gray-500 space-y-1">
-                  <p>By {submission.student?.full_name}</p>
-                  <p>Subject: {formatSubject(submission.subject)}</p>
-                  <p>Grade: {submission.student?.grade}</p>
-                </div>
-              </div>
-              <Badge 
-                variant="secondary"
-                className="bg-yellow-100 text-yellow-800"
-              >
-                <Clock className="h-3 w-3 mr-1" />
-                Pending Verification
-              </Badge>
-            </div>
-          </Card>
-        ))}
+      <div className="rounded-md border">
+        {/* Header */}
+        <div className="grid grid-cols-[1fr,200px,120px,120px,120px] gap-4 px-4 py-3 border-b bg-muted/50">
+          <div className="text-sm font-medium">Title</div>
+          <div className="text-sm font-medium">Student</div>
+          <div className="text-sm font-medium">Subject</div>
+          <div className="text-sm font-medium">Grade</div>
+          <div className="text-sm font-medium">Status</div>
+        </div>
 
-        {submissions?.length === 0 && (
-          <div className="text-center text-gray-500 py-8">
-            <p className="mb-2">No submissions found</p>
-            {(searchTerm || selectedSubject !== 'all' || selectedGrade !== 'all' || selectedWeek !== 'all' || isTeacherAssigned !== undefined) ? (
-              <p className="text-sm">Try adjusting your filters or search terms</p>
-            ) : (
-              <p className="text-sm">No assignments are pending verification</p>
-            )}
-          </div>
-        )}
+        {/* Rows */}
+        <div className="divide-y">
+          {filteredAssignments.map((assignment) => (
+            <div
+              key={assignment.id}
+              className="grid grid-cols-[1fr,200px,120px,120px,120px] gap-4 px-4 py-3 hover:bg-muted/50 cursor-pointer items-center"
+              onClick={() => navigate(`/app/verify/${assignment.id}`)}
+            >
+              <div className="font-medium truncate">
+                {assignment.title}
+              </div>
+              <div className="text-sm truncate">
+                {assignment.student.full_name}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {formatSubject(assignment.subject)}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Grade {assignment.grade}
+              </div>
+              <div>
+                <Badge 
+                  variant={assignment.status === 'VERIFIED' ? 'secondary' : 'default'}
+                  className="capitalize"
+                >
+                  {assignment.status.toLowerCase().replace('_', ' ')}
+                </Badge>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
-}; 
+} 

@@ -14,6 +14,7 @@ import { SKILLS } from '@/lib/constants';
 import { formatSubject, formatGrade } from '@/lib/utils';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { INITIAL_QUESTIONS } from '@/components/assignment-form/QuestionTypes';
+import { AssignmentDetails } from '@/components/assignments/AssignmentDetails';
 
 export const VerifyAssignment = () => {
   const { id } = useParams();
@@ -184,16 +185,6 @@ export const VerifyAssignment = () => {
     return <div>Assignment or student data not found</div>;
   }
 
-  // Deduplicate files based on file_url
-  const uniqueFiles = assignment.files?.reduce((acc, current) => {
-    const x = acc.find(item => item.file_url === current.file_url);
-    if (!x) {
-      return acc.concat([current]);
-    } else {
-      return acc;
-    }
-  }, [] as typeof assignment.files) || [];
-
   return (
     <div className="container mx-auto py-8 max-w-4xl space-y-6">
       {/* Assignment Header */}
@@ -201,20 +192,6 @@ export const VerifyAssignment = () => {
         <div className="flex flex-col space-y-4">
           <div className="flex justify-between items-start">
             <h1 className="text-2xl font-bold">{assignment.title}</h1>
-            <div className="flex gap-2">
-              {uniqueFiles.map((file, index) => (
-                <Button 
-                  key={index}
-                  variant="outline"
-                  onClick={() => window.open(file.file_url, '_blank')}
-                  className="text-sm"
-                >
-                  <Paperclip className="h-4 w-4 mr-2" />
-                  File {index + 1}
-                  <ExternalLink className="h-4 w-4 ml-2" />
-                </Button>
-              ))}
-            </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -255,50 +232,8 @@ export const VerifyAssignment = () => {
               <h3 className="text-lg font-medium">Student's Response</h3>
             </AccordionTrigger>
             <AccordionContent>
-              <div className="px-6 pb-6 space-y-6">
-                {/* Basic Information - Step 1 */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Basic Information</h3>
-                  {renderQuestionWithFollowUps('artifact_type', assignment.artifact_type)}
-                  {renderQuestionWithFollowUps('month', assignment.month)}
-                  {renderQuestionWithFollowUps('subject', assignment.subject)}
-                </div>
-
-                {/* Collaboration and Originality - Step 2 */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Collaboration and Originality</h3>
-                  {renderQuestionWithFollowUps('is_team_work', assignment.is_team_work)}
-                  {assignment.is_team_work && renderQuestionWithFollowUps('team_contribution', assignment.team_contribution)}
-                  {renderQuestionWithFollowUps('is_original_work', assignment.is_original_work)}
-                  {assignment.is_original_work && renderQuestionWithFollowUps('originality_explanation', assignment.originality_explanation)}
-                </div>
-
-                {/* Skills and Pride - Step 3 */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Skills and Pride</h3>
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <h4 className="text-base font-semibold text-gray-800">Skills Demonstrated</h4>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {assignment.selected_skills?.map((skill) => (
-                        <Badge key={skill} variant="secondary">
-                          {SKILLS.find(s => s.id === skill)?.name || skill}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                  {renderQuestionWithFollowUps('skills_justification', assignment.skills_justification)}
-                  {renderQuestionWithFollowUps('pride_reason', assignment.pride_reason)}
-                </div>
-
-                {/* Process, Learning, and Reflection - Step 4 */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Process, Learning, and Reflection</h3>
-                  {renderQuestionWithFollowUps('creation_process', assignment.creation_process)}
-                  {renderQuestionWithFollowUps('learnings', assignment.learnings)}
-                  {renderQuestionWithFollowUps('challenges', assignment.challenges)}
-                  {renderQuestionWithFollowUps('improvements', assignment.improvements)}
-                  {renderQuestionWithFollowUps('acknowledgments', assignment.acknowledgments)}
-                </div>
+              <div className="px-6 pb-6">
+                <AssignmentDetails assignment={assignment} mode="teacher" />
               </div>
             </AccordionContent>
           </Card>
