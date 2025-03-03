@@ -56,7 +56,7 @@ export function Navbar({
     try {
       await signOut();
     } catch (error) {
-      window.location.replace(ROUTES.AUTH.LOGIN);
+      window.location.replace(ROUTES.PUBLIC.HOME);
     }
   };
 

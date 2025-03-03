@@ -118,14 +118,14 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
         DEBUG.log("Updating state to signed out");
         updateState(null, UserRole.PUBLIC, null);
 
-        DEBUG.log("Redirecting to login", { path: ROUTES.AUTH.LOGIN });
-        window.location.href = ROUTES.AUTH.LOGIN;
+        DEBUG.log("Redirecting to home", { path: ROUTES.PUBLIC.HOME });
+        window.location.href = ROUTES.PUBLIC.HOME;
       } catch (error) {
         DEBUG.error("Sign out failed", error);
         DEBUG.log("Forcing state cleanup due to error");
         updateState(null, UserRole.PUBLIC, null);
-        DEBUG.log("Forcing redirect to login", { path: ROUTES.AUTH.LOGIN });
-        window.location.href = ROUTES.AUTH.LOGIN;
+        DEBUG.log("Forcing redirect to home", { path: ROUTES.PUBLIC.HOME });
+        window.location.href = ROUTES.PUBLIC.HOME;
       }
     },
     // Initialize authentication state

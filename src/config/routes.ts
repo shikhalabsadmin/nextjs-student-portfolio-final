@@ -9,15 +9,6 @@ export const ROUTES = {
     PORTFOLIO: "/portfolio",
   },
 
-  // Auth routes (before role assignment)
-  AUTH: {
-    ROOT: "/auth",
-    LOGIN: "/auth/login",
-    REGISTER: "/auth/register",
-    SIGNUP: "/auth/signup",
-    FORGOT_PASSWORD: "/auth/forgot-password",
-  },
-
   // Student routes (UserRole.STUDENT)
   STUDENT: {
     ROOT: "/student",

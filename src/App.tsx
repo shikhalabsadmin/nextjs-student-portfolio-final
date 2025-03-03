@@ -96,34 +96,6 @@ const App: React.FC = () => {
         },
       ],
     },
-    // Auth routes
-    {
-      path: ROUTES.AUTH.ROOT,
-      element: user ? (
-        <Navigate to={ROUTES.STUDENT.DASHBOARD} replace />
-      ) : (
-        <MainLayout variant={NavVariant.AUTH} />
-      ),
-      errorElement: <ErrorPage />,
-      children: [
-        {
-          path: "login",
-          element: user ? (
-            <Navigate to={ROUTES.STUDENT.DASHBOARD} replace />
-          ) : (
-            <Index />
-          ),
-        },
-        {
-          path: "signup",
-          element: user ? (
-            <Navigate to={ROUTES.STUDENT.DASHBOARD} replace />
-          ) : (
-            <Index />
-          ),
-        },
-      ],
-    },
     // Student routes
     {
       path: ROUTES.STUDENT.ROOT,
