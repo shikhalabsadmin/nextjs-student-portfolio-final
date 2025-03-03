@@ -3,28 +3,32 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Navigate,
+} from "react-router-dom";
 import { useAuthState, initAuth } from "@/hooks/useAuthState";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import AssignmentDetail from '@/pages/AssignmentDetail';
-import { RootLayout } from "@/components/layouts/RootLayout";
+import AssignmentDetail from "@/pages/AssignmentDetail";
+import { MainLayout } from "@/components/layouts/MainLayout";
 import Index from "@/pages/Index";
 import StudentDashboard from "@/pages/StudentDashboard";
 import Submit from "@/pages/Submit";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { AuthLayout } from "@/components/layouts/AuthLayout";
-import ErrorPage from './pages/ErrorPage';
-import { FormLayout } from "@/components/layouts/FormLayout";
+import { NavVariant } from "@/enums/navigation.enum";
+import { UserRole } from "@/enums/user.enum";
+import { ROUTES } from "@/config/routes";
+import ErrorPage from "./pages/ErrorPage";
 import { RoleBasedAssignments } from "@/pages/RoleBasedAssignments";
 import { AssignmentForm } from "@/pages/AssignmentForm";
 import { VerifyAssignment } from "@/pages/VerifyAssignment";
 import { TeacherProfile } from "@/pages/TeacherProfile";
 import { StudentProfile } from "@/pages/StudentProfile";
-import { AssignmentView } from "@/components/assignment-form/AssignmentView";
 import ViewAssignment from "@/pages/ViewAssignment";
-import AdminDashboard from '@/pages/AdminDashboard';
+import AdminDashboard from "@/pages/AdminDashboard";
 
-console.log('App.tsx loaded');
+console.log("App.tsx loaded");
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,7 +37,7 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       refetchOnMount: false,
       refetchOnReconnect: false,
-      staleTime: Infinity
+      staleTime: Infinity,
     },
   },
 });
@@ -42,157 +46,237 @@ const App: React.FC = () => {
   const { user, userRole, isLoading } = useAuthState();
 
   useEffect(() => {
-    console.log('App mounted with:', { user, userRole, isLoading });
+    console.log("App mounted with:", { user, userRole, isLoading });
     initAuth();
   }, []);
 
   useEffect(() => {
-    console.log('App auth state changed:', { user, userRole, isLoading });
+    console.log("App auth state changed:", { user, userRole, isLoading });
   }, [user, userRole, isLoading]);
 
   const router = createBrowserRouter([
+    // Public routes
     {
-      path: "/",
-      element: <RootLayout />,
+      path: ROUTES.PUBLIC.HOME,
+      element: <MainLayout variant={NavVariant.DEFAULT} />,
       errorElement: <ErrorPage />,
       children: [
         {
           index: true,
-          element: user ? 
-            <Navigate to={`/app/${userRole === 'STUDENT' ? 'dashboard' : 'assignments'}`} replace /> : 
+          element: user ? (
+            <Navigate
+              to={
+                userRole === UserRole.STUDENT
+                  ? ROUTES.STUDENT.DASHBOARD
+                  : ROUTES.TEACHER.DASHBOARD
+              }
+              replace
+            />
+          ) : (
             <Index />
-        }
-      ]
+          ),
+        },
+      ],
     },
+    // Auth routes
     {
-      path: "/auth",
-      element: user ? <Navigate to="/app/dashboard" replace /> : <RootLayout />,
+      path: ROUTES.AUTH.ROOT,
+      element: user ? (
+        <Navigate to={ROUTES.STUDENT.DASHBOARD} replace />
+      ) : (
+        <MainLayout variant={NavVariant.AUTH} />
+      ),
       errorElement: <ErrorPage />,
       children: [
         {
           path: "login",
-          element: user ? <Navigate to="/app/dashboard" replace /> : <Index />
+          element: user ? (
+            <Navigate to={ROUTES.STUDENT.DASHBOARD} replace />
+          ) : (
+            <Index />
+          ),
         },
         {
           path: "signup",
-          element: user ? <Navigate to="/app/dashboard" replace /> : <Index />
-        }
-      ]
+          element: user ? (
+            <Navigate to={ROUTES.STUDENT.DASHBOARD} replace />
+          ) : (
+            <Index />
+          ),
+        },
+      ],
     },
+    // Student routes
     {
-      path: "/app/submit",
-      element: (
-        <ProtectedRoute>
-          <Submit />
-        </ProtectedRoute>
-      )
-    },
-    {
-      path: "/app/submit/:id",
-      element: (
-        <ProtectedRoute>
-          <Submit />
-        </ProtectedRoute>
-      )
-    },
-    {
-      path: "/app/drafts/:id/edit",
-      element: (
-        <ProtectedRoute>
-          <Submit />
-        </ProtectedRoute>
-      )
-    },
-    {
-      path: "/app",
-      element: <AuthLayout />,
+      path: ROUTES.STUDENT.ROOT,
+      element: <MainLayout variant={NavVariant.AUTH} />,
       errorElement: <ErrorPage />,
       children: [
         {
           path: "dashboard",
           element: (
-            <ProtectedRoute roles={['STUDENT']}>
+            <ProtectedRoute roles={[UserRole.STUDENT]}>
               <StudentDashboard />
             </ProtectedRoute>
-          )
+          ),
         },
         {
-          path: "assignments",
+          path: "profile",
           element: (
-            <ProtectedRoute>
+            <ProtectedRoute roles={[UserRole.STUDENT]}>
+              <StudentProfile />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "submit",
+          element: (
+            <ProtectedRoute roles={[UserRole.STUDENT]}>
+              <Submit />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "submit/:id",
+          element: (
+            <ProtectedRoute roles={[UserRole.STUDENT]}>
+              <Submit />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "drafts/:id/edit",
+          element: (
+            <ProtectedRoute roles={[UserRole.STUDENT]}>
+              <Submit />
+            </ProtectedRoute>
+          ),
+        },
+      ],
+    },
+    // Teacher routes
+    {
+      path: ROUTES.TEACHER.ROOT,
+      element: <MainLayout variant={NavVariant.AUTH} />,
+      errorElement: <ErrorPage />,
+      children: [
+        {
+          path: "dashboard",
+          element: (
+            <ProtectedRoute roles={[UserRole.TEACHER]}>
               <RoleBasedAssignments />
             </ProtectedRoute>
-          )
+          ),
         },
         {
-          path: "assignments/:id",
+          path: "profile",
           element: (
-            <ProtectedRoute>
-              <AssignmentDetail />
+            <ProtectedRoute roles={[UserRole.TEACHER]}>
+              <TeacherProfile />
             </ProtectedRoute>
-          )
+          ),
         },
         {
-          path: "assignments/:id/edit",
+          path: "assignments/new",
           element: (
-            <ProtectedRoute>
+            <ProtectedRoute roles={[UserRole.TEACHER]}>
               <AssignmentForm />
             </ProtectedRoute>
-          )
-        },
-        {
-          path: "assignments/:id/view",
-          element: (
-            <ProtectedRoute>
-              <ViewAssignment />
-            </ProtectedRoute>
-          )
-        },
-        {
-          path: "teacher/assignments/new",
-          element: (
-            <ProtectedRoute roles={['TEACHER']}>
-              <AssignmentForm />
-            </ProtectedRoute>
-          )
+          ),
         },
         {
           path: "verify/:id",
           element: (
-            <ProtectedRoute roles={['TEACHER']}>
+            <ProtectedRoute roles={[UserRole.TEACHER]}>
               <VerifyAssignment />
             </ProtectedRoute>
-          )
+          ),
         },
+      ],
+    },
+    // Shared Assignment routes
+    {
+      path: ROUTES.ASSIGNMENT.ROOT,
+      element: <MainLayout variant={NavVariant.AUTH} />,
+      errorElement: <ErrorPage />,
+      children: [
         {
-          path: "teacher/profile",
+          index: true,
           element: (
-            <ProtectedRoute roles={['TEACHER']}>
-              <TeacherProfile />
+            <ProtectedRoute>
+              <RoleBasedAssignments />
             </ProtectedRoute>
-          )
+          ),
         },
         {
-          path: "student/profile",
+          path: ":id",
           element: (
-            <ProtectedRoute roles={['STUDENT']}>
-              <StudentProfile />
+            <ProtectedRoute>
+              <AssignmentDetail />
             </ProtectedRoute>
-          )
+          ),
         },
         {
-          path: 'admin',
+          path: ":id/edit",
           element: (
-            <ProtectedRoute roles={['ADMIN']}>
+            <ProtectedRoute>
+              <AssignmentForm />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: ":id/view",
+          element: (
+            <ProtectedRoute>
+              <ViewAssignment />
+            </ProtectedRoute>
+          ),
+        },
+      ],
+    },
+    // Admin routes
+    {
+      path: ROUTES.ADMIN.ROOT,
+      element: <MainLayout variant={NavVariant.AUTH} />,
+      errorElement: <ErrorPage />,
+      children: [
+        {
+          path: "dashboard",
+          element: (
+            <ProtectedRoute roles={[UserRole.ADMIN]}>
               <AdminDashboard />
             </ProtectedRoute>
           ),
         },
-      ]
-    }
+        {
+          path: "users",
+          element: (
+            <ProtectedRoute roles={[UserRole.ADMIN]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "settings",
+          element: (
+            <ProtectedRoute roles={[UserRole.ADMIN]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "reports",
+          element: (
+            <ProtectedRoute roles={[UserRole.ADMIN]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          ),
+        },
+      ],
+    },
   ]);
 
-  console.log('App rendering with:', { user, userRole, isLoading });
+  console.log("App rendering with:", { user, userRole, isLoading });
 
   if (isLoading) {
     return (
