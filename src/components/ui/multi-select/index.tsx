@@ -65,7 +65,9 @@ export function MultiSelect({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between"
+          className="w-full justify-between hover:bg-accent"
+          style={{ cursor: 'pointer' }}
+          onClick={() => setOpen(!open)}
         >
           <div className="flex flex-wrap gap-1 truncate">
             {selected.length ? (
@@ -74,17 +76,20 @@ export function MultiSelect({
                   variant="secondary"
                   key={label}
                   className="mr-1"
+                  style={{ cursor: 'pointer' }}
                 >
                   {label}
-                  <div 
+                  <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleUnselect(label);
                     }}
                     className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    style={{ cursor: 'pointer' }}
                   >
                     <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                  </div>
+                  </button>
                 </Badge>
               ))
             ) : (
@@ -101,10 +106,11 @@ export function MultiSelect({
               const optionValue = String(option.value);
               const isSelected = safeValue.includes(optionValue);
               return (
-                <div
+                <button
                   key={optionValue}
+                  type="button"
                   className={cn(
-                    "flex items-center px-3 py-2 rounded-sm text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground",
+                    "flex w-full items-center px-3 py-2 rounded-sm text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground",
                     isSelected && "bg-accent text-accent-foreground"
                   )}
                   onClick={() => {
@@ -112,8 +118,8 @@ export function MultiSelect({
                       ? safeValue.filter(v => v !== optionValue)
                       : [...safeValue, optionValue];
                     onChange(newValue);
-                    // Don't close popover on selection for multi-select
                   }}
+                  style={{ cursor: 'pointer' }}
                 >
                   <Check
                     className={cn(
@@ -122,7 +128,7 @@ export function MultiSelect({
                     )}
                   />
                   {option.label}
-                </div>
+                </button>
               );
             })}
           </div>

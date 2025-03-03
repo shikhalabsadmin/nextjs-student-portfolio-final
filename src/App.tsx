@@ -38,12 +38,52 @@ const queryClient = new QueryClient({
   },
 });
 
+function setupClickDebugger() {
+  document.addEventListener('click', (e) => {
+    const path = e.composedPath?.() || [];
+    console.log('Click event:', {
+      target: e.target,
+      currentTarget: e.currentTarget,
+      eventPhase: e.eventPhase,
+      bubbles: e.bubbles,
+      cancelable: e.cancelable,
+      defaultPrevented: e.defaultPrevented,
+      path: path.map(el => ({
+        tagName: (el as HTMLElement).tagName,
+        className: (el as HTMLElement).className,
+        id: (el as HTMLElement).id
+      }))
+    });
+  }, true);
+
+  // Ensure right-clicks are allowed
+  document.addEventListener('contextmenu', (e) => {
+    // Log the event for debugging
+    console.log('Right click event:', {
+      target: e.target,
+      defaultPrevented: e.defaultPrevented,
+      path: e.composedPath?.().map(el => ({
+        tagName: (el as HTMLElement).tagName,
+        className: (el as HTMLElement).className,
+        id: (el as HTMLElement).id
+      }))
+    });
+    // Don't prevent default behavior
+    return true;
+  }, true);
+
+  // Remove any existing pointer-events: none from body and html
+  document.body.style.pointerEvents = 'auto';
+  document.documentElement.style.pointerEvents = 'auto';
+}
+
 const App: React.FC = () => {
   const { user, userRole, isLoading } = useAuthState();
 
   useEffect(() => {
     console.log('App mounted with:', { user, userRole, isLoading });
     initAuth();
+    setupClickDebugger();
   }, []);
 
   useEffect(() => {

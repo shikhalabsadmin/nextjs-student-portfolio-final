@@ -53,58 +53,58 @@ export function Header() {
   ];
 
   return (
-    <header className="border-b bg-white">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+    <header className="relative z-20 border-b bg-white">
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between pointer-events-auto">
         <div className="flex items-center space-x-4">
           <h1 className="text-xl font-bold">Portfolio System</h1>
           {user ? (
-            <nav className="hidden md:flex space-x-4">
+            <nav className="hidden md:flex space-x-4 pointer-events-auto">
               {userRole === "STUDENT" ? (
                 <>
-                  <Link 
-                    to="/app/dashboard" 
-                    className={`text-gray-600 hover:text-gray-900 ${
+                  <a 
+                    href="/app/dashboard" 
+                    className={`text-gray-600 hover:text-gray-900 cursor-pointer ${
                       location.pathname === '/app/dashboard' ? 'text-blue-600 font-medium' : ''
                     }`}
                   >
                     Dashboard
-                  </Link>
-                  <Link 
-                    to="/app/assignments" 
-                    className={`text-gray-600 hover:text-gray-900 ${
+                  </a>
+                  <a 
+                    href="/app/assignments" 
+                    className={`text-gray-600 hover:text-gray-900 cursor-pointer ${
                       location.pathname === '/app/assignments' ? 'text-blue-600 font-medium' : ''
                     }`}
                   >
                     My Assignments
-                  </Link>
-                  <Link 
-                    to="/app/student/profile" 
-                    className={`text-gray-600 hover:text-gray-900 ${
+                  </a>
+                  <a 
+                    href="/app/student/profile" 
+                    className={`text-gray-600 hover:text-gray-900 cursor-pointer ${
                       location.pathname === '/app/student/profile' ? 'text-blue-600 font-medium' : ''
                     }`}
                   >
                     My Profile
-                  </Link>
+                  </a>
                 </>
               ) : (
                 <>
-                  <Link 
-                    to="/app/assignments" 
-                    className={`text-gray-600 hover:text-gray-900 ${
+                  <a 
+                    href="/app/assignments" 
+                    className={`text-gray-600 hover:text-gray-900 cursor-pointer ${
                       location.pathname === '/app/assignments' ? 'text-blue-600 font-medium' : ''
                     }`}
                   >
                     Assignments
-                  </Link>
+                  </a>
                   {userRole === 'TEACHER' && (
-                    <Link 
-                      to="/app/teacher/profile" 
-                      className={`text-gray-600 hover:text-gray-900 ${
+                    <a 
+                      href="/app/teacher/profile" 
+                      className={`text-gray-600 hover:text-gray-900 cursor-pointer ${
                         location.pathname === '/app/teacher/profile' ? 'text-blue-600 font-medium' : ''
                       }`}
                     >
                       Profile
-                    </Link>
+                    </a>
                   )}
                 </>
               )}

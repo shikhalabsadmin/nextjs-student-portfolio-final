@@ -153,9 +153,17 @@ export function VerifySubmissionsView() {
         <p className="text-gray-600 mb-4">
           Please set up your teaching profile by selecting the grades and subjects you teach.
         </p>
-        <Button onClick={() => navigate('/app/teacher/profile')} variant="default">
+        <a 
+          href="/app/teacher/profile"
+          className="inline-block px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 cursor-pointer"
+          onClick={(e) => {
+            e.preventDefault();
+            console.log('Profile link clicked');
+            window.location.href = '/app/teacher/profile';
+          }}
+        >
           Set Up Teaching Profile
-        </Button>
+        </a>
       </div>
     );
   }
