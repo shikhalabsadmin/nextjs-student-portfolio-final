@@ -28,8 +28,18 @@ import { StudentProfile } from "@/pages/StudentProfile";
 import ViewAssignment from "@/pages/ViewAssignment";
 import AdminDashboard from "@/pages/AdminDashboard";
 
-console.log("App.tsx loaded");
+// Debug utility enabled in development
+const DEBUG = {
+  enabled: process.env.NODE_ENV === "development",
+  log: (message: string, data?: unknown) =>
+    DEBUG.enabled && console.log(`[App] ${message}`, data ?? ""),
+  error: (message: string, error?: unknown) =>
+    DEBUG.enabled && console.error(`[App Error] ${message}`, error ?? ""),
+};
 
+DEBUG.log("App.tsx loaded");
+
+// QueryClient initialization
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -42,18 +52,26 @@ const queryClient = new QueryClient({
   },
 });
 
+DEBUG.log("QueryClient initialized", {
+  config: queryClient.getDefaultOptions(),
+});
+
 const App: React.FC = () => {
   const { user, userRole, isLoading } = useAuthState();
 
+  DEBUG.log("App component mounted", { user, userRole, isLoading });
+
   useEffect(() => {
-    console.log("App mounted with:", { user, userRole, isLoading });
-    initAuth();
+    DEBUG.log("Initializing auth");
+    try {
+      initAuth();
+      DEBUG.log("Auth initialized successfully");
+    } catch (error) {
+      DEBUG.error("Failed to initialize auth", error);
+    }
   }, []);
 
-  useEffect(() => {
-    console.log("App auth state changed:", { user, userRole, isLoading });
-  }, [user, userRole, isLoading]);
-
+  // Router configuration
   const router = createBrowserRouter([
     // Public routes
     {
@@ -276,9 +294,13 @@ const App: React.FC = () => {
     },
   ]);
 
-  console.log("App rendering with:", { user, userRole, isLoading });
+  DEBUG.log("Router created", { routes: ROUTES });
+
+  // Render logic
+  DEBUG.log("Preparing to render", { user, userRole, isLoading });
 
   if (isLoading) {
+    DEBUG.log("Rendering loading state");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -286,17 +308,23 @@ const App: React.FC = () => {
     );
   }
 
-  return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <RouterProvider router={router} />
-          <Toaster />
-          <Sonner />
-        </TooltipProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
-  );
+  DEBUG.log("Rendering main application");
+  try {
+    return (
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <RouterProvider router={router} />
+            <Toaster />
+            <Sonner />
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    );
+  } catch (error) {
+    DEBUG.error("Failed to render application", error);
+    throw error; // Re-throw to let ErrorBoundary handle it
+  }
 };
 
 export default App;
