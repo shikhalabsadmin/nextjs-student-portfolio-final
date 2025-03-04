@@ -11,8 +11,7 @@ export const ROUTES = {
 
   // Student routes (UserRole.STUDENT)
   STUDENT: {
-    ROOT: "/student",
-    DASHBOARD: "/student/dashboard",
+    DASHBOARD: "/student",
     ASSIGNMENTS: "/student/assignments",
     PROFILE: "/student/profile",
     SUBMIT: "/student/submit",
@@ -22,8 +21,7 @@ export const ROUTES = {
 
   // Teacher routes (UserRole.TEACHER)
   TEACHER: {
-    ROOT: "/teacher",
-    DASHBOARD: "/teacher/dashboard",
+    DASHBOARD: "/teacher",
     ASSIGNMENTS: "/teacher/assignments",
     PROFILE: "/teacher/profile",
     NEW_ASSIGNMENT: "/teacher/assignments/new",
@@ -64,17 +62,10 @@ export const getNavLinks = (
 ): NavLink[] => {
   switch (userRole) {
     case UserRole.STUDENT:
-      return [
-        { to: ROUTES.STUDENT.DASHBOARD, label: "Dashboard" },
-        { to: ROUTES.STUDENT.ASSIGNMENTS, label: "My Assignments" },
-        { to: ROUTES.STUDENT.PROFILE, label: "My Profile" },
-      ];
+      return [{ to: ROUTES.STUDENT.PROFILE, label: "Profile" }];
 
     case UserRole.TEACHER:
-      return [
-        { to: ROUTES.TEACHER.ASSIGNMENTS, label: "Assignments" },
-        { to: ROUTES.TEACHER.PROFILE, label: "Profile" },
-      ];
+      return [{ to: ROUTES.TEACHER.PROFILE, label: "Profile" }];
 
     case UserRole.ADMIN:
       return [
@@ -82,12 +73,6 @@ export const getNavLinks = (
         { to: ROUTES.ADMIN.USERS, label: "Users" },
         { to: ROUTES.ADMIN.REPORTS, label: "Reports" },
         { to: ROUTES.ADMIN.SETTINGS, label: "Settings" },
-      ];
-
-    case UserRole.PUBLIC:
-      return [
-        { to: ROUTES.PUBLIC.HOME, label: "Home" },
-        { to: ROUTES.PUBLIC.PORTFOLIO, label: "Portfolio" },
       ];
 
     default:

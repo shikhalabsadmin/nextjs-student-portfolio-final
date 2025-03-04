@@ -98,12 +98,12 @@ const App: React.FC = () => {
     },
     // Student routes
     {
-      path: ROUTES.STUDENT.ROOT,
+      path: ROUTES.STUDENT.DASHBOARD,
       element: <MainLayout variant={NavVariant.AUTH} />,
       errorElement: <ErrorPage />,
       children: [
         {
-          path: "dashboard",
+          index: true,
           element: (
             <ProtectedRoute roles={[UserRole.STUDENT]}>
               <StudentDashboard />
@@ -146,12 +146,12 @@ const App: React.FC = () => {
     },
     // Teacher routes
     {
-      path: ROUTES.TEACHER.ROOT,
+      path: ROUTES.TEACHER.DASHBOARD,
       element: <MainLayout variant={NavVariant.AUTH} />,
       errorElement: <ErrorPage />,
       children: [
         {
-          path: "dashboard",
+          index: true,
           element: (
             <ProtectedRoute roles={[UserRole.TEACHER]}>
               <RoleBasedAssignments />
