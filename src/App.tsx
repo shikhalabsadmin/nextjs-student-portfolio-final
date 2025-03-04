@@ -3,29 +3,43 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Navigate,
+} from "react-router-dom";
 import { useAuthState, initAuth } from "@/hooks/useAuthState";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import AssignmentDetail from '@/pages/AssignmentDetail';
-import { RootLayout } from "@/components/layouts/RootLayout";
+import AssignmentDetail from "@/pages/AssignmentDetail";
+import { MainLayout } from "@/components/layouts/MainLayout";
 import Index from "@/pages/Index";
 import StudentDashboard from "@/pages/StudentDashboard";
 import Submit from "@/pages/Submit";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { AuthLayout } from "@/components/layouts/AuthLayout";
-import ErrorPage from './pages/ErrorPage';
-import { FormLayout } from "@/components/layouts/FormLayout";
+import { NavVariant } from "@/enums/navigation.enum";
+import { UserRole } from "@/enums/user.enum";
+import { ROUTES } from "@/config/routes";
+import ErrorPage from "./pages/ErrorPage";
 import { RoleBasedAssignments } from "@/pages/RoleBasedAssignments";
 import { AssignmentForm } from "@/pages/AssignmentForm";
 import { VerifyAssignment } from "@/pages/VerifyAssignment";
 import { TeacherProfile } from "@/pages/TeacherProfile";
 import { StudentProfile } from "@/pages/StudentProfile";
-import { AssignmentView } from "@/components/assignment-form/AssignmentView";
 import ViewAssignment from "@/pages/ViewAssignment";
-import AdminDashboard from '@/pages/AdminDashboard';
+import AdminDashboard from "@/pages/AdminDashboard";
 
-console.log('App.tsx loaded');
+// Debug utility enabled in development
+const DEBUG = {
+  enabled: process.env.NODE_ENV === "development",
+  log: (message: string, data?: unknown) =>
+    DEBUG.enabled && console.log(`[App] ${message}`, data ?? ""),
+  error: (message: string, error?: unknown) =>
+    DEBUG.enabled && console.error(`[App Error] ${message}`, error ?? ""),
+};
 
+DEBUG.log("App.tsx loaded");
+
+// QueryClient initialization
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -33,208 +47,232 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       refetchOnMount: false,
       refetchOnReconnect: false,
-      staleTime: Infinity
+      staleTime: Infinity,
     },
   },
 });
 
-function setupClickDebugger() {
-  document.addEventListener('click', (e) => {
-    const path = e.composedPath?.() || [];
-    console.log('Click event:', {
-      target: e.target,
-      currentTarget: e.currentTarget,
-      eventPhase: e.eventPhase,
-      bubbles: e.bubbles,
-      cancelable: e.cancelable,
-      defaultPrevented: e.defaultPrevented,
-      path: path.map(el => ({
-        tagName: (el as HTMLElement).tagName,
-        className: (el as HTMLElement).className,
-        id: (el as HTMLElement).id
-      }))
-    });
-  }, true);
-
-  // Ensure right-clicks are allowed
-  document.addEventListener('contextmenu', (e) => {
-    // Log the event for debugging
-    console.log('Right click event:', {
-      target: e.target,
-      defaultPrevented: e.defaultPrevented,
-      path: e.composedPath?.().map(el => ({
-        tagName: (el as HTMLElement).tagName,
-        className: (el as HTMLElement).className,
-        id: (el as HTMLElement).id
-      }))
-    });
-    // Don't prevent default behavior
-    return true;
-  }, true);
-
-  // Remove any existing pointer-events: none from body and html
-  document.body.style.pointerEvents = 'auto';
-  document.documentElement.style.pointerEvents = 'auto';
-}
+DEBUG.log("QueryClient initialized", {
+  config: queryClient.getDefaultOptions(),
+});
 
 const App: React.FC = () => {
   const { user, userRole, isLoading } = useAuthState();
 
+  DEBUG.log("App component mounted", { user, userRole, isLoading });
+
   useEffect(() => {
-    console.log('App mounted with:', { user, userRole, isLoading });
-    initAuth();
-    setupClickDebugger();
+    DEBUG.log("Initializing auth");
+    try {
+      initAuth();
+      DEBUG.log("Auth initialized successfully");
+    } catch (error) {
+      DEBUG.error("Failed to initialize auth", error);
+    }
   }, []);
 
-  useEffect(() => {
-    console.log('App auth state changed:', { user, userRole, isLoading });
-  }, [user, userRole, isLoading]);
-
+  // Router configuration
   const router = createBrowserRouter([
+    // Public routes
     {
-      path: "/",
-      element: <RootLayout />,
+      path: ROUTES.PUBLIC.HOME,
+      element: <MainLayout variant={NavVariant.DEFAULT} />,
       errorElement: <ErrorPage />,
       children: [
         {
           index: true,
-          element: user ? 
-            <Navigate to={`/app/${userRole === 'STUDENT' ? 'dashboard' : 'assignments'}`} replace /> : 
+          element: user ? (
+            <Navigate
+              to={
+                userRole === UserRole.STUDENT
+                  ? ROUTES.STUDENT.DASHBOARD
+                  : ROUTES.TEACHER.DASHBOARD
+              }
+              replace
+            />
+          ) : (
             <Index />
-        }
-      ]
-    },
-    {
-      path: "/auth",
-      element: user ? <Navigate to="/app/dashboard" replace /> : <RootLayout />,
-      errorElement: <ErrorPage />,
-      children: [
-        {
-          path: "login",
-          element: user ? <Navigate to="/app/dashboard" replace /> : <Index />
+          ),
         },
-        {
-          path: "signup",
-          element: user ? <Navigate to="/app/dashboard" replace /> : <Index />
-        }
-      ]
+      ],
     },
+    // Student routes
     {
-      path: "/app/submit",
-      element: (
-        <ProtectedRoute>
-          <Submit />
-        </ProtectedRoute>
-      )
-    },
-    {
-      path: "/app/submit/:id",
-      element: (
-        <ProtectedRoute>
-          <Submit />
-        </ProtectedRoute>
-      )
-    },
-    {
-      path: "/app/drafts/:id/edit",
-      element: (
-        <ProtectedRoute>
-          <Submit />
-        </ProtectedRoute>
-      )
-    },
-    {
-      path: "/app",
-      element: <AuthLayout />,
+      path: ROUTES.STUDENT.ROOT,
+      element: <MainLayout variant={NavVariant.AUTH} />,
       errorElement: <ErrorPage />,
       children: [
         {
           path: "dashboard",
           element: (
-            <ProtectedRoute roles={['STUDENT']}>
+            <ProtectedRoute roles={[UserRole.STUDENT]}>
               <StudentDashboard />
             </ProtectedRoute>
-          )
+          ),
         },
         {
-          path: "assignments",
+          path: "profile",
           element: (
-            <ProtectedRoute>
+            <ProtectedRoute roles={[UserRole.STUDENT]}>
+              <StudentProfile />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "submit",
+          element: (
+            <ProtectedRoute roles={[UserRole.STUDENT]}>
+              <Submit />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "submit/:id",
+          element: (
+            <ProtectedRoute roles={[UserRole.STUDENT]}>
+              <Submit />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "drafts/:id/edit",
+          element: (
+            <ProtectedRoute roles={[UserRole.STUDENT]}>
+              <Submit />
+            </ProtectedRoute>
+          ),
+        },
+      ],
+    },
+    // Teacher routes
+    {
+      path: ROUTES.TEACHER.ROOT,
+      element: <MainLayout variant={NavVariant.AUTH} />,
+      errorElement: <ErrorPage />,
+      children: [
+        {
+          path: "dashboard",
+          element: (
+            <ProtectedRoute roles={[UserRole.TEACHER]}>
               <RoleBasedAssignments />
             </ProtectedRoute>
-          )
+          ),
         },
         {
-          path: "assignments/:id",
+          path: "profile",
           element: (
-            <ProtectedRoute>
-              <AssignmentDetail />
+            <ProtectedRoute roles={[UserRole.TEACHER]}>
+              <TeacherProfile />
             </ProtectedRoute>
-          )
+          ),
         },
         {
-          path: "assignments/:id/edit",
+          path: "assignments/new",
           element: (
-            <ProtectedRoute>
+            <ProtectedRoute roles={[UserRole.TEACHER]}>
               <AssignmentForm />
             </ProtectedRoute>
-          )
-        },
-        {
-          path: "assignments/:id/view",
-          element: (
-            <ProtectedRoute>
-              <ViewAssignment />
-            </ProtectedRoute>
-          )
-        },
-        {
-          path: "teacher/assignments/new",
-          element: (
-            <ProtectedRoute roles={['TEACHER']}>
-              <AssignmentForm />
-            </ProtectedRoute>
-          )
+          ),
         },
         {
           path: "verify/:id",
           element: (
-            <ProtectedRoute roles={['TEACHER']}>
+            <ProtectedRoute roles={[UserRole.TEACHER]}>
               <VerifyAssignment />
             </ProtectedRoute>
-          )
+          ),
         },
+      ],
+    },
+    // Shared Assignment routes
+    {
+      path: ROUTES.ASSIGNMENT.ROOT,
+      element: <MainLayout variant={NavVariant.AUTH} />,
+      errorElement: <ErrorPage />,
+      children: [
         {
-          path: "teacher/profile",
+          index: true,
           element: (
-            <ProtectedRoute roles={['TEACHER']}>
-              <TeacherProfile />
+            <ProtectedRoute>
+              <RoleBasedAssignments />
             </ProtectedRoute>
-          )
+          ),
         },
         {
-          path: "student/profile",
+          path: ":id",
           element: (
-            <ProtectedRoute roles={['STUDENT']}>
-              <StudentProfile />
+            <ProtectedRoute>
+              <AssignmentDetail />
             </ProtectedRoute>
-          )
+          ),
         },
         {
-          path: 'admin',
+          path: ":id/edit",
           element: (
-            <ProtectedRoute roles={['ADMIN']}>
+            <ProtectedRoute>
+              <AssignmentForm />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: ":id/view",
+          element: (
+            <ProtectedRoute>
+              <ViewAssignment />
+            </ProtectedRoute>
+          ),
+        },
+      ],
+    },
+    // Admin routes
+    {
+      path: ROUTES.ADMIN.ROOT,
+      element: <MainLayout variant={NavVariant.AUTH} />,
+      errorElement: <ErrorPage />,
+      children: [
+        {
+          path: "dashboard",
+          element: (
+            <ProtectedRoute roles={[UserRole.ADMIN]}>
               <AdminDashboard />
             </ProtectedRoute>
           ),
         },
-      ]
-    }
+        {
+          path: "users",
+          element: (
+            <ProtectedRoute roles={[UserRole.ADMIN]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "settings",
+          element: (
+            <ProtectedRoute roles={[UserRole.ADMIN]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "reports",
+          element: (
+            <ProtectedRoute roles={[UserRole.ADMIN]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          ),
+        },
+      ],
+    },
   ]);
 
-  console.log('App rendering with:', { user, userRole, isLoading });
+  DEBUG.log("Router created", { routes: ROUTES });
+
+  // Render logic
+  DEBUG.log("Preparing to render", { user, userRole, isLoading });
 
   if (isLoading) {
+    DEBUG.log("Rendering loading state");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -242,17 +280,23 @@ const App: React.FC = () => {
     );
   }
 
-  return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <RouterProvider router={router} />
-          <Toaster />
-          <Sonner />
-        </TooltipProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
-  );
+  DEBUG.log("Rendering main application");
+  try {
+    return (
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <RouterProvider router={router} />
+            <Toaster />
+            <Sonner />
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    );
+  } catch (error) {
+    DEBUG.error("Failed to render application", error);
+    throw error; // Re-throw to let ErrorBoundary handle it
+  }
 };
 
 export default App;
