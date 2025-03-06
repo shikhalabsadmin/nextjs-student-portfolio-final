@@ -12,6 +12,7 @@ import {
   filterStudentAssignments,
   getGradeAssignments
 } from "@/utils/student-dashboard-utils";
+import { toast } from "sonner";
 
 // Current student's grade - this would typically come from the student's profile
 const CURRENT_GRADE = GRADE_LEVELS.GRADE_7;
@@ -22,6 +23,7 @@ const dummyAssignments = getGradeAssignments(allAssignments, CURRENT_GRADE);
 
 export default function StudentDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [assignments, setAssignments] = useState<StudentAssignment[]>(dummyAssignments);
   
   // Get available subjects for the current grade
   const availableSubjects = getSubjectsForGrade(CURRENT_GRADE);
@@ -33,11 +35,19 @@ export default function StudentDashboard() {
 
   // Filter assignments using student-specific utility
   const filteredAssignments = filterStudentAssignments(
-    dummyAssignments,
+    assignments,
     searchQuery,
     selectedFilters,
     availableSubjects
   );
+
+  const handleDelete = (assignmentId: number) => {
+    setAssignments(prevAssignments => {
+      const updatedAssignments = prevAssignments.filter(assignment => assignment.id !== assignmentId);
+      toast.success("Assignment deleted successfully");
+      return updatedAssignments;
+    });
+  };
 
   return (
     <div className="relative min-h-screen bg-gray-50">
@@ -69,6 +79,7 @@ export default function StudentDashboard() {
             <AssignmentCard
               key={assignment.id}
               {...assignment}
+              onDelete={() => handleDelete(assignment.id)}
             />
           ))}
         </div>
