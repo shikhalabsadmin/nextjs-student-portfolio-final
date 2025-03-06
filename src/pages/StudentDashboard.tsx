@@ -1,76 +1,78 @@
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState } from "react";
+import { DashboardHeader } from "@/components/student/dashboard/DashboardHeader";
+import { AssignmentCard } from "@/components/student/dashboard/AssignmentCard";
+import StudentCard from "@/components/student/dashboard/StudentDetailCard";
+import GridPatternBase from "@/components/ui/grid-pattern";
+import { generateAssignments } from "@/data/assignments";
+import { studentData } from "@/data/student";
+import { StudentDashboardFilters, StudentAssignment } from "@/types/student-dashboard";
+import { getSubjectsForGrade, GRADE_LEVELS } from "@/constants/grade-subjects";
 import { 
-  BarChart, 
-  CheckCircle2, 
-  Clock, 
-  FileText, 
-  PieChart,
-  AlertCircle
-} from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { StatCard } from "@/components/ui/stat-card";
-import { RecentActivity } from "@/components/dashboard/RecentActivity";
+  initializeStudentFilters,
+  filterStudentAssignments,
+  getGradeAssignments
+} from "@/utils/student-dashboard-utils";
+
+// Current student's grade - this would typically come from the student's profile
+const CURRENT_GRADE = GRADE_LEVELS.GRADE_7;
+
+// Generate assignments and filter for current grade
+const allAssignments = generateAssignments() as StudentAssignment[];
+const dummyAssignments = getGradeAssignments(allAssignments, CURRENT_GRADE);
 
 export default function StudentDashboard() {
-  const { data: stats } = useQuery({
-    queryKey: ['assignment-stats'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No user found");
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Get available subjects for the current grade
+  const availableSubjects = getSubjectsForGrade(CURRENT_GRADE);
+  
+  // Initialize filters dynamically
+  const [selectedFilters, setSelectedFilters] = useState<StudentDashboardFilters>(
+    initializeStudentFilters(availableSubjects)
+  );
 
-      const { data: assignments } = await supabase
-        .from('assignments')
-        .select('status')
-        .eq('student_id', user.id);
-
-      console.log('Raw assignments:', assignments);
-
-      const counts = {
-        total: assignments?.filter(a => a.status === 'SUBMITTED' || a.status === 'VERIFIED').length || 0,
-        drafts: assignments?.filter(a => a.status === 'DRAFT').length || 0,
-        verified: assignments?.filter(a => a.status === 'verified').length || 0,
-        underReview: assignments?.filter(a => a.status === 'SUBMITTED').length || 0
-      };
-
-      console.log('Calculated counts:', counts);
-      return counts;
-    }
-  });
+  // Filter assignments using student-specific utility
+  const filteredAssignments = filterStudentAssignments(
+    dummyAssignments,
+    searchQuery,
+    selectedFilters,
+    availableSubjects
+  );
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
-      
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <StatCard 
-          title="Total Submissions" 
-          value={stats?.total || 0} 
-          icon={FileText} 
-        />
-        <StatCard 
-          title="Drafts" 
-          value={stats?.drafts || 0} 
-          icon={FileText} 
-        />
-        <StatCard 
-          title="Under Review" 
-          value={stats?.underReview || 0} 
-          icon={Clock} 
-        />
-        <StatCard 
-          title="Verified" 
-          value={stats?.verified || 0} 
-          icon={CheckCircle2} 
-        />
-      </div>
+    <div className="relative min-h-screen bg-gray-50">
+      {/* Grid Pattern Background */}
+      <GridPatternBase 
+        width={40} 
+        height={40} 
+        className="absolute inset-0" 
+        squares={[[1, 3], [2, 1], [5, 2], [6, 4], [8, 1]]} 
+      />
 
-      {/* Recent Activity */}
-      <RecentActivity />
+      <div className="relative container mx-auto py-8 px-4 space-y-8">
+        {/* Student Details Card */}
+        <StudentCard {...studentData} />
+
+        {/* Dashboard Header */}
+        <DashboardHeader 
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          selectedFilters={selectedFilters}
+          onFilterChange={setSelectedFilters}
+          availableSubjects={availableSubjects}
+          currentGrade={CURRENT_GRADE}
+        />
+
+        {/* Assignments Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredAssignments.map((assignment) => (
+            <AssignmentCard
+              key={assignment.id}
+              {...assignment}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
