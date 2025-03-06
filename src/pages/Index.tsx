@@ -3,7 +3,7 @@ import { Sparkles } from "lucide-react";
 
 export default function Index() {
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4">
+    <div className="flex items-center justify-center w-full min-h-screen">
       <div className="max-w-4xl w-full">
         <div className="text-center space-y-6 mb-8">
           {/* Badge */}

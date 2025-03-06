@@ -8,18 +8,22 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// Create Supabase client with debug logging
+// Create Supabase client with enhanced security
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
     storageKey: 'supabase.auth.token',
-    storage: localStorage
+    storage: window.localStorage,
+    flowType: 'pkce'
   },
   global: {
     headers: {
       'X-Client-Info': 'supabase-js',
+      'X-Frame-Options': 'DENY',
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'strict-origin-when-cross-origin'
     }
   },
   db: {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,11 +28,30 @@ type SignInFormValues = z.infer<typeof signInSchema>;
 
 interface SignInProps {
   onToggleMode: (e: React.MouseEvent) => void;
+  onResetPassword: (e: React.MouseEvent) => void;
 }
 
-export function SignIn({ onToggleMode }: SignInProps) {
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
+
+export function SignIn({ onToggleMode, onResetPassword }: SignInProps) {
   const [loading, setLoading] = useState(false);
+  const [attemptCount, setAttemptCount] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
   const { toast } = useToast();
+
+  // Check for existing lockout on component mount
+  useEffect(() => {
+    const storedLockout = localStorage.getItem('auth_lockout');
+    if (storedLockout) {
+      const lockoutTime = parseInt(storedLockout);
+      if (lockoutTime > Date.now()) {
+        setLockoutUntil(lockoutTime);
+      } else {
+        localStorage.removeItem('auth_lockout');
+      }
+    }
+  }, []);
 
   // Initialize form with react-hook-form
   const form = useForm<SignInFormValues>({
@@ -44,6 +63,17 @@ export function SignIn({ onToggleMode }: SignInProps) {
   });
 
   const handleSignIn = async (values: SignInFormValues) => {
+    // Check for lockout
+    if (lockoutUntil && Date.now() < lockoutUntil) {
+      const minutesLeft = Math.ceil((lockoutUntil - Date.now()) / 60000);
+      toast({
+        title: "Account temporarily locked",
+        description: `Too many failed attempts. Please try again in ${minutesLeft} minutes.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     console.log("[SignIn] Starting sign in process");
     setLoading(true);
 
@@ -63,12 +93,33 @@ export function SignIn({ onToggleMode }: SignInProps) {
       });
 
       if (signInError) {
+        // Increment attempt count on failure
+        const newAttemptCount = attemptCount + 1;
+        setAttemptCount(newAttemptCount);
+
+        // Check if we should lockout
+        if (newAttemptCount >= MAX_ATTEMPTS) {
+          const lockoutTime = Date.now() + LOCKOUT_DURATION;
+          setLockoutUntil(lockoutTime);
+          localStorage.setItem('auth_lockout', lockoutTime.toString());
+          toast({
+            title: "Account temporarily locked",
+            description: "Too many failed attempts. Please try again in 15 minutes.",
+            variant: "destructive",
+          });
+          return;
+        }
+
         console.error("[SignIn] Sign in error:", {
           error: signInError,
           context: { email: values.email },
         });
         throw signInError;
       }
+
+      // Reset attempt count on successful login
+      setAttemptCount(0);
+      localStorage.removeItem('auth_lockout');
 
       console.log("[SignIn] Fetching user profile");
       const { data: profile, error: profileError } = await supabase
@@ -101,15 +152,21 @@ export function SignIn({ onToggleMode }: SignInProps) {
         title: "Welcome back!",
       });
 
-      // If full_name is just the email prefix, redirect to profile page
-      const isDefaultName = profile?.full_name === values.email.split("@")[0];
-      const redirectPath = isDefaultName
-        ? profile?.role === UserRole.STUDENT
-          ? ROUTES.STUDENT.PROFILE
-          : ROUTES.TEACHER.PROFILE
-        : profile?.role === UserRole.STUDENT
-        ? ROUTES.STUDENT.DASHBOARD
-        : ROUTES.TEACHER.ASSIGNMENTS;
+      // Determine redirect path based on user role
+      let redirectPath;
+      switch (profile?.role) {
+        case UserRole.STUDENT:
+          redirectPath = ROUTES.STUDENT.DASHBOARD;
+          break;
+        case UserRole.TEACHER:
+          redirectPath = ROUTES.TEACHER.DASHBOARD;
+          break;
+        case UserRole.ADMIN:
+          redirectPath = ROUTES.ADMIN.DASHBOARD;
+          break;
+        default:
+          redirectPath = ROUTES.COMMON.HOME;
+      }
 
       console.log("[SignIn] Redirecting to:", redirectPath);
       // Use window.location for full page reload
@@ -165,7 +222,19 @@ export function SignIn({ onToggleMode }: SignInProps) {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <FormLabel>
+                  <div className="flex justify-between items-center">
+                    <span>Password</span>
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto font-normal"
+                      type="button"
+                      onClick={onResetPassword}
+                    >
+                      Forgot password?
+                    </Button>
+                  </div>
+                </FormLabel>
                 <FormControl>
                   <Input
                     type="password"

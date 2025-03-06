@@ -12,44 +12,41 @@ interface AuthLayoutProps {
   children: ReactNode;
   title: string;
   description: string;
-  toggleText: string;
-  toggleLabel: string;
-  onToggle: (e: React.MouseEvent) => void;
+  toggleLabel?: string;
+  toggleText?: string;
+  onToggle?: (e: React.MouseEvent) => void;
 }
 
 export function AuthLayout({
   children,
   title,
   description,
-  toggleText,
   toggleLabel,
-  onToggle,
+  toggleText,
+  onToggle
 }: AuthLayoutProps) {
   return (
-    <div className="w-full max-w-md" id="auth-form">
-      <Card className="bg-background">
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription className="text-secondary-foreground">
-            {description}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {children}
+    <div className="flex flex-col items-center justify-center">
+      <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+        <div className="flex flex-col space-y-2 text-center">
+          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
 
-          <div className="mt-6 text-center text-sm text-secondary-foreground">
+        {children}
+
+        {toggleLabel && toggleText && onToggle && (
+          <p className="px-8 text-center text-sm text-muted-foreground">
             {toggleLabel}
-            <Button
+            <button
               onClick={onToggle}
-              type="button"
-              variant="link"
-              className="text-primary p-0 h-auto font-normal"
+              className="underline hover:text-brand ml-1"
             >
               {toggleText}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            </button>
+          </p>
+        )}
+      </div>
     </div>
   );
 }

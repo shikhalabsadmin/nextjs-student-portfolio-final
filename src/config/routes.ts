@@ -3,10 +3,10 @@ import { AuthenticatedRole } from "@/types/auth";
 import { NavLink } from "@/types/navigation";
 
 export const ROUTES = {
-  // Public routes (UserRole.PUBLIC)
-  PUBLIC: {
+  // Common routes (accessible without authentication)
+  COMMON: {
     HOME: "/",
-    PORTFOLIO: "/portfolio",
+    UPDATE_PASSWORD: "/auth/update-password",
   },
 
   // Student routes (UserRole.STUDENT)
@@ -37,7 +37,7 @@ export const ROUTES = {
     REPORTS: "/admin/reports",
   },
 
-  // Shared Assignment routes (accessible by multiple roles)
+  // Shared Assignment routes (accessible by authenticated users)
   ASSIGNMENT: {
     ROOT: "/assignments",
     LIST: "/assignments",
@@ -57,9 +57,7 @@ export const ROUTES = {
 } as const;
 
 // Navigation configurations
-export const getNavLinks = (
-  userRole: AuthenticatedRole | UserRole.PUBLIC
-): NavLink[] => {
+export const getNavLinks = (userRole: AuthenticatedRole): NavLink[] => {
   switch (userRole) {
     case UserRole.STUDENT:
       return [{ to: ROUTES.STUDENT.PROFILE, label: "Profile" }];

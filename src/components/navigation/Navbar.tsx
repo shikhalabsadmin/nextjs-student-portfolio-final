@@ -13,7 +13,6 @@ import {
 import {
   UserCircle,
   LogOut,
-  Mail,
   Menu,
   X,
   Home,
@@ -23,7 +22,6 @@ import {
   BarChart,
   Users,
   FileText,
-  Bell,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
@@ -34,9 +32,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { ROUTES, getNavLinks } from "@/config/routes";
-import { UserRole } from "@/enums/user.enum";
 import { NavVariant } from "@/enums/navigation.enum";
 import { NavbarProps } from "@/types/navigation";
+import { toast } from "@/components/ui/use-toast";
 
 // Navigation icons mapping
 const NAV_ICONS = {
@@ -87,10 +85,31 @@ export const Navbar: FC<NavbarProps> = ({
   // Handle sign-out with navigation
   const handleSignOut = async () => {
     try {
+      // Close any open menus
+      setIsOpen(false);
+      
+      // Attempt to sign out
       await signOut();
-      navigate(ROUTES.PUBLIC.HOME);
+
+      // Show success toast
+      toast({
+        title: "Logged out successfully",
+        description: "See you again soon!",
+        variant: "default",
+      });
+
+      // Navigate to home page
+      setTimeout(() => {
+        window.location.href = ROUTES.COMMON.HOME;
+      }, 100);
+
     } catch (error) {
-      window.location.replace(ROUTES.PUBLIC.HOME);
+      console.error("[Navbar] Sign out error:", error);
+      toast({
+        title: "Failed to log out",
+        description: "Please try again. If the problem persists, refresh the page.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -132,7 +151,7 @@ export const Navbar: FC<NavbarProps> = ({
 
   // Default logo component
   const DefaultLogo = () => (
-    <Link to={ROUTES.PUBLIC.HOME} aria-label="Home">
+    <Link to={ROUTES.COMMON.HOME} aria-label="Home">
       <img
         src="/shikha_labs.png"
         alt="Shikha Labs Logo"
@@ -144,7 +163,11 @@ export const Navbar: FC<NavbarProps> = ({
   // Desktop navigation component
   const DesktopNav = () => {
     if (variant !== NavVariant.DEFAULT) return null;
-    const links = user ? getNavLinks(userRole) : getNavLinks(UserRole.PUBLIC);
+    const links = user ? getNavLinks(userRole) : [];
+
+    if (links?.length === 0) {
+      return null;
+    }
 
     return (
       <div className="hidden lg:flex items-center gap-4">
@@ -172,7 +195,11 @@ export const Navbar: FC<NavbarProps> = ({
 
   // User dropdown component for desktop
   const UserDropdown = () => {
-    const links = user ? getNavLinks(userRole) : getNavLinks(UserRole.PUBLIC);
+    const links = user ? getNavLinks(userRole) : [];
+
+    if (links?.length === 0) {
+      return null;
+    }
 
     return (
       <DropdownMenu>
@@ -227,8 +254,13 @@ export const Navbar: FC<NavbarProps> = ({
 
   // Mobile navigation component (horizontal layout)
   const MobileNav = () => {
-    const links = user ? getNavLinks(userRole) : getNavLinks(UserRole.PUBLIC);
+    const links = user ? getNavLinks(userRole) : [];
 
+    if (links?.length === 0) {
+      return null;
+    }
+
+  
     return (
       <div className="block lg:hidden">
         <Sheet open={isOpen} onOpenChange={setIsOpen}>

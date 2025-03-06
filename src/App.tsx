@@ -19,7 +19,8 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { NavVariant } from "@/enums/navigation.enum";
 import { UserRole } from "@/enums/user.enum";
 import { ROUTES } from "@/config/routes";
-import ErrorPage from "./pages/ErrorPage";
+import { Error } from "@/components/ui/error";
+import { Loading } from "@/components/ui/loading";
 import { RoleBasedAssignments } from "@/pages/RoleBasedAssignments";
 import { AssignmentForm } from "@/pages/AssignmentForm";
 import { VerifyAssignment } from "@/pages/VerifyAssignment";
@@ -27,6 +28,7 @@ import { TeacherProfile } from "@/pages/TeacherProfile";
 import { StudentProfile } from "@/pages/StudentProfile";
 import ViewAssignment from "@/pages/ViewAssignment";
 import AdminDashboard from "@/pages/AdminDashboard";
+import { UpdatePassword } from "@/components/auth/UpdatePassword";
 
 // Debug utility enabled in development
 const DEBUG = {
@@ -73,11 +75,11 @@ const App: React.FC = () => {
 
   // Router configuration
   const router = createBrowserRouter([
-    // Public routes
+    // Common routes (no authentication required)
     {
-      path: ROUTES.PUBLIC.HOME,
+      path: ROUTES.COMMON.HOME,
       element: <MainLayout variant={NavVariant.DEFAULT} />,
-      errorElement: <ErrorPage />,
+      errorElement: <Error fullScreen />,
       children: [
         {
           index: true,
@@ -94,13 +96,17 @@ const App: React.FC = () => {
             <Index />
           ),
         },
+        {
+          path: "auth/update-password",
+          element: <UpdatePassword />,
+        },
       ],
     },
     // Student routes
     {
       path: ROUTES.STUDENT.DASHBOARD,
       element: <MainLayout variant={NavVariant.AUTH} />,
-      errorElement: <ErrorPage />,
+      errorElement: <Error fullScreen />,
       children: [
         {
           index: true,
@@ -148,7 +154,7 @@ const App: React.FC = () => {
     {
       path: ROUTES.TEACHER.DASHBOARD,
       element: <MainLayout variant={NavVariant.AUTH} />,
-      errorElement: <ErrorPage />,
+      errorElement: <Error fullScreen />,
       children: [
         {
           index: true,
@@ -188,7 +194,7 @@ const App: React.FC = () => {
     {
       path: ROUTES.ASSIGNMENT.ROOT,
       element: <MainLayout variant={NavVariant.AUTH} />,
-      errorElement: <ErrorPage />,
+      errorElement: <Error fullScreen />,
       children: [
         {
           index: true,
@@ -228,7 +234,7 @@ const App: React.FC = () => {
     {
       path: ROUTES.ADMIN.ROOT,
       element: <MainLayout variant={NavVariant.AUTH} />,
-      errorElement: <ErrorPage />,
+      errorElement: <Error fullScreen />,
       children: [
         {
           path: "dashboard",
@@ -273,17 +279,13 @@ const App: React.FC = () => {
 
   if (isLoading) {
     DEBUG.log("Rendering loading state");
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-      </div>
-    );
+    return <Loading fullScreen />;
   }
 
   DEBUG.log("Rendering main application");
   try {
     return (
-      <ErrorBoundary>
+      <ErrorBoundary fallback={<Error fullScreen />}>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
             <RouterProvider router={router} />
@@ -295,7 +297,7 @@ const App: React.FC = () => {
     );
   } catch (error) {
     DEBUG.error("Failed to render application", error);
-    throw error; // Re-throw to let ErrorBoundary handle it
+    throw error;
   }
 };
 

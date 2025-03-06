@@ -1,36 +1,61 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuthState } from "@/hooks/useAuthState";
 import { useEffect } from "react";
+import { UserRole } from "@/enums/user.enum";
+import { ROUTES } from "@/config/routes";
+import { Loading } from "@/components/ui/loading";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  roles?: string[];
+  roles?: UserRole[];
+  redirectTo?: string;
 }
 
-export const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
-  const { user, userRole } = useAuthState();
+export const ProtectedRoute = ({ 
+  children, 
+  roles,
+  redirectTo = ROUTES.COMMON.HOME 
+}: ProtectedRouteProps) => {
+  const { user, userRole, isLoading } = useAuthState();
+  const location = useLocation();
 
   useEffect(() => {
-    console.log('ProtectedRoute mounted with:', { user, userRole, roles });
-    return () => {
-      console.log('ProtectedRoute unmounted');
-    };
-  }, []);
+    console.log('ProtectedRoute mounted:', { 
+      user, 
+      userRole, 
+      roles,
+      path: location.pathname 
+    });
+  }, [user, userRole, roles, location]);
 
-  useEffect(() => {
-    console.log('ProtectedRoute auth state changed:', { user, userRole });
-  }, [user, userRole]);
-
-  console.log('ProtectedRoute rendering with:', { user, userRole, roles });
-
-  if (!user) {
-    console.log('ProtectedRoute: No user, redirecting to /');
-    return <Navigate to="/" replace />;
+  // Show loading state
+  if (isLoading) {
+    return <Loading fullScreen />;
   }
 
-  if (roles && !roles.includes(userRole)) {
-    console.log('ProtectedRoute: Invalid role, redirecting to /app/assignments');
-    return <Navigate to="/app/assignments" replace />;
+  // Not authenticated
+  if (!user) {
+    console.log('ProtectedRoute: No user, redirecting to:', redirectTo);
+    return <Navigate to={redirectTo} replace state={{ from: location }} />;
+  }
+
+  // Check role access if roles are specified
+  if (roles && roles.length > 0) {
+    const hasRequiredRole = roles.includes(userRole as UserRole);
+    if (!hasRequiredRole) {
+      console.log('ProtectedRoute: Invalid role, redirecting to dashboard');
+      // Redirect to appropriate dashboard based on user role
+      const dashboardRoute = 
+        userRole === UserRole.STUDENT 
+          ? ROUTES.STUDENT.DASHBOARD
+          : userRole === UserRole.TEACHER 
+            ? ROUTES.TEACHER.DASHBOARD
+            : userRole === UserRole.ADMIN
+              ? ROUTES.ADMIN.DASHBOARD
+              : ROUTES.COMMON.HOME;
+              
+      return <Navigate to={dashboardRoute} replace state={{ from: location }} />;
+    }
   }
 
   return <>{children}</>;

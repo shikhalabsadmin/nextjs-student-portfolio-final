@@ -10,7 +10,7 @@ export function MainLayout({ variant = NavVariant.DEFAULT }: MainLayoutProps) {
   return (
     <div className="flex flex-col">
       <Navbar variant={variant} />
-      <main className="flex-1 min-h-screen">
+      <main className="p-10 lg:p-0">
         <Outlet />
       </main>
     </div>

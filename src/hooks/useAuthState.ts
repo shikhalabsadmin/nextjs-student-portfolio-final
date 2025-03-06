@@ -87,7 +87,7 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
   // Update authentication state
   const updateState = (
     user: User | null,
-    role: AuthenticatedRole | UserRole.PUBLIC,
+    role: AuthenticatedRole | null,
     profile: Profile | null
   ) => {
     DEBUG.log("Updating state", {
@@ -101,7 +101,7 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
 
   return {
     user: null,
-    userRole: UserRole.PUBLIC,
+    userRole: null,
     isLoading: true,
     profile: null,
     // Sign out user and clear state
@@ -116,16 +116,16 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
         localStorage.clear();
 
         DEBUG.log("Updating state to signed out");
-        updateState(null, UserRole.PUBLIC, null);
+        updateState(null, null, null);
 
-        DEBUG.log("Redirecting to home", { path: ROUTES.PUBLIC.HOME });
-        window.location.href = ROUTES.PUBLIC.HOME;
+        DEBUG.log("Redirecting to home", { path: ROUTES.COMMON.HOME });
+        window.location.href = ROUTES.COMMON.HOME;
       } catch (error) {
         DEBUG.error("Sign out failed", error);
         DEBUG.log("Forcing state cleanup due to error");
-        updateState(null, UserRole.PUBLIC, null);
-        DEBUG.log("Forcing redirect to home", { path: ROUTES.PUBLIC.HOME });
-        window.location.href = ROUTES.PUBLIC.HOME;
+        updateState(null, null, null);
+        DEBUG.log("Forcing redirect to home", { path: ROUTES.COMMON.HOME });
+        window.location.href = ROUTES.COMMON.HOME;
       }
     },
     // Initialize authentication state
@@ -143,13 +143,11 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
 
         if (!session?.user) {
           DEBUG.log("No active session found");
-          updateState(null, UserRole.PUBLIC, null);
+          updateState(null, null, null);
           return () => {};
         }
 
-        const metadataRole = (
-          session.user.user_metadata?.role || UserRole.PUBLIC
-        ).toUpperCase() as AuthenticatedRole | UserRole.PUBLIC;
+        const metadataRole = session.user.user_metadata?.role?.toUpperCase() as AuthenticatedRole;
         DEBUG.log("Checking metadata role", {
           metadataRole,
           userId: session.user.id,
@@ -157,22 +155,21 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
 
         if (!isValidUserRole(metadataRole)) {
           DEBUG.error("Invalid metadata role", { metadataRole });
-          updateState(null, UserRole.PUBLIC, null);
+          updateState(null, null, null);
           return () => {};
         }
 
-        const role = metadataRole as AuthenticatedRole;
         DEBUG.log("Fetching profile for user", {
           userId: session.user.id,
-          role,
+          metadataRole,
         });
-        const { profile } = await fetchProfile(session.user.id, role);
+        const { profile } = await fetchProfile(session.user.id, metadataRole);
 
         DEBUG.log("Updating state with session data", {
           userId: session.user.id,
-          role,
+          metadataRole,
         });
-        updateState(session.user, role, profile);
+        updateState(session.user, metadataRole, profile);
 
         DEBUG.log("Setting up auth state change listener");
         const { data: subscriptionData } = supabase.auth.onAuthStateChange(
@@ -183,9 +180,7 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
             });
 
             if (event === "SIGNED_IN" && newSession?.user) {
-              const newRole = (
-                newSession.user.user_metadata?.role || UserRole.PUBLIC
-              ).toUpperCase() as AuthenticatedRole | UserRole.PUBLIC;
+              const newRole = newSession.user.user_metadata?.role?.toUpperCase() as AuthenticatedRole;
               DEBUG.log("Processing SIGNED_IN event", {
                 userId: newSession.user.id,
                 newRole,
@@ -193,7 +188,7 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
 
               if (!isValidUserRole(newRole)) {
                 DEBUG.error("Invalid role in SIGNED_IN event", { newRole });
-                updateState(null, UserRole.PUBLIC, null);
+                updateState(null, null, null);
                 return;
               }
 
@@ -208,14 +203,10 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
                 userId: newSession.user.id,
                 newRole,
               });
-              updateState(
-                newSession.user,
-                newRole as AuthenticatedRole,
-                profile
-              );
+              updateState(newSession.user, newRole, profile);
             } else if (event === "SIGNED_OUT") {
               DEBUG.log("Processing SIGNED_OUT event");
-              updateState(null, UserRole.PUBLIC, null);
+              updateState(null, null, null);
             }
           }
         );
@@ -233,7 +224,7 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
         };
       } catch (error) {
         DEBUG.error("Initialization failed", error);
-        updateState(null, UserRole.PUBLIC, null);
+        updateState(null, null, null);
         return () => {};
       }
     },
@@ -299,7 +290,7 @@ export const useAuth = () => {
   DEBUG.log("useAuth hook called");
   const authState = useAuthState();
   const derivedState = {
-    isAuthenticated: !!authState.user && authState.userRole !== UserRole.PUBLIC,
+    isAuthenticated: !!authState.user && !!authState.userRole,
     isAdmin: authState.userRole === UserRole.ADMIN,
   };
   DEBUG.log("Returning auth state", {
