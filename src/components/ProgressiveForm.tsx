@@ -4,19 +4,18 @@ import { FormStep } from "./assignment-form/FormStep";
 import { QuestionField } from "./assignment-form/QuestionField";
 import { INITIAL_QUESTIONS } from "./assignment-form/QuestionTypes";
 import { useAssignmentSubmission } from "./assignment-form/useAssignmentSubmission";
-import { toast } from "sonner";
-import { assignmentSchema } from "@/lib/validations/assignment";
 import { useAuthState } from "@/hooks/useAuthState";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation, useNavigate } from "react-router-dom";
 import { saveDraft, uploadFile } from "@/lib/assignments";
-import type { AssignmentFormData, AssignmentFile, FormAnswers } from "@/types/assignments";
+import type { AssignmentFormData, FormAnswers } from "@/types/assignments";
+import { AssignmentFile } from "@/types/file";
 import { Button } from "./ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 import { FileText } from "lucide-react";
 import { PreviewSection, PreviewField } from "@/components/ui/preview-section";
-import { SKILLS } from "@/lib/constants";
+import { SKILLS } from "@/constants";
 
 interface ProgressiveFormProps {
   currentStep: number;
@@ -54,7 +53,7 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const id = searchParams.get('id');
-    const state = location.state as { assignmentData?: any };
+    const state = location.state as { assignmentData?: AssignmentFormData };
     
     if (id) {
       console.log('[INIT] Found assignment ID in URL:', id);
@@ -163,7 +162,7 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
   };
 
   // Handle form changes with proper dirty state management
-  const handleFormChange = useCallback((fieldId: string, value: any) => {
+  const handleFormChange = useCallback((fieldId: string, value: unknown) => {
     // Prevent editing if already submitted
     if (answers.status === 'SUBMITTED') {
       toast({
@@ -1086,7 +1085,7 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
       </Card>
     </div>
   );
-};
+}
 
   return renderContent();
 }

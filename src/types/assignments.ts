@@ -1,4 +1,5 @@
 import { Database } from './supabase';
+import { AssignmentFile } from './file';
 
 // Use the database Row type as our base Assignment type
 export type Assignment = Database['public']['Tables']['assignments']['Row'] & {
@@ -12,15 +13,7 @@ export type Assignment = Database['public']['Tables']['assignments']['Row'] & {
 
 export type AssignmentStatus = 'DRAFT' | 'SUBMITTED' | 'VERIFIED';
 
-export interface AssignmentFile {
-  id: string;
-  file_url: string;
-  file_name: string;
-  file_size: number;
-  file_type: string;
-  created_at?: string;
-  assignment_id?: string;
-}
+// AssignmentFile is now imported from file.ts
 
 // Form state type - matches database schema
 export interface FormAnswers {
@@ -50,8 +43,8 @@ export interface FormAnswers {
   teacher_id?: string | null;
   submitted_at?: string | null;
   verified_at?: string | null;
-  feedback?: any;
-  revision_history?: any[];
+  feedback?: Record<string, unknown>;
+  revision_history?: Record<string, unknown>[];
   current_revision?: number;
 }
 
@@ -81,7 +74,7 @@ export interface AssignmentFormData {
   student_id?: string;
   submitted_at?: string | null;
   verified_at?: string | null;
-  feedback?: any;
-  revision_history?: any[];
+  feedback?: Record<string, unknown>;
+  revision_history?: Record<string, unknown>[];
   current_revision?: number;
 } 

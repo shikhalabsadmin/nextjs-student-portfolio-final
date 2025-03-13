@@ -1,7 +1,7 @@
 import { Assignment } from '@/types/assignments';
 import { PreviewSection, PreviewField } from '@/components/ui/preview-section';
 import { FileText } from 'lucide-react';
-import { SKILLS } from '@/lib/constants';
+import { SKILLS } from '@/constants';
 import { INITIAL_QUESTIONS } from '@/components/assignment-form/QuestionTypes';
 
 interface AssignmentDetailsProps {

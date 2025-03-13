@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { FileText, ExternalLink, CheckCircle, XCircle, ChevronDown, ChevronUp, Paperclip } from 'lucide-react';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { Assignment } from '@/types/assignments';
-import { SKILLS } from '@/lib/constants';
+import { SKILLS } from '@/constants';
 import { formatSubject, formatGrade } from '@/lib/utils';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { INITIAL_QUESTIONS } from '@/components/assignment-form/QuestionTypes';

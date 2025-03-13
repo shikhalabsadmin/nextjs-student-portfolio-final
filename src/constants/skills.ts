@@ -1,0 +1,17 @@
+export const SKILLS = [
+  { id: "critical-thinking", name: "Critical Thinking" },
+  { id: "creativity", name: "Creativity" },
+  { id: "problem-solving", name: "Problem Solving" },
+  { id: "communication", name: "Communication" },
+  { id: "collaboration", name: "Collaboration" },
+  { id: "research", name: "Research" },
+  { id: "analysis", name: "Analysis" },
+  { id: "planning", name: "Planning" },
+  { id: "organization", name: "Organization" },
+  { id: "leadership", name: "Leadership" },
+  { id: "time-management", name: "Time Management" },
+  { id: "adaptability", name: "Adaptability" },
+  { id: "innovation", name: "Innovation" },
+  { id: "technical-skills", name: "Technical Skills" },
+  { id: "presentation", name: "Presentation" },
+] as const; 

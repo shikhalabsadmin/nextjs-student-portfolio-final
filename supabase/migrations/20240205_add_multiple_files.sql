@@ -2,6 +2,7 @@
 CREATE TABLE assignment_files (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   assignment_id UUID REFERENCES assignments(id) ON DELETE CASCADE,
+  student_id UUID REFERENCES profiles(id),
   file_url TEXT NOT NULL,
   file_name TEXT NOT NULL,
   file_size BIGINT,
@@ -12,6 +13,7 @@ CREATE TABLE assignment_files (
 
 -- Add indexes
 CREATE INDEX idx_assignment_files_assignment_id ON assignment_files(assignment_id);
+CREATE INDEX idx_assignment_files_student_id ON assignment_files(student_id);
 
 -- Enable RLS
 ALTER TABLE assignment_files ENABLE ROW LEVEL SECURITY;
@@ -20,6 +22,10 @@ ALTER TABLE assignment_files ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view files for assignments they can access" ON assignment_files
   FOR SELECT
   USING (
+    -- Students can view their own files
+    student_id = auth.uid()
+    OR
+    -- Or files from assignments they can access
     EXISTS (
       SELECT 1 FROM assignments a
       WHERE a.id = assignment_id
@@ -49,33 +55,41 @@ CREATE POLICY "Users can view files for assignments they can access" ON assignme
 -- Drop existing policy
 DROP POLICY IF EXISTS "Students can insert files for their assignments" ON assignment_files;
 
--- Create updated policy
-CREATE POLICY "Students can insert files for their assignments" ON assignment_files
+-- Create updated policy for file insertion
+CREATE POLICY "Students can insert their own files" ON assignment_files
   FOR INSERT
   WITH CHECK (
-    -- Allow files without assignment_id (temporary uploads)
-    (assignment_id IS NULL AND EXISTS (
-      SELECT 1 FROM auth.users
-      WHERE auth.uid() = id
-    ))
-    OR
-    -- Or files with assignment_id that belongs to the student
-    EXISTS (
-      SELECT 1 FROM assignments a
-      WHERE a.id = assignment_id
-      AND a.student_id = auth.uid()
+    -- Must be authenticated and inserting their own files
+    auth.uid() = student_id
+    AND (
+      -- Allow files without assignment_id (temporary uploads)
+      assignment_id IS NULL
+      OR
+      -- Or files with assignment_id that belongs to the student
+      EXISTS (
+        SELECT 1 FROM assignments a
+        WHERE a.id = assignment_id
+        AND a.student_id = auth.uid()
+      )
     )
   );
 
--- Students can delete files from their draft assignments
-CREATE POLICY "Students can delete files from their draft assignments" ON assignment_files
+-- Students can delete their own files
+CREATE POLICY "Students can delete their own files" ON assignment_files
   FOR DELETE
   USING (
-    EXISTS (
-      SELECT 1 FROM assignments a
-      WHERE a.id = assignment_id
-      AND a.student_id = auth.uid()
-      AND a.status = 'DRAFT'
+    student_id = auth.uid()
+    AND (
+      -- Allow deleting unassigned files
+      assignment_id IS NULL
+      OR
+      -- Or files from draft assignments
+      EXISTS (
+        SELECT 1 FROM assignments a
+        WHERE a.id = assignment_id
+        AND a.student_id = auth.uid()
+        AND a.status = 'DRAFT'
+      )
     )
   );
 

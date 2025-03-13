@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { SKILLS } from "@/lib/constants";
+import { SKILLS } from "@/constants";
 
 interface SkillsSectionProps {
   selectedSkills: string[];

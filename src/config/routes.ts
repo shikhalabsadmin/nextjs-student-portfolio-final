@@ -12,20 +12,17 @@ export const ROUTES = {
   // Student routes (UserRole.STUDENT)
   STUDENT: {
     DASHBOARD: "/student",
-    ASSIGNMENTS: "/student/assignments",
     PROFILE: "/student/profile",
-    SUBMIT: "/student/submit",
-    SUBMIT_WITH_ID: "/student/submit/:id",
-    DRAFT_EDIT: "/student/drafts/:id/edit",
+    MANAGE_ASSIGNMENT: "/student/assignment/:id?",
+    FEEDBACK_ASSIGNMENT: "/student/assignment/:id/feedback",
+    VERIFIED_ASSIGNMENT: "/student/assignment/:id/verified",
   },
 
   // Teacher routes (UserRole.TEACHER)
   TEACHER: {
     DASHBOARD: "/teacher",
-    ASSIGNMENTS: "/teacher/assignments",
     PROFILE: "/teacher/profile",
-    NEW_ASSIGNMENT: "/teacher/assignments/new",
-    VERIFY_ASSIGNMENT: "/teacher/verify/:id",
+    MANAGE_ASSIGNMENT: "/teacher/assignment/:id?",
   },
 
   // Admin routes (UserRole.ADMIN)

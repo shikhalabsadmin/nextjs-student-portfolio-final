@@ -13,6 +13,7 @@ export interface Profile {
   avatar_url: string | null;
   role: AuthenticatedRole;
   teaching_subjects?: TeachingSubject[];
+  grade?: string | null;
 }
 
 export interface AuthState {

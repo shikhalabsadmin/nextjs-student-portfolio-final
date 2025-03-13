@@ -21,6 +21,7 @@ import { HexColorPicker } from "react-colorful";
 import { ColorConfig, ColorType } from "@/types/color-picker";
 import { getInitialColors, updateCssVariable } from "@/utils/color-utils";
 import { ColorPickerButton } from "@/components/ui/color-picker-button";
+import { ROUTES } from "@/config/routes";
 
 
 export function StickyCorner() {
@@ -46,7 +47,7 @@ export function StickyCorner() {
                 variant="ghost"
                 size="icon"
                 className="hover:bg-gray-100"
-                onClick={() => navigate("/student/profile/edit")}
+                onClick={() => navigate(ROUTES.STUDENT.PROFILE)}
               >
                 <Pencil className="h-5 w-5" />
               </Button>
@@ -56,33 +57,8 @@ export function StickyCorner() {
             </TooltipContent>
           </Tooltip>
 
-          {/* Share Button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="hover:bg-gray-100"
-                onClick={() => {
-                  if (navigator.share) {
-                    navigator.share({
-                      title: "My Student Portfolio",
-                      text: "Check out my student portfolio!",
-                      url: window.location.href,
-                    });
-                  }
-                }}
-              >
-                <Share2 className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Share Profile</p>
-            </TooltipContent>
-          </Tooltip>
-
-          {/* Color Picker Button */}
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            {/* Color Picker Button */}
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
               <ColorPickerButton />
             </DialogTrigger>
@@ -124,6 +100,33 @@ export function StickyCorner() {
             </DialogContent>
           </Dialog>
 
+
+          {/* Share Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hover:bg-gray-100"
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({
+                      title: "My Student Portfolio",
+                      text: "Check out my student portfolio!",
+                      url: window.location.href,
+                    });
+                  }
+                }}
+              >
+                <Share2 className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Share Profile</p>
+            </TooltipContent>
+          </Tooltip>
+
+        
           {/* Create Artefact Button */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -131,7 +134,7 @@ export function StickyCorner() {
                 variant="default"
                 size="icon"
                 className="bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-lg shadow-md"
-                onClick={() => navigate("/student/artefacts/create")}
+                onClick={() => navigate(ROUTES.STUDENT.MANAGE_ASSIGNMENT)}
               >
                 <Plus className="h-5 w-5" />
               </Button>

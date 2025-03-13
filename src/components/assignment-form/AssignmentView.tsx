@@ -1,6 +1,6 @@
 import { PreviewSection, PreviewField } from "@/components/ui/preview-section";
 import { FileText } from "lucide-react";
-import { SKILLS } from "@/lib/constants";
+import { SKILLS } from "@/constants";
 import type { Assignment } from "@/types/assignments";
 
 interface AssignmentViewProps {

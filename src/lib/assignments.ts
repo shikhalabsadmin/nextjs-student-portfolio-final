@@ -1,27 +1,39 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
-import type { Assignment, AssignmentFormData, AssignmentFile } from '@/types/assignments';
+import type { Assignment, AssignmentFormData } from '@/types/assignments';
+import type { AssignmentFile } from '@/types/file';
 import type { Database, FileOptions } from '@/types/supabase';
+import { getFileTypeCategory } from '@/lib/utils/file-type.utils';
+import { debugAPI } from '@/lib/utils/debug.service';
 
 export const uploadFile = async (
   file: File,
   onProgress?: (progress: number) => void,
   assignment_id?: string | null
 ): Promise<{ url: string; metadata: AssignmentFile }> => {
+  debugAPI.step('Starting file upload with progress tracking', { 
+    fileName: file.name,
+    assignment_id 
+  });
+
   const authData = await supabase.auth.getUser();
-  if (!authData.data.user) throw new Error('No user found');
+  if (!authData.data.user) {
+    debugAPI.error('No authenticated user found');
+    throw new Error('No user found');
+  }
   
   try {
-    const user = (await supabase.auth.getUser()).data.user;
-    if (!user) throw new Error('No user found');
-
+    const user = authData.data.user;
+    
     // Create a unique filename with timestamp
     const fileName = `${user.id}/${Date.now()}-${file.name}`;
+    debugAPI.info('Generated file path', { fileName });
     
     // Initialize progress
     onProgress?.(0);
     
     // Upload the file with progress tracking
+    debugAPI.step('Uploading to storage with progress tracking');
     const { data, error } = await supabase.storage
       .from('assignments')
       .upload(fileName, file, {
@@ -37,38 +49,47 @@ export const uploadFile = async (
         }
       } as FileOptions);
 
-    if (error) throw error;
+    if (error) {
+      debugAPI.error('Storage upload failed', error);
+      throw error;
+    }
 
     // Mark as complete
     onProgress?.(100);
+    debugAPI.info('File uploaded successfully');
 
     // Get the public URL
     const { data: { publicUrl } } = supabase.storage
       .from('assignments')
       .getPublicUrl(data.path);
 
+    debugAPI.step('Creating database record');
     // Store file metadata
     const { data: fileData, error: fileError } = await supabase
       .from('assignment_files')
       .insert({
         file_url: publicUrl,
         file_name: file.name,
+        file_type: getFileTypeCategory(file.type),
         file_size: file.size,
-        file_type: file.type,
         student_id: user.id,
         assignment_id: assignment_id || null
       })
       .select()
       .single();
 
-    if (fileError) throw fileError;
+    if (fileError) {
+      debugAPI.error('Database insert failed', fileError);
+      throw fileError;
+    }
 
+    debugAPI.info('File record created successfully', fileData);
     return {
       url: publicUrl,
       metadata: fileData as AssignmentFile
     };
   } catch (error) {
-    console.error('Error uploading file:', error);
+    debugAPI.error('File upload process failed', error);
     throw error;
   }
 };

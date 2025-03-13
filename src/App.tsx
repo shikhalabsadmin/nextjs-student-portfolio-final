@@ -29,6 +29,7 @@ import { StudentProfile } from "@/pages/StudentProfile";
 import ViewAssignment from "@/pages/ViewAssignment";
 import AdminDashboard from "@/pages/AdminDashboard";
 import { UpdatePassword } from "@/components/auth/UpdatePassword";
+import StudentAssignmentForm from "@/components/assignment/AssignmentForm";
 
 // Debug utility enabled in development
 const DEBUG = {
@@ -97,7 +98,7 @@ const App: React.FC = () => {
           ),
         },
         {
-          path: "auth/update-password",
+          path: ROUTES.COMMON.UPDATE_PASSWORD,
           element: <UpdatePassword />,
         },
       ],
@@ -117,34 +118,38 @@ const App: React.FC = () => {
           ),
         },
         {
-          path: "profile",
+          path: ROUTES.STUDENT.PROFILE,
           element: (
             <ProtectedRoute roles={[UserRole.STUDENT]}>
-              <StudentProfile />
+              <StudentProfile user={user} />
             </ProtectedRoute>
           ),
         },
         {
-          path: "submit",
+          path: ROUTES.STUDENT.MANAGE_ASSIGNMENT,
           element: (
             <ProtectedRoute roles={[UserRole.STUDENT]}>
-              <Submit />
+              <StudentAssignmentForm user={user} />
             </ProtectedRoute>
           ),
         },
         {
-          path: "submit/:id",
+          path: ROUTES.STUDENT.FEEDBACK_ASSIGNMENT,
           element: (
             <ProtectedRoute roles={[UserRole.STUDENT]}>
-              <Submit />
+              <div>
+                <h1>Feedback Assignment</h1>
+              </div>
             </ProtectedRoute>
           ),
         },
         {
-          path: "drafts/:id/edit",
+          path: ROUTES.STUDENT.VERIFIED_ASSIGNMENT,
           element: (
             <ProtectedRoute roles={[UserRole.STUDENT]}>
-              <Submit />
+              <div>
+                <h1>Verified Assignment</h1>
+              </div>
             </ProtectedRoute>
           ),
         },
