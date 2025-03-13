@@ -36,6 +36,39 @@ export function useAssignmentForm({ user }: { user: User }) {
     },
   });
 
+  // Ensure text fields are never null
+  useEffect(() => {
+    const formValues = form.getValues();
+    const fieldsToCheck = [
+      'originality_explanation',
+      'team_contribution',
+      'skills_justification',
+      'pride_reason',
+      'creation_process',
+      'learnings',
+      'challenges',
+      'improvements',
+      'acknowledgments'
+    ] as const;
+
+    let needsUpdate = false;
+    const updates: Record<string, string> = {};
+
+    // Check each field and convert null to empty string
+    fieldsToCheck.forEach(field => {
+      if (formValues[field as keyof AssignmentFormValues] === null) {
+        updates[field] = "";
+        needsUpdate = true;
+      }
+    });
+
+    // If any nulls were found, update the form
+    if (needsUpdate) {
+      debug.log("Converting null text fields to empty strings", updates);
+      form.reset({ ...formValues, ...updates }, { keepDirty: true });
+    }
+  }, [form]);
+
   debug.log("Form initialized with default values:", { 
     grade: user?.user_metadata?.grade,
     defaultValues: getDefaultValues() 
@@ -63,8 +96,29 @@ export function useAssignmentForm({ user }: { user: User }) {
         debug.log("Assignment data received", { assignment });
         
         if (assignment) {
+          // Ensure all text fields are strings, not null
+          const textFields = [
+            'originality_explanation',
+            'team_contribution',
+            'skills_justification',
+            'pride_reason',
+            'creation_process',
+            'learnings',
+            'challenges',
+            'improvements',
+            'acknowledgments'
+          ];
+          
+          // Create a clean assignment object with nulls converted to empty strings
+          const cleanAssignment = { ...assignment };
+          textFields.forEach(field => {
+            if (cleanAssignment[field as keyof AssignmentFormValues] === null) {
+              (cleanAssignment as Record<string, string | null>)[field] = "";
+            }
+          });
+          
           debug.log("Resetting form with assignment data");
-          form.reset(assignment);
+          form.reset(cleanAssignment);
           
           debug.log("Marking current step as visited", { currentStep });
           stepService.markStepVisited(currentStep);

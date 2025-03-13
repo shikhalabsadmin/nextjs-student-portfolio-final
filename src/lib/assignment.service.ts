@@ -66,16 +66,16 @@ export const getDefaultValues = (): AssignmentFormValues => ({
   teacher_id: null,
   artifact_url: null,
   parent_assignment_id: null,
-  team_contribution: null,
-  originality_explanation: null,
+  team_contribution: "",
+  originality_explanation: "",
   selected_skills: [],
-  skills_justification: null,
-  pride_reason: null,
-  creation_process: null,
-  learnings: null,
-  challenges: null,
-  improvements: null,
-  acknowledgments: null,
+  skills_justification: "",
+  pride_reason: "",
+  creation_process: "",
+  learnings: "",
+  challenges: "",
+  improvements: "",
+  acknowledgments: "",
   submitted_at: null,
   verified_at: null,
   artifact_type: "",
@@ -317,6 +317,21 @@ export class StepService {
       if (typeof value === 'boolean') return true;
       return value !== null && value !== undefined && value !== '';
     });
+
+    // Additional validation for role-originality step
+    if (stepId === 'role-originality') {
+      // If it's a team project, team_contribution is required
+      if (formData.is_team_work && (!formData.team_contribution || !formData.team_contribution.trim())) {
+        step.isComplete = false;
+        return false;
+      }
+      
+      // If it's original work, originality_explanation is required
+      if (formData.is_original_work && (!formData.originality_explanation || !formData.originality_explanation.trim())) {
+        step.isComplete = false;
+        return false;
+      }
+    }
 
     // For basic-info step, also check if either files or youtubelinks are provided
     if (stepId === 'basic-info') {

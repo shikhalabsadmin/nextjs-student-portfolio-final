@@ -51,7 +51,7 @@ export function CollaborationStep({ form }: CollaborationStepProps) {
                   placeholder="What was your specific contribution to the team project?"
                   className="min-h-[100px]"
                   {...field}
-                  value={field.value || ""}
+                  value={field.value ?? ""}
                 />
               </FormControl>
               <FormMessage />
@@ -93,7 +93,7 @@ export function CollaborationStep({ form }: CollaborationStepProps) {
                   placeholder="What aspects of your work were original or innovative?"
                   className="min-h-[100px]"
                   {...field}
-                  value={field.value || ""}
+                  value={field.value ?? ""}
                 />
               </FormControl>
               <FormMessage />
