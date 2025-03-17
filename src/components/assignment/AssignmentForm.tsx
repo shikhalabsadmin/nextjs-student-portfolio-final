@@ -9,7 +9,15 @@ import { PreviewStep } from "@/components/assignment/steps/PreviewStep";
 import { Form } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import { User } from "@supabase/supabase-js";
-import { useEffect } from "react";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 function AssignmentForm({ user }: { user: User }) {
   const {
@@ -24,6 +32,8 @@ function AssignmentForm({ user }: { user: User }) {
   } = useAssignmentForm({
     user: user,
   });
+
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
 
   const getCurrentStep = () => {
     switch (currentStep) {
@@ -58,8 +68,21 @@ function AssignmentForm({ user }: { user: User }) {
     if (!isCurrentStepComplete()) {
       return;
     }
+
+    // If we're on the review page, show confirmation modal
+    if (currentStep === "review-submit") {
+      setShowConfirmationModal(true);
+      return;
+    }
+    
     onSubmit();
     nextStep();
+  };
+
+  const handleConfirmSubmit = () => {
+    onSubmit();
+    nextStep();
+    setShowConfirmationModal(false);
   };
 
   return (
@@ -113,10 +136,10 @@ function AssignmentForm({ user }: { user: User }) {
         <Form {...form}>
           <form
             onSubmit={onSubmit}
-            className="rounded-md border border-gray-200 space-y-5"
+            className="rounded-md border border-gray-200 space-y-0 flex flex-col h-[calc(100vh-8rem)] overflow-hidden"
           >
             {currentStepConfig && (
-              <div className="flex justify-between items-center border-b border-gray-200 p-5">
+              <div className="sticky top-0 z-10 flex justify-between items-center border-b border-gray-200 p-5 bg-white">
                 <div>
                   <h2 className="text-2xl font-semibold text-gray-900 mb-2">
                     {currentStepConfig.header}
@@ -135,9 +158,32 @@ function AssignmentForm({ user }: { user: User }) {
                 </Button>
               </div>
             )}
-            <section className="p-5">{getCurrentStep()}</section>
+            <section className="p-5 flex-1 overflow-y-auto">{getCurrentStep()}</section>
           </form>
         </Form>
+
+        {/* Confirmation Modal */}
+        <Dialog open={showConfirmationModal} onOpenChange={() => setShowConfirmationModal(false)}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Ready to Submit Your Artifact?</DialogTitle>
+              <DialogDescription>
+                Once submitted, you won't be able to make any changes unless your teacher requests revisions. Are you sure you want to proceed?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowConfirmationModal(false)}>
+                Cancel
+              </Button>
+              <Button 
+                className="bg-[#6366F1] hover:bg-[#6366F1]/90 text-white" 
+                onClick={handleConfirmSubmit}
+              >
+                Confirm & Submit
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
