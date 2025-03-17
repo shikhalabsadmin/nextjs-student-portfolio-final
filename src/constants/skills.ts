@@ -1,4 +1,9 @@
 export const SKILLS = [
+  { id: "motivation", name: "Motivation" },
+  { id: "intellect", name: "Intellect" },
+  { id: "diligence", name: "Diligence" },
+  { id: "emotionality", name: "Emotionality" },
+  { id: "sociability", name: "Sociability" },
   { id: "critical-thinking", name: "Critical Thinking" },
   { id: "creativity", name: "Creativity" },
   { id: "problem-solving", name: "Problem Solving" },
