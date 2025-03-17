@@ -10,14 +10,28 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { SKILLS } from "@/constants";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ProcessStepProps {
   form: UseFormReturn<AssignmentFormValues>;
 }
 
 export function ProcessStep({ form }: ProcessStepProps) {
+  // Enforce character limit on text input
+  const enforceCharacterLimit = (
+    e: React.ChangeEvent<HTMLTextAreaElement>, 
+    onChange: (value: string) => void
+  ) => {
+    const value = e.target.value;
+    if (value.length <= 200) {
+      onChange(value);
+    } else {
+      // Trim to 200 characters if it exceeds
+      onChange(value.slice(0, 200));
+    }
+  };
+
   return (
     <div className="space-y-6">
       <FormField
@@ -25,30 +39,29 @@ export function ProcessStep({ form }: ProcessStepProps) {
         name="selected_skills"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>What skills did you practice? Select Top 3</FormLabel>
-            <FormDescription>
-              Choose up to three skills that best represent your work
-            </FormDescription>
-            <div className="flex flex-wrap gap-2 mt-3">
-              {SKILLS.map((skill) => (
-                <Badge
-                  key={skill.id}
-                  variant="outline"
-                  className={cn(
-                    "cursor-pointer hover:bg-[#62C59F]/5 transition-colors",
-                    field.value?.includes(skill.id)
-                      ? "bg-[#62C59F]/10 text-[#62C59F] border-[#62C59F]"
-                      : "bg-transparent"
-                  )}
-                  onClick={() => {
-                    const newValue = field.value?.includes(skill.id)
-                      ? field.value.filter((id) => id !== skill.id)
-                      : [...(field.value || []), skill.id].slice(0, 3);
-                    field.onChange(newValue);
-                  }}
-                >
-                  {skill.name}
-                </Badge>
+            <FormLabel className="text-base font-medium">
+              What skills did you practice? (Select Top 3) <span className="text-red-500">*</span>
+            </FormLabel>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-3">
+              {SKILLS.slice(0, 5).map((skill) => (
+                <div key={skill.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={field.value?.includes(skill.id)}
+                    onCheckedChange={(checked) => {
+                      const newValue = checked
+                        ? [...(field.value || []), skill.id].slice(0, 3)
+                        : field.value?.filter((id) => id !== skill.id) || [];
+                      field.onChange(newValue);
+                    }}
+                    id={`skill-${skill.id}`}
+                  />
+                  <label
+                    htmlFor={`skill-${skill.id}`}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    {skill.name}
+                  </label>
+                </div>
               ))}
             </div>
             <FormMessage />
@@ -61,15 +74,29 @@ export function ProcessStep({ form }: ProcessStepProps) {
         name="skills_justification"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Justify the selected skills</FormLabel>
+            <FormLabel className="text-base font-medium">
+              Justify the selected skills <span className="text-red-500">*</span>
+            </FormLabel>
+            <FormDescription>
+              How did each skill contribute to the creation of the artifact?
+              What actions, decisions, or moments during the process
+              demonstrated these skills?
+            </FormDescription>
             <FormControl>
               <Textarea
-                placeholder="How did you demonstrate these skills in your work?"
+                placeholder="How did each skill help you in creating this artifact?"
                 className="min-h-[100px]"
-                {...field}
                 value={field.value || ""}
+                onChange={(e) => enforceCharacterLimit(e, field.onChange)}
+                onBlur={field.onBlur}
+                name={field.name}
+                ref={field.ref}
+                required
               />
             </FormControl>
+            <div className="flex justify-end text-xs text-gray-500 mt-1">
+              {field.value?.length || 0}/200 max
+            </div>
             <FormMessage />
           </FormItem>
         )}
@@ -80,38 +107,33 @@ export function ProcessStep({ form }: ProcessStepProps) {
         name="pride_reason"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Why are you proud of this artifact?</FormLabel>
+            <FormLabel className="text-base font-medium">
+              Why are you proud of this artifact? <span className="text-red-500">*</span>
+            </FormLabel>
+            <FormDescription>
+              Did it challenge you in a new way, showcase your creativity, or
+              reflect your best effort? Describe the moments that made you feel
+              proud.
+            </FormDescription>
             <FormControl>
               <Textarea
-                placeholder="What makes this work special to you?"
+                placeholder="What makes this work special or meaningful to you?"
                 className="min-h-[100px]"
-                {...field}
                 value={field.value || ""}
+                onChange={(e) => enforceCharacterLimit(e, field.onChange)}
+                onBlur={field.onBlur}
+                name={field.name}
+                ref={field.ref}
+                required
               />
             </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      <FormField
-        control={form.control}
-        name="creation_process"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Describe the process you used to create it</FormLabel>
-            <FormControl>
-              <Textarea
-                placeholder="What steps did you take to complete this work?"
-                className="min-h-[100px]"
-                {...field}
-                value={field.value || ""}
-              />
-            </FormControl>
+            <div className="flex justify-end text-xs text-gray-500 mt-1">
+              {field.value?.length || 0}/200 max
+            </div>
             <FormMessage />
           </FormItem>
         )}
       />
     </div>
   );
-} 
+}
