@@ -8,15 +8,39 @@ import {
 } from "@/lib/validations/assignment";
 import { type AssignmentStep } from "@/types/assignment";
 import { User } from "@supabase/supabase-js";
-import {
-  debug,
-  ToastService,
-  AssignmentService,
-  StepService,
-  getDefaultValues,
-} from "@/lib/assignment.service";
 import { STEPS } from "@/lib/config/steps";
 import { getAssignmentFiles } from "@/lib/services/file-upload.service";
+
+// Import services from their new locations
+import { debug } from "@/lib/utils/debug.service";
+import { ToastService } from "@/lib/services/toast.service";
+import { AssignmentService } from "@/lib/services/assignment.service";
+import { StepService } from "@/lib/services/step.service";
+import { getDefaultValues } from "@/lib/services/assignment-defaults.service";
+
+// Text fields that should never be null
+const TEXT_FIELDS = [
+  'originality_explanation',
+  'team_contribution',
+  'skills_justification',
+  'pride_reason',
+  'creation_process',
+  'learnings',
+  'challenges',
+  'improvements',
+  'acknowledgments'
+] as const;
+
+// Normalize text fields to convert null to empty string
+const normalizeTextFields = (data: AssignmentFormValues): AssignmentFormValues => {
+  const cleanData = { ...data };
+  TEXT_FIELDS.forEach(field => {
+    if (cleanData[field] === null) {
+      (cleanData as Record<string, string>)[field] = "";
+    }
+  });
+  return cleanData;
+};
 
 // Custom hook for managing assignment form state and logic
 export function useAssignmentForm({ user }: { user: User }) {
@@ -39,24 +63,12 @@ export function useAssignmentForm({ user }: { user: User }) {
   // Ensure text fields are never null
   useEffect(() => {
     const formValues = form.getValues();
-    const fieldsToCheck = [
-      'originality_explanation',
-      'team_contribution',
-      'skills_justification',
-      'pride_reason',
-      'creation_process',
-      'learnings',
-      'challenges',
-      'improvements',
-      'acknowledgments'
-    ] as const;
-
     let needsUpdate = false;
     const updates: Record<string, string> = {};
 
     // Check each field and convert null to empty string
-    fieldsToCheck.forEach(field => {
-      if (formValues[field as keyof AssignmentFormValues] === null) {
+    TEXT_FIELDS.forEach(field => {
+      if (formValues[field] === null) {
         updates[field] = "";
         needsUpdate = true;
       }
@@ -85,6 +97,51 @@ export function useAssignmentForm({ user }: { user: User }) {
 
   debug.log("Services initialized");
 
+  // Load assignment files
+  const loadAssignmentFiles = async (assignmentId: string) => {
+    debug.log("Starting file loading for assignment", { assignmentId });
+    try {
+      const existingFiles = await getAssignmentFiles(assignmentId);
+      debug.log("Files loaded successfully", { 
+        fileCount: existingFiles?.length,
+        files: existingFiles 
+      });
+      form.setValue("files", existingFiles);
+    } catch (error) {
+      debug.error("Failed to load files", error);
+      toastService.error("Failed to load existing files");
+    }
+  };
+
+  // Process loaded assignment data
+  const processAssignmentData = (assignment: AssignmentFormValues | null) => {
+    if (!assignment) {
+      debug.log("No existing assignment found, using default values");
+      return;
+    }
+    
+    // Normalize text fields
+    const cleanAssignment = normalizeTextFields(assignment);
+    
+    debug.log("Resetting form with assignment data");
+    form.reset(cleanAssignment);
+    
+    debug.log("Marking current step as visited", { currentStep });
+    stepService.markStepVisited(currentStep);
+    
+    debug.log("Validating previous steps");
+    STEPS.forEach((step) => {
+      stepService.markStepVisited(step.id); // Mark all steps as visited
+      const isValid = stepService.validateStep(step.id, assignment);
+      debug.log("Step validation result", { step: step.id, isValid });
+    });
+
+    // Load assignment files if assignment ID exists
+    if (assignment.id) {
+      loadAssignmentFiles(assignment.id);
+    }
+  };
+
   // Initialize form with new or existing assignment data
   useEffect(() => {
     const initialize = async () => {
@@ -94,60 +151,7 @@ export function useAssignmentForm({ user }: { user: User }) {
         debug.log("Fetching assignment data");
         const assignment = await assignmentService.initialize(id);
         debug.log("Assignment data received", { assignment });
-        
-        if (assignment) {
-          // Ensure all text fields are strings, not null
-          const textFields = [
-            'originality_explanation',
-            'team_contribution',
-            'skills_justification',
-            'pride_reason',
-            'creation_process',
-            'learnings',
-            'challenges',
-            'improvements',
-            'acknowledgments'
-          ];
-          
-          // Create a clean assignment object with nulls converted to empty strings
-          const cleanAssignment = { ...assignment };
-          textFields.forEach(field => {
-            if (cleanAssignment[field as keyof AssignmentFormValues] === null) {
-              (cleanAssignment as Record<string, string | null>)[field] = "";
-            }
-          });
-          
-          debug.log("Resetting form with assignment data");
-          form.reset(cleanAssignment);
-          
-          debug.log("Marking current step as visited", { currentStep });
-          stepService.markStepVisited(currentStep);
-          
-          debug.log("Validating previous steps");
-          STEPS.forEach((step) => {
-            stepService.markStepVisited(step.id); // Mark all steps as visited
-            const isValid = stepService.validateStep(step.id, assignment);
-            debug.log("Step validation result", { step: step.id, isValid });
-          });
-
-          // Load assignment files if assignment ID exists
-          if (assignment.id) {
-            debug.log("Starting file loading for assignment", { assignmentId: assignment.id });
-            try {
-              const existingFiles = await getAssignmentFiles(assignment.id as string);
-              debug.log("Files loaded successfully", { 
-                fileCount: existingFiles?.length,
-                files: existingFiles 
-              });
-              form.setValue("files", existingFiles);
-            } catch (error) {
-              debug.error("Failed to load files", error);
-              toastService.error("Failed to load existing files");
-            }
-          }
-        } else {
-          debug.log("No existing assignment found, using default values");
-        }
+        processAssignmentData(assignment);
       } catch (error) {
         debug.error("Assignment initialization failed", error);
         toastService.error("Failed to load assignment");
@@ -196,10 +200,7 @@ export function useAssignmentForm({ user }: { user: User }) {
 
   // Navigate to a specific step
   const navigateToStep = (targetStep: AssignmentStep) => {
-    debug.log("Attempting to navigate to step", { 
-      from: currentStep, 
-      to: targetStep 
-    });
+    debug.log("Attempting to navigate to step", { from: currentStep, to: targetStep });
     
     const formData = form.getValues();
     debug.log("Current form data", { formData });
@@ -210,19 +211,14 @@ export function useAssignmentForm({ user }: { user: User }) {
       setCurrentStep(targetStep);
     } else {
       debug.log("Navigation blocked - incomplete required fields");
-      toastService.error(
-        "Please complete all required fields before proceeding"
-      );
+      toastService.error("Please complete all required fields before proceeding");
     }
   };
 
   // Navigate to the next step if available
   const nextStep = () => {
     const formData = form.getValues();
-    debug.log("Attempting to move to next step", { 
-      currentStep,
-      formData 
-    });
+    debug.log("Attempting to move to next step", { currentStep, formData });
     
     const next = stepService.getNext(currentStep, formData);
 
@@ -232,9 +228,7 @@ export function useAssignmentForm({ user }: { user: User }) {
       setCurrentStep(next);
     } else {
       debug.log("Cannot move to next step - validation failed");
-      toastService.error(
-        "Please complete all required fields before proceeding"
-      );
+      toastService.error("Please complete all required fields before proceeding");
     }
   };
 
@@ -257,11 +251,7 @@ export function useAssignmentForm({ user }: { user: User }) {
     // Always mark the current step as visited to ensure validation works
     stepService.markStepVisited(currentStep);
     const isValid = stepService.validateStep(currentStep, formData);
-    debug.log("Checking current step completion", { 
-      step: currentStep, 
-      isValid,
-      formData 
-    });
+    debug.log("Checking current step completion", { step: currentStep, isValid, formData });
     return isValid;
   };
 
@@ -283,9 +273,7 @@ export function useAssignmentForm({ user }: { user: User }) {
       debug.log("Submission blocked - invalid steps", {
         invalidSteps: stepValidations.filter(v => !v.isValid).map(v => v.step)
       });
-      toastService.error(
-        "Please complete all required fields before submitting"
-      );
+      toastService.error("Please complete all required fields before submitting");
       return;
     }
 

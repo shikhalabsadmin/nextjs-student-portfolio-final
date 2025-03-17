@@ -9,6 +9,7 @@ import { PreviewStep } from "@/components/assignment/steps/PreviewStep";
 import { Form } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import { User } from "@supabase/supabase-js";
+import { useEffect } from "react";
 
 function AssignmentForm({ user }: { user: User }) {
   const {

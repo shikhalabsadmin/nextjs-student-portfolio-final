@@ -1,12 +1,5 @@
 import type { LucideIcon } from "lucide-react";
 import { AssignmentStatus } from './assignment-status';
-import { 
-  AssignmentFile, 
-  FileUploadResponse, 
-  FileRecordData, 
-  AssignmentFileInput, 
-  StorageFile 
-} from './file';
 
 // API Types
 // FileUploadResponse and FileRecordData are now imported from file.ts
