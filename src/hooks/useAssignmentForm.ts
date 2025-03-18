@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   assignmentFormSchema,
@@ -51,13 +51,14 @@ export function useAssignmentForm({ user }: { user: User }) {
 
   debug.log("Hook initialized with:", { userId: user?.id, assignmentId: id, currentStep });
 
-  // Initialize form with schema validation
+  // Initialize form with Zod validation
   const form = useForm<AssignmentFormValues>({
     resolver: zodResolver(assignmentFormSchema),
     defaultValues: {
       ...getDefaultValues(),
       grade: user?.user_metadata?.grade ?? "",
     },
+    mode: "onChange",
   });
 
   // Ensure text fields are never null
