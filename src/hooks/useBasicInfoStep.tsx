@@ -1,9 +1,9 @@
 import { UseFormReturn } from "react-hook-form";
 import { AssignmentFormValues } from "@/lib/validations/assignment";
 import { AssignmentFile } from "@/types/file";
-import { handleFileUpload, deleteAssignmentFile, diagnoseFileIssues } from "@/lib/services/file-upload.service";
+import { handleFileUpload, deleteAssignmentFile } from "@/lib/services/file-upload.service";
 import { validateFileType, validateFileSize } from "@/lib/utils/file-validation.utils";
-import { isYouTubeUrl, getYouTubeVideoTitle } from "@/lib/utils/youtube.utils";
+import { isYouTubeUrl, getVideoId, fetchYouTubeVideoTitle } from "@/lib/utils/youtube.utils";
 import { useToast } from "@/components/ui/use-toast";
 import { Image, FileText, Music, Video, FileSpreadsheet, Presentation } from "lucide-react";
 import React from "react";
@@ -39,13 +39,6 @@ export function useBasicInfoStep(form: UseFormReturn<AssignmentFormValues>) {
         title: "Success",
         description: "Files uploaded successfully",
       });
-      
-      // If there are issues with files not appearing in the table
-      if (uploadedFiles.length > 0 && import.meta.env.DEV) {
-        console.log('Running database diagnostics...');
-        // Run diagnostics asynchronously
-        diagnoseFileIssues().catch(console.error);
-      }
     } catch (error) {
       console.error("Error uploading files:", error);
       toast({
@@ -84,11 +77,20 @@ export function useBasicInfoStep(form: UseFormReturn<AssignmentFormValues>) {
         throw new Error("Please enter a valid YouTube URL");
       }
 
-      const title = await getYouTubeVideoTitle(url);
+      const videoId = getVideoId(url);
+      if (!videoId) {
+        throw new Error("Invalid YouTube URL");
+      }
+
+      // Fetch the actual video title
+      const title = await fetchYouTubeVideoTitle(videoId);
+      if (!title) {
+        throw new Error("Could not fetch video title");
+      }
+
       const newYoutubeLinks = [...youtubeLinks];
-      
-      // Find first empty slot or add to end
       const emptyIndex = newYoutubeLinks.findIndex(link => !link.url);
+      
       if (emptyIndex !== -1) {
         newYoutubeLinks[emptyIndex] = { url, title };
       } else {
@@ -96,6 +98,10 @@ export function useBasicInfoStep(form: UseFormReturn<AssignmentFormValues>) {
       }
 
       form.setValue("youtubelinks", newYoutubeLinks);
+      toast({
+        title: "Success",
+        description: "YouTube video added successfully",
+      });
       return true;
     } catch (error) {
       toast({

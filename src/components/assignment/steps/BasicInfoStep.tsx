@@ -18,10 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Upload, X } from "lucide-react";
 import { useBasicInfoStep } from "@/hooks/useBasicInfoStep";
-import { formatFileSize } from "@/lib/utils/file-type.utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { FileUploadSection, YoutubeLinksSection } from "./file-upload";
 
 interface BasicInfoStepProps {
   form: UseFormReturn<AssignmentFormValues>;
@@ -30,6 +29,7 @@ interface BasicInfoStepProps {
 export function BasicInfoStep({ form }: BasicInfoStepProps) {
   const files = form.watch("files") as AssignmentFile[] || [];
   const youtubeLinks = form.watch("youtubelinks") || [{ url: "", title: "" }];
+  const isMobile = useIsMobile();
   
   const { 
     handleFiles, 
@@ -39,7 +39,7 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
   } = useBasicInfoStep(form);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       <FormField
         control={form.control}
         name="title"
@@ -131,123 +131,26 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
             <FormDescription className="text-sm text-gray-600">
               Upload files or add YouTube links to your work (at least one is required)
             </FormDescription>
-            <div className="mt-2 flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex items-center gap-2 text-gray-600"
-                onClick={() => {
-                  const input = document.createElement('input');
-                  input.type = 'file';
-                  input.multiple = true;
-                  input.accept = [
-                    'image/*',
-                    'audio/*',
-                    'video/*',
-                    '.pdf',
-                    '.doc,.docx',
-                    '.xls,.xlsx',
-                    '.ppt,.pptx',
-                    '.txt'
-                  ].join(',');
-                  input.onchange = (e) => {
-                    const files = (e.target as HTMLInputElement).files;
-                    if (files) {
-                      handleFiles(files);
-                    }
-                  };
-                  input.click();
-                }}
-              >
-                <Upload className="h-4 w-4" />
-                Upload Files
-              </Button>
-              <div className="flex-1 flex items-center gap-2">
-                <Input
-                  placeholder="Add YouTube URL"
-                  className="flex-1"
-                  onKeyDown={async (e) => {
-                    if (e.key === 'Enter') {
-                      const input = e.target as HTMLInputElement;
-                      if (await handleYoutubeUrl(input.value)) {
-                        input.value = '';
-                      }
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  className="text-gray-600 w-10 h-10"
-                  onClick={async () => {
-                    const urlInput = document.querySelector('input[placeholder="Add YouTube URL"]') as HTMLInputElement;
-                    if (urlInput && urlInput.value && await handleYoutubeUrl(urlInput.value)) {
-                      urlInput.value = '';
-                    }
-                  }}
-                >
-                  +
-                </Button>
-              </div>
-            </div>
+            
+            <FileUploadSection 
+              files={files}
+              youtubeLinks={youtubeLinks}
+              handleFiles={handleFiles}
+              handleYoutubeUrl={handleYoutubeUrl}
+              isMobile={isMobile}
+            />
 
-            {/* Display Files */}
-            {files.length > 0 && (
-              <div className="mt-4 space-y-2">
-                <div className="text-sm font-medium text-gray-700">Files</div>
-                {files.map((file, index) => (
-                  <div key={file.id || index} className="flex items-center gap-3 px-4 py-2.5 bg-white border border-gray-200 rounded-lg">
-                    <FileIcon type={file.file_type} />
-                    <span className="text-sm font-medium text-gray-900">{file.file_name}</span>
-                    <span className="text-sm text-gray-500 ml-auto">
-                      {formatFileSize(file.file_size)}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => handleDeleteFile(file, index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
+            {(files.length > 0 || youtubeLinks.some(link => link.url)) && (
+              <YoutubeLinksSection 
+                files={files}
+                youtubeLinks={youtubeLinks}
+                handleDeleteFile={handleDeleteFile}
+                form={form}
+                FileIcon={FileIcon}
+                isMobile={isMobile}
+              />
             )}
-
-            {/* Display YouTube Links */}
-            {youtubeLinks.some(link => link.url) && (
-              <div className="mt-4 space-y-2">
-                <div className="text-sm font-medium text-gray-700">YouTube Links</div>
-                {youtubeLinks.map((link, index) => {
-                  if (!link.url) return null;
-                  return (
-                    <div key={index} className="flex items-center gap-3 px-4 py-2.5 bg-white border border-gray-200 rounded-lg">
-                      <FileIcon type="youtube" />
-                      <span className="text-sm font-medium text-gray-900">{link.title || 'YouTube Video'}</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 ml-auto"
-                        onClick={() => {
-                          const newLinks = [...youtubeLinks];
-                          newLinks.splice(index, 1);
-                          if (newLinks.length === 0) {
-                            newLinks.push({ url: "", title: "" });
-                          }
-                          form.setValue("youtubelinks", newLinks);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            
             <FormMessage />
           </FormItem>
         )}
