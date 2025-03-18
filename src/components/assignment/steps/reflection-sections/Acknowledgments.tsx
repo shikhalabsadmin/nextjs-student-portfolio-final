@@ -1,0 +1,21 @@
+import { ReflectionField } from "../ReflectionField";
+import type { UseFormReturn } from "react-hook-form";
+import type { AssignmentFormValues } from "@/lib/validations/assignment";
+
+interface AcknowledgmentsProps {
+  form: UseFormReturn<AssignmentFormValues>;
+  currentLength: number;
+}
+
+export function Acknowledgments({ form, currentLength }: AcknowledgmentsProps) {
+  return (
+    <ReflectionField
+      form={form}
+      name="acknowledgments"
+      label="Your thanks"
+      description="Who helped you with this work? How would you like to thank them?"
+      placeholder="Share your acknowledgments"
+      currentLength={currentLength}
+    />
+  );
+} 
