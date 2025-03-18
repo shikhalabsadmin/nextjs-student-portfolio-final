@@ -2,6 +2,7 @@ import { type AssignmentStep, type StepConfig } from "@/types/assignment";
 import { type AssignmentFormValues } from "@/lib/validations/assignment";
 import { STEPS } from "@/lib/config/steps";
 import { debug } from "@/lib/utils/debug.service";
+import { AssignmentStatus } from "@/types/assignment-status";
 
 export interface StepValidation {
   id: AssignmentStep;
@@ -124,6 +125,15 @@ export class StepService {
       return false;
     }
     
+    // Check assignment status
+    const status = formData.status || AssignmentStatus.DRAFT;
+    
+    // If status is SUBMITTED or VERIFIED, only allow navigation to teacher-feedback
+    if (status === AssignmentStatus.SUBMITTED || status === AssignmentStatus.VERIFIED) {
+      debug.log(`Assignment is ${status}, restricting navigation`);
+      return targetStep === 'teacher-feedback';
+    }
+    
     // Always allow going backward
     if (targetIndex < currentIndex) {
       debug.log(`Backward navigation from ${currentStep} to ${targetStep} allowed`);
@@ -143,6 +153,15 @@ export class StepService {
    * Get the next step if current step is valid
    */
   getNext(currentStep: AssignmentStep, formData: AssignmentFormValues): AssignmentStep | null {
+    // Check assignment status
+    const status = formData.status || AssignmentStatus.DRAFT;
+    
+    // If status is SUBMITTED or VERIFIED, only allow teacher-feedback as next
+    if (status === AssignmentStatus.SUBMITTED || status === AssignmentStatus.VERIFIED) {
+      debug.log(`Assignment is ${status}, next step is teacher-feedback`);
+      return 'teacher-feedback';
+    }
+    
     if (!this.validateStep(currentStep, formData)) {
       debug.log(`Cannot proceed from ${currentStep}: validation failed`);
       return null;

@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   assignmentFormSchema,
@@ -10,6 +10,7 @@ import { type AssignmentStep } from "@/types/assignment";
 import { User } from "@supabase/supabase-js";
 import { STEPS } from "@/lib/config/steps";
 import { getAssignmentFiles } from "@/lib/services/file-upload.service";
+import { AssignmentStatus } from "@/types/assignment-status";
 
 // Import services from their new locations
 import { debug } from "@/lib/utils/debug.service";
@@ -258,7 +259,14 @@ export function useAssignmentForm({ user }: { user: User }) {
 
   // Handle form submission
   const onSubmit = async (data: AssignmentFormValues) => {
-    debug.log("Starting form submission", { data });
+    debug.log("Starting form submission", { data, currentStep });
+    
+    // Get form status - this will contain any updates made before submission
+    const status = data.status || AssignmentStatus.DRAFT;
+    debug.log("Form status before submission", { status });
+    
+    // Check if this is a final submission (from the review-submit step or status is already SUBMITTED)
+    const isFinalSubmission = currentStep === "review-submit" || status === AssignmentStatus.SUBMITTED;
     
     // Validate all steps before submission
     const stepValidations = STEPS.map(step => ({
@@ -270,7 +278,7 @@ export function useAssignmentForm({ user }: { user: User }) {
     
     const isValid = stepValidations.every(v => v.isValid);
 
-    if (!isValid) {
+    if (!isValid && !isFinalSubmission) {
       debug.log("Submission blocked - invalid steps", {
         invalidSteps: stepValidations.filter(v => !v.isValid).map(v => v.step)
       });
@@ -280,9 +288,26 @@ export function useAssignmentForm({ user }: { user: User }) {
 
     setIsLoading(true);
     try {
-      debug.log("Submitting assignment");
-      await assignmentService.submit(data);
-      debug.log("Assignment submitted successfully");
+      // If this is the final submission, ensure status is SUBMITTED
+      if (isFinalSubmission) {
+        debug.log("Final submission - ensuring status is SUBMITTED");
+        
+        // Only update the status if not already set
+        const dataWithStatus = {
+          ...data,
+          status: AssignmentStatus.SUBMITTED
+        };
+        
+        // Update the form state to reflect the new status
+        form.setValue("status", AssignmentStatus.SUBMITTED);
+        
+        await assignmentService.submit(dataWithStatus);
+        debug.log("Assignment submitted successfully with status SUBMITTED");
+      } else {
+        // Regular auto-save
+        await assignmentService.submit(data);
+        debug.log("Assignment auto-saved successfully");
+      }
     } catch (error) {
       debug.error("Submission failed", error);
       toastService.error("Failed to submit assignment");

@@ -2,12 +2,14 @@ import { cn } from "@/lib/utils";
 import { type StepConfig } from "@/types/assignment";
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Check } from "lucide-react";
+import { AssignmentStatus } from "@/types/assignment-status";
 
 type StepProgressProps = {
   steps: StepConfig[];
   currentStep: string;
   setCurrentStep: (step: string) => void;
   validateStep: (stepId: string) => boolean;
+  status?: string; // Add assignment status prop
 };
 
 export function StepProgress({
@@ -15,14 +17,19 @@ export function StepProgress({
   currentStep,
   setCurrentStep,
   validateStep,
+  status = AssignmentStatus.DRAFT, // Default to DRAFT if not provided
 }: StepProgressProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const currentStepData = steps.find((step) => step.id === currentStep);
-  const currentStepIndex = steps.findIndex((step) => step.id === currentStep);
+  
+  // Filter steps based on assignment status
+  const filteredSteps = getFilteredSteps(steps, status);
+  
+  const currentStepData = filteredSteps.find((step) => step.id === currentStep);
+  const currentStepIndex = filteredSteps.findIndex((step) => step.id === currentStep);
   
   // Calculate progress percentage
-  const completedSteps = steps.filter((step) => validateStep(step.id)).length;
-  const progressPercentage = Math.round((completedSteps / steps.length) * 100);
+  const completedSteps = filteredSteps.filter((step) => validateStep(step.id)).length;
+  const progressPercentage = Math.round((completedSteps / filteredSteps.length) * 100);
 
   // Mobile view toggle
   const toggleExpand = () => setIsExpanded(!isExpanded);
@@ -71,7 +78,7 @@ export function StepProgress({
         {isExpanded && (
           <div className="border-t border-slate-200 p-3 bg-white animate-in slide-in-from-top duration-200">
             <div className="space-y-2">
-              {steps.map((step) => {
+              {filteredSteps.map((step) => {
                 const isCurrent = currentStep === step.id;
                 const isComplete = validateStep(step.id);
 
@@ -114,7 +121,7 @@ export function StepProgress({
           <h2 className="text-base font-medium text-gray-900">Your Progress</h2>
         </div>
         <div className="space-y-2.5 px-4 py-6">
-          {steps.map((step) => {
+          {filteredSteps.map((step) => {
             const isCurrent = currentStep === step.id;
             const isComplete = validateStep(step.id);
 
@@ -144,6 +151,19 @@ export function StepProgress({
       </div>
     </>
   );
+}
+
+// Helper function to filter steps based on assignment status
+function getFilteredSteps(steps: StepConfig[], status: string): StepConfig[] {
+  // For SUBMITTED or VERIFIED statuses, only show teacher-feedback
+  if (status === AssignmentStatus.SUBMITTED || status === AssignmentStatus.VERIFIED) {
+    console.log(`StepProgress: Status is ${status}, showing only teacher-feedback tab`);
+    return steps.filter(step => step.id === 'teacher-feedback');
+  }
+  
+  // For all other statuses (DRAFT, NOT_STARTED, NEEDS_REVISION, REJECTED), show all steps
+  console.log(`StepProgress: Status is ${status}, showing all tabs`);
+  return steps;
 }
 
 type StepIndicatorProps = {

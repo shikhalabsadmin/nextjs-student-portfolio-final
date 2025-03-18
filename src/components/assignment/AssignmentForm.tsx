@@ -2,7 +2,7 @@ import { useAssignmentForm } from "@/hooks/useAssignmentForm";
 import { STEPS } from "@/lib/config/steps";
 import { Form } from "@/components/ui/form";
 import { User } from "@supabase/supabase-js";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   StepContent,
   StepProgress,
@@ -10,6 +10,7 @@ import {
   ConfirmationModal,
 } from "@/components/assignment";
 import { type AssignmentStep } from "@/types/assignment";
+import { AssignmentStatus } from "@/types/assignment-status";
 
 type AssignmentFormProps = {
   user: User;
@@ -30,6 +31,20 @@ function AssignmentForm({ user }: AssignmentFormProps) {
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
 
   const currentStepConfig = STEPS.find((step) => step.id === currentStep);
+  
+  // Get current assignment status from form values
+  const assignmentStatus = form.getValues().status || AssignmentStatus.DRAFT;
+  
+  // Force navigation to teacher-feedback when status is SUBMITTED or VERIFIED
+  useEffect(() => {
+    if (
+      (assignmentStatus === AssignmentStatus.SUBMITTED || 
+       assignmentStatus === AssignmentStatus.VERIFIED) && 
+      currentStep !== "teacher-feedback"
+    ) {
+      setCurrentStep("teacher-feedback");
+    }
+  }, [assignmentStatus, currentStep, setCurrentStep]);
 
   const handleSaveAndContinue = useCallback(() => {
     if (!isCurrentStepComplete()) return;
@@ -44,10 +59,18 @@ function AssignmentForm({ user }: AssignmentFormProps) {
   }, [currentStep, isCurrentStepComplete, onSubmit, nextStep]);
 
   const handleConfirmSubmit = useCallback(() => {
+    // Set status to SUBMITTED first
+    form.setValue("status", AssignmentStatus.SUBMITTED);
+    
+    // Submit form with updated status
     onSubmit();
-    nextStep();
+    
+    // Close modal
     setShowConfirmationModal(false);
-  }, [onSubmit, nextStep]);
+    
+    // Force navigation to teacher-feedback
+    setCurrentStep("teacher-feedback");
+  }, [form, onSubmit, setCurrentStep]);
 
   if (!currentStepConfig) return null;
 
@@ -62,6 +85,7 @@ function AssignmentForm({ user }: AssignmentFormProps) {
           validateStep={(stepId: AssignmentStep) =>
             validateStep(stepId, form.getValues())
           }
+          status={assignmentStatus}
         />
       </div>
 
@@ -75,6 +99,7 @@ function AssignmentForm({ user }: AssignmentFormProps) {
             validateStep={(stepId: AssignmentStep) =>
               validateStep(stepId, form.getValues())
             }
+            status={assignmentStatus}
           />
         </div>
 
@@ -88,7 +113,9 @@ function AssignmentForm({ user }: AssignmentFormProps) {
               <StepHeader
                 title={currentStepConfig.header}
                 description={currentStepConfig.description}
-                showContinueButton={currentStep !== "teacher-feedback"}
+                showContinueButton={currentStep !== "teacher-feedback" && 
+                  assignmentStatus !== AssignmentStatus.SUBMITTED && 
+                  assignmentStatus !== AssignmentStatus.VERIFIED}
                 onContinue={handleSaveAndContinue}
                 disabled={isLoading || !isCurrentStepComplete()}
               />
