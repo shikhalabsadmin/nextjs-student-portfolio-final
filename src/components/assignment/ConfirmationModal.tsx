@@ -25,11 +25,11 @@ export function ConfirmationModal({
         <DialogHeader>
           <DialogTitle>Ready to Submit Your Artifact?</DialogTitle>
           <DialogDescription>
-            Once submitted, you won't be able to make any changes unless your
+            Once submitted, you won’t be able to make any changes unless your
             teacher requests revisions. Are you sure you want to proceed?
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter className="flex gap-2 justify-end">
+        <DialogFooter className="w-full flex gap-2.5 !justify-start">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
@@ -43,4 +43,4 @@ export function ConfirmationModal({
       </DialogContent>
     </Dialog>
   );
-} 
+}
