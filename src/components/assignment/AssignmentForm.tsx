@@ -58,14 +58,14 @@ function AssignmentForm({ user }: { user: User }) {
   const handleSaveAndContinue = () => {
     // Force mark the current step as visited to ensure validation works
     const formData = form.getValues();
-    
+
     // Log validation state for debugging
     console.log("Form validation:", {
       currentStep,
       formData,
-      isComplete: isCurrentStepComplete()
+      isComplete: isCurrentStepComplete(),
     });
-    
+
     if (!isCurrentStepComplete()) {
       return;
     }
@@ -75,7 +75,7 @@ function AssignmentForm({ user }: { user: User }) {
       setShowConfirmationModal(true);
       return;
     }
-    
+
     onSubmit();
     nextStep();
   };
@@ -149,35 +149,47 @@ function AssignmentForm({ user }: { user: User }) {
                     {currentStepConfig.description}
                   </p>
                 </div>
-                <Button
-                  type="button"
-                  onClick={handleSaveAndContinue}
-                  disabled={isLoading || !isCurrentStepComplete()}
-                  className="bg-[#6366F1] hover:bg-[#6366F1]/90 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors"
-                >
-                  Save & Continue
-                </Button>
+                {currentStep !== "teacher-feedback" && (
+                  <Button
+                    type="button"
+                    onClick={handleSaveAndContinue}
+                    disabled={isLoading || !isCurrentStepComplete()}
+                    className="bg-[#6366F1] hover:bg-[#6366F1]/90 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Save & Continue
+                  </Button>
+                )}
               </div>
             )}
-            <section className="p-5 flex-1 overflow-y-auto">{getCurrentStep()}</section>
+            <section className="py-10 px-6 flex-1 overflow-y-auto">
+              {getCurrentStep()}
+            </section>
           </form>
         </Form>
 
         {/* Confirmation Modal */}
-        <Dialog open={showConfirmationModal} onOpenChange={() => setShowConfirmationModal(false)}>
+        <Dialog
+          open={showConfirmationModal}
+          onOpenChange={() => setShowConfirmationModal(false)}
+        >
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Ready to Submit Your Artifact?</DialogTitle>
               <DialogDescription>
-                Once submitted, you won't be able to make any changes unless your teacher requests revisions. Are you sure you want to proceed?
+                Once submitted, you won't be able to make any changes unless
+                your teacher requests revisions. Are you sure you want to
+                proceed?
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setShowConfirmationModal(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setShowConfirmationModal(false)}
+              >
                 Cancel
               </Button>
-              <Button 
-                className="bg-[#6366F1] hover:bg-[#6366F1]/90 text-white" 
+              <Button
+                className="bg-[#6366F1] hover:bg-[#6366F1]/90 text-white"
                 onClick={handleConfirmSubmit}
               >
                 Confirm & Submit

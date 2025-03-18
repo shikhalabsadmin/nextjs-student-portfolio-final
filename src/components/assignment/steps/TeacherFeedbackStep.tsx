@@ -8,38 +8,30 @@ interface TeacherFeedbackStepProps {
 }
 
 export function TeacherFeedbackStep({ form }: TeacherFeedbackStepProps) {
-  const [imageError, setImageError] = useState(false);
-  
   return (
-    <div className="flex flex-col items-center justify-center text-center w-full max-w-2xl mx-auto py-4 md:py-8 px-4">
+    <div className="flex flex-col items-center justify-center w-full h-full">
       {/* Feedback image illustration */}
-      <div className="mb-4 md:mb-8 w-full flex justify-center">
-        <div className="w-full max-w-[250px] md:max-w-[300px] aspect-[3/2] relative">
-          {!imageError ? (
-            <img
-              src={teacherFeedbackImage}
-              alt="Teacher feedback illustration"
-              className="w-full h-full object-contain"
-              onError={() => setImageError(true)}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-md">
-              <span className="text-gray-500">Illustration unavailable</span>
-            </div>
-          )}
-        </div>
+      <div className="flex justify-center items-center">
+        <img
+          src={teacherFeedbackImage}
+          alt="Teacher feedback illustration"
+          className="w-full max-w-[280px] sm:max-w-[320px] md:max-w-[408px] h-auto object-contain"
+        />
       </div>
-      
-      {/* Status message */}
-      <h2 className="text-xl md:text-2xl font-semibold text-gray-900 mb-2 md:mb-4">
-        Your work is under review
-      </h2>
-      
-      {/* Explanatory text */}
-      <p className="text-sm md:text-lg text-gray-600 max-w-xs md:max-w-lg">
-        Your Artefact has been submitted and is now being reviewed by your teacher.
-        You'll receive feedback soon. Keep an eye on your dashboard for updates!
-      </p>
+
+      <div className="flex flex-col text-center mt-6 md:mt-10 gap-2 md:gap-2.5">
+        {/* Status message */}
+        <h2 className="text-slate-900 text-base md:text-lg font-semibold">
+          Your work is under review
+        </h2>
+
+        {/* Explanatory text */}
+        <p className="text-slate-500 text-xs sm:text-sm max-w-72 sm:max-w-80 md:max-w-96 mx-auto">
+          Your Artefact has been submitted and is now being reviewed by your
+          teacher. You'll receive feedback soon. Keep an eye on your dashboard
+          for updates!
+        </p>
+      </div>
     </div>
   );
 }
