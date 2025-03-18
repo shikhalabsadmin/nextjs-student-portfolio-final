@@ -6,6 +6,7 @@ import { CollaborationStep } from "@/components/assignment/steps/CollaborationSt
 import { ProcessStep } from "@/components/assignment/steps/ProcessStep";
 import { ReflectionStep } from "@/components/assignment/steps/ReflectionStep";
 import { PreviewStep } from "@/components/assignment/steps/PreviewStep";
+import { TeacherFeedbackStep } from "@/components/assignment/steps/TeacherFeedbackStep";
 import { Form } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import { User } from "@supabase/supabase-js";
@@ -48,7 +49,7 @@ function AssignmentForm({ user }: { user: User }) {
       case "review-submit":
         return <PreviewStep form={form} />;
       case "teacher-feedback":
-        return <PreviewStep form={form} />;
+        return <TeacherFeedbackStep form={form} />;
     }
   };
 
