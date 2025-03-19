@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { type StepConfig } from "@/types/assignment";
 import { AssignmentStatus } from "@/types/assignment-status";
 import { StepButton } from "@/components/assignment/StepButton";
@@ -35,13 +35,28 @@ export function StepProgress({
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Memoize filtered steps to prevent unnecessary recalculations
-  const filteredSteps = useMemo(() => getFilteredSteps(steps, status), [steps, status]);
+  const filteredSteps = useMemo(() => {
+    const filtered = getFilteredSteps(steps, status);
+    // Ensure we always have at least one step
+    return filtered.length > 0 ? filtered : steps;
+  }, [steps, status]);
   
   // Memoize derived data
-  const currentStepData = useMemo(
-    () => filteredSteps.find((step) => step.id === currentStep),
-    [filteredSteps, currentStep]
-  );
+  const currentStepData = useMemo(() => {
+    const stepData = filteredSteps.find((step) => step.id === currentStep);
+    // If current step not found in filtered steps, default to first available step
+    if (!stepData && filteredSteps.length > 0) {
+      return filteredSteps[0];
+    }
+    return stepData;
+  }, [filteredSteps, currentStep]);
+
+  // Update current step if it's not in filtered steps
+  useEffect(() => {
+    if (filteredSteps.length > 0 && !filteredSteps.some(step => step.id === currentStep)) {
+      setCurrentStep(filteredSteps[0].id);
+    }
+  }, [filteredSteps, currentStep, setCurrentStep]);
 
   // Optimize toggle handler
   const toggleExpand = useCallback(() => setIsExpanded((prev) => !prev), []);
