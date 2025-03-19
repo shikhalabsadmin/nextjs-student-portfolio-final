@@ -30,6 +30,7 @@ import ViewAssignment from "@/pages/ViewAssignment";
 import AdminDashboard from "@/pages/AdminDashboard";
 import { UpdatePassword } from "@/components/auth/UpdatePassword";
 import StudentAssignmentForm from "@/components/assignment/AssignmentForm";
+import TeacherDashboard from "@/components/teacher/dashboard";
 
 // Debug utility enabled in development
 const DEBUG = {
@@ -165,7 +166,7 @@ const App: React.FC = () => {
           index: true,
           element: (
             <ProtectedRoute roles={[UserRole.TEACHER]}>
-              <RoleBasedAssignments />
+              <TeacherDashboard user={user} />
             </ProtectedRoute>
           ),
         },
@@ -173,7 +174,7 @@ const App: React.FC = () => {
           path: "profile",
           element: (
             <ProtectedRoute roles={[UserRole.TEACHER]}>
-              <TeacherProfile />
+              <TeacherProfile user={user} />
             </ProtectedRoute>
           ),
         },

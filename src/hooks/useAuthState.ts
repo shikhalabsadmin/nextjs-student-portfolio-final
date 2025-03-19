@@ -4,7 +4,6 @@ import { User, Subscription } from "@supabase/supabase-js";
 import { UserRole } from "@/enums/user.enum";
 import {
   AuthState,
-  Profile,
   AuthenticatedRole,
   isValidUserRole,
 } from "@/types/auth";
@@ -19,15 +18,22 @@ const DEBUG = {
     DEBUG.enabled && console.error(`[Auth Error] ${message}`, error ?? ""),
 };
 
-// Enhanced AuthState interface
-interface EnhancedAuthState extends AuthState {
+// Enhanced User type with profile data
+export interface EnhancedUser extends User {
+  role?: AuthenticatedRole;
+  [key: string]: unknown; // Allow additional profile fields
+}
+
+// Updated AuthState interface
+interface EnhancedAuthState extends Omit<AuthState, 'user' | 'profile'> {
+  user: EnhancedUser | null;
   initialize: () => Promise<() => void>;
   cleanup: () => void;
 }
 
 // Profile fetch result type
 interface ProfileFetchResult {
-  profile: Profile | null;
+  profile: { role: AuthenticatedRole; [key: string]: unknown } | null;
   error?: Error;
 }
 
@@ -86,16 +92,15 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
 
   // Update authentication state
   const updateState = (
-    user: User | null,
-    role: AuthenticatedRole | null,
-    profile: Profile | null
+    user: EnhancedUser | null,
+    role: AuthenticatedRole | null
   ) => {
     DEBUG.log("Updating state", {
       userId: user?.id,
       role,
-      hasProfile: !!profile,
+      hasAdditionalData: user ? Object.keys(user).length > Object.keys({} as User).length : false,
     });
-    set({ user, userRole: role, profile, isLoading: false });
+    set({ user, userRole: role, isLoading: false });
     DEBUG.log("State update complete", { userId: user?.id, role });
   };
 
@@ -103,7 +108,6 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
     user: null,
     userRole: null,
     isLoading: true,
-    profile: null,
     // Sign out user and clear state
     signOut: async () => {
       DEBUG.log("Starting sign out process");
@@ -116,14 +120,14 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
         localStorage.clear();
 
         DEBUG.log("Updating state to signed out");
-        updateState(null, null, null);
+        updateState(null, null);
 
         DEBUG.log("Redirecting to home", { path: ROUTES.COMMON.HOME });
         window.location.href = ROUTES.COMMON.HOME;
       } catch (error) {
         DEBUG.error("Sign out failed", error);
         DEBUG.log("Forcing state cleanup due to error");
-        updateState(null, null, null);
+        updateState(null, null);
         DEBUG.log("Forcing redirect to home", { path: ROUTES.COMMON.HOME });
         window.location.href = ROUTES.COMMON.HOME;
       }
@@ -143,7 +147,7 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
 
         if (!session?.user) {
           DEBUG.log("No active session found");
-          updateState(null, null, null);
+          updateState(null, null);
           return () => {};
         }
 
@@ -155,7 +159,7 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
 
         if (!isValidUserRole(metadataRole)) {
           DEBUG.error("Invalid metadata role", { metadataRole });
-          updateState(null, null, null);
+          updateState(null, null);
           return () => {};
         }
 
@@ -165,11 +169,17 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
         });
         const { profile } = await fetchProfile(session.user.id, metadataRole);
 
+        // Merge profile data into user object
+        const enhancedUser: EnhancedUser = {
+          ...session.user,
+          ...profile,
+        };
+
         DEBUG.log("Updating state with session data", {
           userId: session.user.id,
           metadataRole,
         });
-        updateState(session.user, metadataRole, profile);
+        updateState(enhancedUser, metadataRole);
 
         DEBUG.log("Setting up auth state change listener");
         const { data: subscriptionData } = supabase.auth.onAuthStateChange(
@@ -188,25 +198,29 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
 
               if (!isValidUserRole(newRole)) {
                 DEBUG.error("Invalid role in SIGNED_IN event", { newRole });
-                updateState(null, null, null);
+                updateState(null, null);
                 return;
               }
 
               DEBUG.log("Fetching profile for signed in user", {
                 userId: newSession.user.id,
               });
-              const { profile } = await fetchProfile(
-                newSession.user.id,
-                newRole
-              );
+              const { profile } = await fetchProfile(newSession.user.id, newRole);
+
+              // Merge profile data into user object
+              const enhancedUser: EnhancedUser = {
+                ...newSession.user,
+                ...profile,
+              };
+
               DEBUG.log("Updating state after sign in", {
                 userId: newSession.user.id,
                 newRole,
               });
-              updateState(newSession.user, newRole, profile);
+              updateState(enhancedUser, newRole);
             } else if (event === "SIGNED_OUT") {
               DEBUG.log("Processing SIGNED_OUT event");
-              updateState(null, null, null);
+              updateState(null, null);
             }
           }
         );
@@ -224,7 +238,7 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
         };
       } catch (error) {
         DEBUG.error("Initialization failed", error);
-        updateState(null, null, null);
+        updateState(null, null);
         return () => {};
       }
     },

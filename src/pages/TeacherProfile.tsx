@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -11,185 +11,296 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { MultiSelect } from '@/components/ui/multi-select';
-import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
-import type { Database, TeachingSubject } from '@/types/supabase';
-import { useNavigate } from 'react-router-dom';
-import { subjects, subjectDisplayMap } from '@/constants/subjects';
-import { grades } from '@/constants/grades';
-import { formatSubject, formatGrade } from '@/lib/utils';
-import { Input } from '@/components/ui/input';
+} from "@/components/ui/form";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate, useBeforeUnload } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import {
+  GRADE_LEVELS,
+  GRADE_SUBJECTS,
+  type GradeLevel,
+} from "@/constants/grade-subjects";
+import { EnhancedUser } from "@/hooks/useAuthState";
+import type { TeachingSubject } from "@/types/supabase";
+import { ROUTES } from "@/config/routes";
+import { createDebugService } from "@/lib/utils/debug.service";
 
-// Use Database types directly
-type Profile = Database['public']['Tables']['profiles']['Row'];
+// Create debug instance for TeacherProfile
+const debug = createDebugService("TeacherProfile");
 
-// Define the types for grade-specific subjects
+// Types
 interface GradeSubjects {
-  [grade: string]: string[];  // Maps grade to array of subjects
+  [grade: string]: string[];
 }
 
-// Update the form schema
-const formSchema = z.object({
-  full_name: z.string().min(1, 'Full name is required'),
-  selectedGrades: z.array(z.string()).min(1, 'Select at least one grade'),
-  gradeSubjects: z.record(z.array(z.string())).optional()
-});
+interface Option {
+  label: string;
+  value: string;
+}
 
-export const TeacherProfile = () => {
+// Form schema with stricter validation
+const formSchema = z
+  .object({
+    full_name: z
+      .string()
+      .min(2, "Full name must be at least 2 characters")
+      .max(100, "Full name must not exceed 100 characters"),
+    selectedGrades: z
+      .array(z.enum([...Object.values(GRADE_LEVELS)] as [string, ...string[]]))
+      .min(1, "Select at least one grade"),
+    gradeSubjects: z
+      .record(
+        z.string(),
+        z.array(z.string()).min(1, "Select at least one subject per grade")
+      )
+      .optional(),
+  })
+  .refine(
+    (data) => {
+      if (!data.selectedGrades?.length) return true;
+      return data.selectedGrades.every(
+        (grade) => data.gradeSubjects?.[grade]?.length > 0
+      );
+    },
+    {
+      message: "Each selected grade must have at least one subject",
+      path: ["gradeSubjects"],
+    }
+  );
+
+type FormValues = z.infer<typeof formSchema>;
+
+// Memoized grade options
+const getGradeOptions = (): Option[] =>
+  Object.values(GRADE_LEVELS).map((grade) => ({
+    label: `Grade ${grade ?? "Unknown"}`,
+    value: grade ?? "",
+  }));
+
+// Helper function to extract grade subjects from user data
+const extractGradeSubjects = (teachingSubjects: TeachingSubject[] = []): GradeSubjects => {
+  const gradeSubjects: GradeSubjects = {};
+  
+  teachingSubjects.forEach((ts) => {
+    if (!ts?.grade) return;
+    
+    gradeSubjects[ts.grade] = gradeSubjects[ts.grade] || [];
+    if (ts?.subject) gradeSubjects[ts.grade].push(ts.subject);
+  });
+  
+  return gradeSubjects;
+};
+
+export const TeacherProfile = ({ user }: { user: EnhancedUser | null }) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isFormModified, setIsFormModified] = useState(false);
-  const [initialValues, setInitialValues] = useState<z.infer<typeof formSchema> | null>(null);
   const navigate = useNavigate();
 
-  const { data: profile, refetch } = useQuery({
-    queryKey: ['teacher-profile'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (error) throw error;
-      return data as Profile;
-    }
-  });
-
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      full_name: '',
+      full_name: "",
       selectedGrades: [],
-      gradeSubjects: {}
+      gradeSubjects: {},
     },
+    mode: "onChange",
   });
-
-  // Update form and initial values when profile data is loaded
-  useEffect(() => {
-    if (profile) {
-      // Convert teaching_subjects array to gradeSubjects object
-      const gradeSubjects: GradeSubjects = {};
-      profile.teaching_subjects?.forEach(ts => {
-        if (!gradeSubjects[ts.grade]) {
-          gradeSubjects[ts.grade] = [];
+  
+  const isDirty = form.formState.isDirty;
+  const isValid = form.formState.isValid;
+  
+  // Warn user before leaving with unsaved changes
+  useBeforeUnload(
+    useCallback(
+      (event) => {
+        if (isDirty) {
+          event.preventDefault();
+          return "You have unsaved changes. Are you sure you want to leave?";
         }
-        gradeSubjects[ts.grade].push(ts.subject);
-      });
+      },
+      [isDirty]
+    )
+  );
 
-      const values = {
-        full_name: profile.full_name || '',
-        selectedGrades: profile.grade_levels?.map(String) || [],
-        gradeSubjects
-      };
-
-      form.reset(values);
-      setInitialValues(values);
-      setIsFormModified(false); // Reset modification state when profile is loaded
-    }
-  }, [profile, form]);
-
-  // Watch for form changes and compare with initial values
+  // Initialize form with user data
   useEffect(() => {
-    const subscription = form.watch((value) => {
-      if (!initialValues) return;
-
-      const hasChanged = 
-        value.full_name !== initialValues.full_name ||
-        JSON.stringify(value.selectedGrades) !== JSON.stringify(initialValues.selectedGrades) ||
-        JSON.stringify(value.gradeSubjects) !== JSON.stringify(initialValues.gradeSubjects);
-
-      setIsFormModified(hasChanged);
-    });
-    return () => subscription.unsubscribe();
-  }, [form, initialValues]);
-
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (isSubmitting) return; // Prevent double submission
+    if (!user) return;
     
-    try {
-      setIsSubmitting(true);
+    debug.log("Initializing form with user data", user);
+    
+    const gradeSubjects = extractGradeSubjects(user?.teaching_subjects as TeachingSubject[]);
+    debug.log("Processed grade subjects", gradeSubjects);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('Not authenticated');
-      }
-
-      // Convert gradeSubjects object to teaching_subjects array
-      const teaching_subjects = Object.entries(values.gradeSubjects || {}).flatMap(
-        ([grade, subjects]) => subjects.map(subject => ({
-          subject,
-          grade
-        }))
-      );
-
-      const updateData = {
-        full_name: values.full_name,
-        grade_levels: values.selectedGrades,
-        teaching_subjects
-      };
-
-      const { data: updatedProfile, error } = await supabase
-        .from('profiles')
-        .update(updateData)
-        .eq('id', user.id)
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      // Only refetch if the update was successful
-      await refetch();
-      setIsFormModified(false); // Reset modification state after successful save
-      
-      toast({
-        title: 'Profile updated',
-        description: 'Your profile has been updated successfully.',
-      });
-
-      // Navigate back to assignments after successful save
-      navigate('/app/assignments');
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to update profile. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Watch selectedGrades to manage gradeSubjects
-  const selectedGrades = form.watch('selectedGrades');
-  const gradeSubjects = form.watch('gradeSubjects') || {};
-
-  // Clean up gradeSubjects when grades are removed
-  useEffect(() => {
-    const currentGradeSubjects = { ...gradeSubjects };
-    Object.keys(currentGradeSubjects).forEach(grade => {
-      if (!selectedGrades.includes(grade)) {
-        delete currentGradeSubjects[grade];
-      }
+    form.reset({
+      full_name: user?.full_name as string ?? "",
+      selectedGrades: (user?.grade_levels as string[])?.map(String) ?? [],
+      gradeSubjects: Object.keys(gradeSubjects).length > 0 ? gradeSubjects : {},
     });
-    form.setValue('gradeSubjects', currentGradeSubjects);
-  }, [selectedGrades, form]);
+  }, [user]);
+
+  // Clean up subjects when grades change
+  useEffect(() => {
+    const selectedGrades = form.watch("selectedGrades");
+    debug.log("Selected grades changed", selectedGrades);
+    
+    // Only run this effect when selectedGrades actually changes
+    if (!selectedGrades || selectedGrades.length === 0) return;
+    
+    const currentGradeSubjects = form.getValues("gradeSubjects") ?? {};
+    
+    // Filter out subjects for grades that are no longer selected
+    const cleanedGradeSubjects = Object.fromEntries(
+      Object.entries(currentGradeSubjects).filter(([grade]) =>
+        selectedGrades.includes(grade)
+      )
+    );
+    
+    debug.log("Cleaned grade subjects", cleanedGradeSubjects);
+    
+    // Only update if there was a change
+    if (JSON.stringify(currentGradeSubjects) !== JSON.stringify(cleanedGradeSubjects)) {
+      form.setValue("gradeSubjects", cleanedGradeSubjects, {
+        shouldValidate: true,
+      });
+    }
+  }, [form.watch("selectedGrades")]);
+
+  // Handle form submission
+  const handleSubmit = useCallback(
+    async (values: FormValues) => {
+      debug.startTimer("profile-submission");
+      debug.log("Submitting form values", values);
+      setIsSubmitting(true);
+      
+      try {
+        if (!user?.id) {
+          toast({
+            title: "Error",
+            description: "Not authenticated",
+            variant: "destructive",
+          });
+          debug.error("Not authenticated");
+          return;
+        }
+
+        // Transform form data to database format
+        const teaching_subjects = Object.entries(
+          values.gradeSubjects ?? {}
+        ).flatMap(([grade, subjects]) =>
+          (subjects ?? []).map((subject) => ({
+            subject,
+            grade,
+          }))
+        );
+        
+        debug.log("Processed teaching subjects", teaching_subjects);
+
+        // Update profile in database
+        const { error } = await supabase.from("profiles").upsert({
+          id: user.id,
+          full_name: values.full_name ?? "",
+          grade_levels: values.selectedGrades ?? [],
+          teaching_subjects:
+            teaching_subjects.length > 0 ? teaching_subjects : [],
+          updated_at: new Date().toISOString(),
+          role: user.role,
+        });
+
+        if (error) {
+          debug.error("Supabase update failed", error);
+          toast({
+            title: "Error",
+            description:
+              error instanceof Error ? error.message : "Failed to update profile",
+            variant: "destructive",
+          });
+          return;
+        };
+
+        debug.info("Profile updated successfully");
+        toast({
+          title: "Profile updated",
+          description: "Your teaching profile has been updated successfully.",
+        });
+        
+        // Mark form as pristine after successful save
+        form.reset(values);
+      } catch (error) {
+        debug.error("Profile update error", error);
+        toast({
+          title: "Error",
+          description:
+            error instanceof Error ? error.message : "Failed to update profile",
+          variant: "destructive",
+        });
+      } finally {
+        setIsSubmitting(false);
+        debug.endTimer("profile-submission");
+      }
+    },
+    [toast, user, form]
+  );
+
+  // Memoize grade options to prevent unnecessary re-renders
+  const gradeOptions = useMemo(getGradeOptions, []);
+
+  // Get subject options for a specific grade
+  const getSubjectOptionsForGrade = useCallback(
+    (grade: string | undefined): Option[] => {
+      if (
+        !grade ||
+        !Object.values(GRADE_LEVELS).includes(grade as GradeLevel)
+      ) {
+        return [];
+      }
+
+      const subjects = GRADE_SUBJECTS[grade as GradeLevel] ?? [];
+      return subjects.map((subject) => ({
+        label: subject ?? "",
+        value: subject ?? "",
+      }));
+    },
+    []
+  );
+
+  // Handle navigation with confirmation if form is dirty
+  const handleNavigation = useCallback(() => {
+    if (isDirty) {
+      if (window.confirm("You have unsaved changes. Are you sure you want to leave?")) {
+        navigate(-1);
+      }
+    } else {
+      navigate(-1);
+    }
+  }, [navigate, isDirty]);
+
+  // Render fallback UI if no user
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 py-4 sm:py-8">
+        <Card className="w-full max-w-2xl mx-auto p-4 sm:p-6">
+          <p className="text-muted-foreground">
+            Please sign in to view your profile
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
+  const selectedGrades = form.watch("selectedGrades");
 
   return (
-    <div className="container mx-auto py-8">
-      <Card className="max-w-2xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-6">Teaching Profile</h1>
-        
+    <div className="container mx-auto px-4 py-4 sm:py-8">
+      <Card className="w-full max-w-2xl mx-auto p-4 sm:p-6">
+        <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Teacher Profile</h1>
+
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-4 sm:space-y-6"
+          >
             <FormField
               control={form.control}
               name="full_name"
@@ -197,7 +308,13 @@ export const TeacherProfile = () => {
                 <FormItem>
                   <FormLabel>Full Name</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Enter your full name" />
+                    <Input
+                      {...field}
+                      value={field.value ?? ""}
+                      placeholder="Enter your full name"
+                      disabled={isSubmitting}
+                      aria-required="true"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -209,13 +326,14 @@ export const TeacherProfile = () => {
               name="selectedGrades"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Select Grades You Teach</FormLabel>
+                  <FormLabel>Grades You Teach</FormLabel>
                   <FormControl>
                     <MultiSelect
-                      options={grades}
-                      value={field.value}
-                      onChange={field.onChange}
+                      options={gradeOptions}
+                      value={field.value ?? []}
+                      onChange={(values) => field.onChange(values ?? [])}
                       placeholder="Select grades..."
+                      disabled={isSubmitting}
                     />
                   </FormControl>
                   <FormMessage />
@@ -223,23 +341,25 @@ export const TeacherProfile = () => {
               )}
             />
 
-            {selectedGrades.map(grade => (
+            {selectedGrades.map((grade) => (
               <FormField
-                key={grade}
+                key={grade ?? "unknown"}
                 control={form.control}
                 name={`gradeSubjects.${grade}`}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Subjects for Grade {grade}</FormLabel>
+                    <FormLabel>
+                      Subjects for Grade {grade ?? "Unknown"}
+                    </FormLabel>
                     <FormControl>
                       <MultiSelect
-                        options={subjects.map(subject => ({
-                          label: subjectDisplayMap[subject.value] || subject.value,
-                          value: subject.value
-                        }))}
-                        value={field.value || []}
-                        onChange={field.onChange}
-                        placeholder={`Select subjects for Grade ${grade}...`}
+                        options={getSubjectOptionsForGrade(grade)}
+                        value={field.value ?? []}
+                        onChange={(values) => field.onChange(values ?? [])}
+                        placeholder={`Select subjects for Grade ${
+                          grade ?? "Unknown"
+                        }...`}
+                        disabled={isSubmitting}
                       />
                     </FormControl>
                     <FormMessage />
@@ -248,19 +368,26 @@ export const TeacherProfile = () => {
               />
             ))}
 
-            <div className="flex justify-between mt-6">
+            <div className="flex flex-col sm:flex-row justify-between mt-4 sm:mt-6 gap-3">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => navigate('/app/assignments')}
+                onClick={handleNavigation}
+                disabled={isSubmitting}
+                className="w-full sm:w-auto"
               >
-                Back to Assignments
+                Back
               </Button>
-              <Button 
-                type="submit" 
-                disabled={isSubmitting || !isFormModified}
+              <Button
+                type="submit"
+                disabled={
+                  isSubmitting ||
+                  !isDirty ||
+                  !isValid
+                }
+                className="w-full sm:w-auto"
               >
-                {isSubmitting ? 'Saving...' : 'Save Profile'}
+                {isSubmitting ? "Saving..." : "Save Profile"}
               </Button>
             </div>
           </form>
@@ -268,4 +395,4 @@ export const TeacherProfile = () => {
       </Card>
     </div>
   );
-}; 
+};
