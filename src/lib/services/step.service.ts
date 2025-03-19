@@ -24,6 +24,7 @@ export class StepService {
       { id: 'skills-reflection', requiredFields: ['selected_skills'], isComplete: false },
       { id: 'process-challenges', requiredFields: ['creation_process', 'challenges'], isComplete: false },
       { id: 'review-submit', requiredFields: [], isComplete: false },
+      { id: 'teacher-feedback', requiredFields: [], isComplete: false },
     ];
     debug.info("StepService initialized with validations", this.stepValidations);
   }
