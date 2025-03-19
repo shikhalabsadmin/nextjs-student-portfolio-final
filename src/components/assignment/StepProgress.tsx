@@ -1,193 +1,120 @@
-import { cn } from "@/lib/utils";
+import { useState, useMemo, useCallback } from "react";
 import { type StepConfig } from "@/types/assignment";
-import { useState } from "react";
-import { ChevronDown, ChevronUp, Check } from "lucide-react";
 import { AssignmentStatus } from "@/types/assignment-status";
+import { StepButton } from "@/components/assignment/StepButton";
+import { StepIndicator } from "@/components/assignment/StepIndicator";
+import { getFilteredSteps } from "@/utils/student-assignment-steps-utils";
+import { ChevronUp } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
-type StepProgressProps = {
+// Define props interface with proper documentation
+interface StepProgressProps {
+  /** Array of step configurations */
   steps: StepConfig[];
+  /** Current active step ID */
   currentStep: string;
-  setCurrentStep: (step: string) => void;
+  /** Callback to update the current step */
+  setCurrentStep: (stepId: string) => void;
+  /** Function to validate if a step is complete */
   validateStep: (stepId: string) => boolean;
-  status?: string; // Add assignment status prop
-};
+  /** Assignment status, defaults to DRAFT */
+  status?: AssignmentStatus;
+}
 
+/**
+ * StepProgress component displays a progress tracker with collapsible steps for mobile
+ * and a fixed sidebar for desktop views.
+ */
 export function StepProgress({
   steps,
   currentStep,
   setCurrentStep,
   validateStep,
-  status = AssignmentStatus.DRAFT, // Default to DRAFT if not provided
+  status = AssignmentStatus.DRAFT,
 }: StepProgressProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  
-  // Filter steps based on assignment status
-  const filteredSteps = getFilteredSteps(steps, status);
-  
-  const currentStepData = filteredSteps.find((step) => step.id === currentStep);
-  const currentStepIndex = filteredSteps.findIndex((step) => step.id === currentStep);
-  
-  // Calculate progress percentage
-  const completedSteps = filteredSteps.filter((step) => validateStep(step.id)).length;
-  const progressPercentage = Math.round((completedSteps / filteredSteps.length) * 100);
 
-  // Mobile view toggle
-  const toggleExpand = () => setIsExpanded(!isExpanded);
+  // Memoize filtered steps to prevent unnecessary recalculations
+  const filteredSteps = useMemo(() => getFilteredSteps(steps, status), [steps, status]);
+  
+  // Memoize derived data
+  const currentStepData = useMemo(
+    () => filteredSteps.find((step) => step.id === currentStep),
+    [filteredSteps, currentStep]
+  );
+
+  // Optimize toggle handler
+  const toggleExpand = useCallback(() => setIsExpanded((prev) => !prev), []);
 
   return (
-    <>
-      {/* Mobile view - Modern design with progress bar */}
-      <div className="md:hidden w-full rounded-lg border border-slate-200 bg-white shadow-sm">
-        {/* Progress header with percentage */}
+    <div className="w-full">
+      {/* Mobile view */}
+      <div className="md:hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="p-4 border-b border-slate-200">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-sm font-medium text-gray-900">Your Progress</h2>
-            <span className="text-sm font-medium text-blue-600">{progressPercentage}% Complete</span>
-          </div>
-          
-          {/* Progress bar */}
-          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-blue-500 rounded-full transition-all duration-300 ease-in-out" 
-              style={{ width: `${progressPercentage}%` }}
-            />
-          </div>
+          <h2 className="text-sm font-medium text-gray-900">Your Progress</h2>
         </div>
-
-        {/* Current step button */}
         <button
           onClick={toggleExpand}
           className="flex justify-between items-center w-full p-4 bg-white hover:bg-slate-50 transition-colors"
+          aria-expanded={isExpanded}
+          aria-controls="step-progress-mobile"
         >
           <div className="flex items-center gap-3">
-            <div className="flex-shrink-0">
-              <StepIndicator isComplete={validateStep(currentStep)} isCurrent={true} />
-            </div>
+            <StepIndicator 
+              isComplete={validateStep(currentStep)} 
+              isCurrent={true}
+            />
             <span className="font-medium text-gray-900">
               {currentStepData?.title || "Current Step"}
             </span>
           </div>
           {isExpanded ? (
-            <ChevronUp className="h-5 w-5 text-gray-500" />
+            <ChevronUp className="h-5 w-5 text-gray-500" aria-hidden="true" />
           ) : (
-            <ChevronDown className="h-5 w-5 text-gray-500" />
+            <ChevronDown className="h-5 w-5 text-gray-500" aria-hidden="true" />
           )}
         </button>
 
-        {/* Mobile expanded view with animation */}
         {isExpanded && (
-          <div className="border-t border-slate-200 p-3 bg-white animate-in slide-in-from-top duration-200">
-            <div className="space-y-2">
-              {filteredSteps.map((step) => {
-                const isCurrent = currentStep === step.id;
-                const isComplete = validateStep(step.id);
-
-                return (
-                  <button
-                    key={step.id}
-                    onClick={() => {
-                      setCurrentStep(step.id);
-                      setIsExpanded(false);
-                    }}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors w-full text-left",
-                      isCurrent 
-                        ? "bg-blue-50 border border-blue-100" 
-                        : "hover:bg-slate-50 border border-transparent"
-                    )}
-                  >
-                    <div className="relative flex-shrink-0">
-                      <StepIndicator isComplete={isComplete} isCurrent={isCurrent} />
-                    </div>
-                    <span
-                      className={cn(
-                        "text-sm",
-                        isCurrent ? "font-medium text-gray-900" : "text-gray-600"
-                      )}
-                    >
-                      {step.title}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+          <div 
+            id="step-progress-mobile"
+            className="border-t border-slate-200 p-3 bg-white animate-in slide-in-from-top duration-200"
+          >
+            <nav className="space-y-2" aria-label="Step navigation">
+              {filteredSteps.map((step) => (
+                <StepButton
+                  key={step.id}
+                  step={step}
+                  isCurrent={currentStep === step.id}
+                  isComplete={validateStep(step.id)}
+                  onClick={() => {
+                    setCurrentStep(step.id);
+                    setIsExpanded(false);
+                  }}
+                />
+              ))}
+            </nav>
           </div>
         )}
       </div>
 
-      {/* Desktop view - Same as original */}
+      {/* Desktop view */}
       <div className="hidden md:block">
         <div className="border-b border-slate-200 p-4">
           <h2 className="text-base font-medium text-gray-900">Your Progress</h2>
         </div>
-        <div className="space-y-2.5 px-4 py-6">
-          {filteredSteps.map((step) => {
-            const isCurrent = currentStep === step.id;
-            const isComplete = validateStep(step.id);
-
-            return (
-              <button
-                key={step.id}
-                onClick={() => setCurrentStep(step.id)}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-4 py-3 transition-colors w-full text-left",
-                  isCurrent ? "bg-blue-50" : "hover:bg-gray-50"
-                )}
-                aria-current={isCurrent ? "step" : undefined}
-              >
-                <StepIndicator isComplete={isComplete} isCurrent={isCurrent} />
-                <span
-                  className={cn(
-                    "text-sm",
-                    isCurrent ? "font-medium text-gray-900" : "text-gray-500"
-                  )}
-                >
-                  {step.title}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <nav className="space-y-2.5 px-4 py-6" aria-label="Step navigation">
+          {filteredSteps.map((step) => (
+            <StepButton
+              key={step.id}
+              step={step}
+              isCurrent={currentStep === step.id}
+              isComplete={validateStep(step.id)}
+              onClick={() => setCurrentStep(step.id)}
+            />
+          ))}
+        </nav>
       </div>
-    </>
+    </div>
   );
 }
-
-// Helper function to filter steps based on assignment status
-function getFilteredSteps(steps: StepConfig[], status: string): StepConfig[] {
-  // For SUBMITTED or VERIFIED statuses, only show teacher-feedback
-  if (status === AssignmentStatus.SUBMITTED || status === AssignmentStatus.VERIFIED) {
-    console.log(`StepProgress: Status is ${status}, showing only teacher-feedback tab`);
-    return steps.filter(step => step.id === 'teacher-feedback');
-  }
-  
-  // For all other statuses (DRAFT, NOT_STARTED, NEEDS_REVISION, REJECTED), show all steps
-  console.log(`StepProgress: Status is ${status}, showing all tabs`);
-  return steps;
-}
-
-type StepIndicatorProps = {
-  isComplete: boolean;
-  isCurrent: boolean;
-};
-
-function StepIndicator({ isComplete, isCurrent }: StepIndicatorProps) {
-  if (isComplete) {
-    return (
-      <div className="h-5 w-5 rounded-full bg-green-500 flex items-center justify-center text-white">
-        <Check className="h-3 w-3" />
-      </div>
-    );
-  }
-  
-  return (
-    <div
-      className={cn(
-        "h-5 w-5 rounded-full",
-        isCurrent
-          ? "bg-blue-500"
-          : "border border-gray-300"
-      )}
-    />
-  );
-} 
