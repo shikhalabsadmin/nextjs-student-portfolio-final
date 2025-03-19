@@ -58,8 +58,5 @@ export function getDefaultValues(): AssignmentFormValues {
     verified_at: null,
     feedback: null,
     current_revision: 0,
-    
-    // These fields might be missing from the schema but included for completeness
-    id: ""
   };
 } 
