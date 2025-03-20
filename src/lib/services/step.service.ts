@@ -19,7 +19,7 @@ export class StepService {
 
   constructor(private steps = STEPS) {
     this.stepValidations = [
-      { id: 'basic-info', requiredFields: ['title', 'artifact_type', 'month'], isComplete: false },
+      { id: 'basic-info', requiredFields: ['title', 'artifact_type', 'month', 'subject'], isComplete: false },
       { id: 'role-originality', requiredFields: ['is_team_work', 'is_original_work'], isComplete: false },
       { id: 'skills-reflection', requiredFields: ['selected_skills'], isComplete: false },
       { id: 'process-challenges', requiredFields: ['creation_process', 'challenges'], isComplete: false },
@@ -64,6 +64,16 @@ export class StepService {
       const allPreviousStepsValid = previousSteps.every(s => this.validateStep(s.id, formData));
       step.isComplete = allPreviousStepsValid;
       debug.log(`Review step validation result`, { isComplete: step.isComplete });
+      return step.isComplete;
+    }
+    
+    // Special case for teacher-feedback step - it's only valid if feedback exists
+    if (stepId === 'teacher-feedback') {
+      const hasFeedback = !!formData.feedback && 
+                         typeof formData.feedback === 'object' && 
+                         Object.keys(formData.feedback).length > 0;
+      step.isComplete = hasFeedback;
+      debug.log(`Teacher feedback step validation result`, { isComplete: step.isComplete });
       return step.isComplete;
     }
 

@@ -45,7 +45,7 @@ const normalizeSubject = (subject: string) => {
 
 export function VerifySubmissionsView() {
   const navigate = useNavigate();
-  const { profile } = useAuthState();
+  const { user   } = useAuthState();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [selectedGrade, setSelectedGrade] = useState('all');
@@ -54,7 +54,7 @@ export function VerifySubmissionsView() {
   const [selectedStudent, setSelectedStudent] = useState('all');
 
   // Get teacher's teaching assignments
-  const teachingSubjects = profile?.teaching_subjects as TeachingSubject[] || [];
+  const teachingSubjects = user?.teaching_subjects as TeachingSubject[] || [];
   const teacherGrades = [...new Set(teachingSubjects.map(ts => ts.grade))];
   const teacherSubjectsForGrade = (grade: string) => 
     teachingSubjects

@@ -16,7 +16,9 @@ export class AssignmentService {
   private notificationService: NotificationService;
   private initialFormState: string | null = null;
   private autoSaveTimeout: NodeJS.Timeout | null = null;
-  private readonly AUTOSAVE_DELAY = 2000;
+  private autoSaveAbortController: AbortController | null = null;
+  private autoSaveInProgress = false;
+  private readonly AUTOSAVE_DELAY = 5000;
 
   /**
    * Initialize the assignment service
@@ -50,16 +52,31 @@ export class AssignmentService {
    * Perform the actual auto-save operation
    */
   private async performAutoSave(id: string, data: AssignmentFormValues): Promise<void> {
+    try {
+      debug.endTimer("autoSave"); // End any existing timer first
+    } catch (error) {
+      // Ignore error if timer didn't exist
+    }
+    
     debug.startTimer("autoSave");
     
-    await updateAssignment(id, {
-      ...data,
-      updated_at: new Date().toISOString()
-    });
+    // Create a new AbortController for this save operation
+    this.autoSaveAbortController = new AbortController();
+    this.autoSaveInProgress = true;
     
-    debug.endTimer("autoSave");
-    debug.log("Auto-save successful", { assignmentId: id });
-    this.storeInitialState(data);
+    try {
+      await updateAssignment(id, {
+        ...data,
+        updated_at: new Date().toISOString()
+      }, this.autoSaveAbortController.signal);
+      
+      debug.endTimer("autoSave");
+      debug.log("Auto-save successful", { assignmentId: id });
+      this.storeInitialState(data);
+    } finally {
+      this.autoSaveInProgress = false;
+      this.autoSaveAbortController = null;
+    }
   }
 
   /**
@@ -71,9 +88,17 @@ export class AssignmentService {
       return;
     }
 
+    // Cancel any scheduled auto-save
     if (this.autoSaveTimeout) {
       clearTimeout(this.autoSaveTimeout);
       debug.log("Cleared previous auto-save timeout");
+    }
+
+    // Cancel any in-progress auto-save API call
+    if (this.autoSaveInProgress && this.autoSaveAbortController) {
+      debug.log("Aborting in-progress auto-save");
+      this.autoSaveAbortController.abort();
+      this.autoSaveInProgress = false;
     }
 
     return new Promise((resolve) => {
@@ -84,9 +109,14 @@ export class AssignmentService {
           this.toast.success("Changes saved successfully");
           resolve();
         } catch (error) {
-          debug.error("Auto-save failed", error);
-          this.toast.error("Failed to save changes");
-          throw error;
+          // Only show error if not aborted
+          if (error instanceof Error && error.name !== 'AbortError') {
+            debug.error("Auto-save failed", error);
+            this.toast.error("Failed to save changes");
+            throw error;
+          } else {
+            debug.log("Auto-save aborted", { id });
+          }
         } finally {
           this.toast.dismiss(loadingId);
         }
@@ -142,9 +172,18 @@ export class AssignmentService {
       student_id: this.userId,
     };
 
-    const newAssignment = await createAssignment(initialData);
+    // Omit `id` from the payload; let Supabase generate it
+    const { id, ...dataWithoutId } = initialData;
+    const sanitizedData = {
+      ...dataWithoutId,
+      student_id: this.userId,
+    };
+
+    debug.log("Sanitized initial data for creation (id omitted)", sanitizedData);
+
+    const newAssignment = await createAssignment(sanitizedData);
     if (!newAssignment?.id) {
-      throw new Error("Failed to create assignment");
+      throw new Error("Failed to create assignment - no ID returned");
     }
 
     // Navigate to the new assignment's edit page
@@ -152,7 +191,7 @@ export class AssignmentService {
     this.navigate(newRoute, { replace: true });
     debug.log("New assignment created", { id: newAssignment.id, redirectedTo: newRoute });
     
-    return { ...initialData, id: newAssignment.id };
+    return { ...initialData, id: newAssignment.id }; // Return with generated id
   }
 
   /**
@@ -180,7 +219,7 @@ export class AssignmentService {
       }));
     }
 
-    debug.log("Assignment loaded successfully", { id });
+    debug.log("Assignment loaded successfully", assignment);
     return assignment;
   }
 
@@ -197,8 +236,13 @@ export class AssignmentService {
     const loadingId = this.toast.loading("Submitting assignment...");
     
     try {
-      const updatedAssignment = await updateAssignment(data.id, {
+      const sanitizedData = {
         ...data,
+        student_id: this.userId,
+      };
+
+      const updatedAssignment = await updateAssignment(data.id, {
+        ...sanitizedData,
         status: AssignmentStatus.SUBMITTED,
         submitted_at: new Date().toISOString(),
       });
@@ -275,7 +319,15 @@ export class AssignmentService {
       this.autoSaveTimeout = null;
       debug.log("Auto-save timeout cleared during cleanup");
     }
+    
+    if (this.autoSaveAbortController) {
+      this.autoSaveAbortController.abort();
+      this.autoSaveAbortController = null;
+      this.autoSaveInProgress = false;
+      debug.log("Auto-save operation aborted during cleanup");
+    }
+    
     this.toast.dismissAll();
     debug.log("AssignmentService cleanup completed");
   }
-} 
+}

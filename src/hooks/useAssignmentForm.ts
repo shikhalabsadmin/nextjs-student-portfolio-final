@@ -1,335 +1,166 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { User } from "@supabase/supabase-js";
 import {
   assignmentFormSchema,
   type AssignmentFormValues,
+  baseAssignmentFormSchema,
 } from "@/lib/validations/assignment";
 import { type AssignmentStep } from "@/types/assignment";
-import { User } from "@supabase/supabase-js";
+import { AssignmentStatus } from "@/types/assignment-status";
 import { STEPS } from "@/lib/config/steps";
 import { getAssignmentFiles } from "@/lib/services/file-upload.service";
-import { AssignmentStatus } from "@/types/assignment-status";
-
-// Import services from their new locations
 import { debug } from "@/lib/utils/debug.service";
 import { ToastService } from "@/lib/services/toast.service";
 import { AssignmentService } from "@/lib/services/assignment.service";
 import { StepService } from "@/lib/services/step.service";
 import { getDefaultValues } from "@/lib/services/assignment-defaults.service";
 
-// Text fields that should never be null
-const TEXT_FIELDS = [
-  'originality_explanation',
-  'team_contribution',
-  'skills_justification',
-  'pride_reason',
-  'creation_process',
-  'learnings',
-  'challenges',
-  'improvements',
-  'acknowledgments'
-] as const;
-
-// Normalize text fields to convert null to empty string
-const normalizeTextFields = (data: AssignmentFormValues): AssignmentFormValues => {
-  const cleanData = { ...data };
-  TEXT_FIELDS.forEach(field => {
-    if (cleanData[field] === null) {
-      (cleanData as Record<string, string>)[field] = "";
-    }
-  });
-  return cleanData;
-};
-
-// Custom hook for managing assignment form state and logic
+// Manages a multi-step assignment form with validation and auto-save
 export function useAssignmentForm({ user }: { user: User }) {
-  const { id } = useParams(); // Assignment ID from URL
-  const navigate = useNavigate(); // Navigation function
-  const [currentStep, setCurrentStep] = useState<AssignmentStep>("basic-info"); // Current form step
-  const [isLoading, setIsLoading] = useState(false); // Loading state
+  const { id: assignmentId } = useParams();
+  const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState<AssignmentStep>("basic-info");
+  const [isLoading, setIsLoading] = useState(false);
+  const timeoutId = useRef<NodeJS.Timeout | null>(null);
 
-  debug.log("Hook initialized with:", { userId: user?.id, assignmentId: id, currentStep });
+  // Memoized service instances
+  const toast = useMemo(() => new ToastService(), []);
+  const assignments = useMemo(() => new AssignmentService(toast, navigate, user.id), [toast, navigate, user.id]);
+  const steps = useMemo(() => new StepService(), []);
 
-  // Initialize form with Zod validation
+  // Form configuration with strict Zod validation
   const form = useForm<AssignmentFormValues>({
     resolver: zodResolver(assignmentFormSchema),
-    defaultValues: {
-      ...getDefaultValues(),
-      grade: user?.user_metadata?.grade ?? "",
-    },
+    defaultValues: getDefaultValues(),
     mode: "onChange",
   });
 
-  // Ensure text fields are never null
+  // Syncs user grade from metadata once on mount
   useEffect(() => {
-    const formValues = form.getValues();
-    let needsUpdate = false;
-    const updates: Record<string, string> = {};
+    const grade = user.user_metadata?.grade as string;
+    if (grade) form.setValue("grade", grade);
+  }, []);
 
-    // Check each field and convert null to empty string
-    TEXT_FIELDS.forEach(field => {
-      if (formValues[field] === null) {
-        updates[field] = "";
-        needsUpdate = true;
-      }
-    });
-
-    // If any nulls were found, update the form
-    if (needsUpdate) {
-      debug.log("Converting null text fields to empty strings", updates);
-      form.reset({ ...formValues, ...updates }, { keepDirty: true });
-    }
-  }, [form]);
-
-  debug.log("Form initialized with default values:", { 
-    grade: user?.user_metadata?.grade,
-    defaultValues: getDefaultValues() 
-  });
-
-  // Instantiate services
-  const toastService = new ToastService();
-  const assignmentService = new AssignmentService(
-    toastService,
-    navigate,
-    user?.id
-  );
-  const stepService = new StepService();
-
-  debug.log("Services initialized");
-
-  // Load assignment files
-  const loadAssignmentFiles = async (assignmentId: string) => {
-    debug.log("Starting file loading for assignment", { assignmentId });
+  // Fetches and sets assignment files
+  const fetchFiles = useCallback(async (id: string) => {
     try {
-      const existingFiles = await getAssignmentFiles(assignmentId);
-      debug.log("Files loaded successfully", { 
-        fileCount: existingFiles?.length,
-        files: existingFiles 
-      });
-      form.setValue("files", existingFiles);
+      form.setValue("files", await getAssignmentFiles(id));
     } catch (error) {
-      debug.error("Failed to load files", error);
-      toastService.error("Failed to load existing files");
+      debug.error("File fetch failed", error);
+      form.setValue("files", []);
+      toast.error("Failed to load files");
     }
-  };
+  }, [form, toast]);
 
-  // Process loaded assignment data
-  const processAssignmentData = (assignment: AssignmentFormValues | null) => {
-    if (!assignment) {
-      debug.log("No existing assignment found, using default values");
-      return;
-    }
-    
-    // Normalize text fields
-    const cleanAssignment = normalizeTextFields(assignment);
-    
-    debug.log("Resetting form with assignment data");
-    form.reset(cleanAssignment);
-    
-    debug.log("Marking current step as visited", { currentStep });
-    stepService.markStepVisited(currentStep);
-    
-    debug.log("Validating previous steps");
-    STEPS.forEach((step) => {
-      stepService.markStepVisited(step.id); // Mark all steps as visited
-      const isValid = stepService.validateStep(step.id, assignment);
-      debug.log("Step validation result", { step: step.id, isValid });
-    });
-
-    // Load assignment files if assignment ID exists
-    if (assignment.id) {
-      loadAssignmentFiles(assignment.id);
-    }
-  };
-
-  // Initialize form with new or existing assignment data
-  useEffect(() => {
-    const initialize = async () => {
-      debug.log("Starting assignment initialization", { id, userId: user?.id });
-      setIsLoading(true);
-      try {
-        debug.log("Fetching assignment data");
-        const assignment = await assignmentService.initialize(id);
-        debug.log("Assignment data received", { assignment });
-        processAssignmentData(assignment);
-      } catch (error) {
-        debug.error("Assignment initialization failed", error);
-        toastService.error("Failed to load assignment");
-      } finally {
-        setIsLoading(false);
-        debug.log("Assignment initialization completed");
-      }
-    };
-    initialize();
-  }, [id, user?.id]);
-
-  // Auto-save form changes after a delay
-  useEffect(() => {
-    debug.log("Setting up form auto-save watcher");
-    
-    const subscription = form.watch((value) => {
-      if (!value.id) {
-        debug.log("Skipping auto-save - no assignment ID");
-        return;
-      }
-
-      debug.log("Form value changed, scheduling auto-save", { 
-        assignmentId: value.id,
-        changedFields: Object.keys(form.formState.dirtyFields)
-      });
-
-      const saveTimeout = setTimeout(() => {
-        debug.log("Executing auto-save");
-        assignmentService.autoSave(value.id!, value).catch((error) => {
-          debug.error("Auto-save failed", error);
-          toastService.error("Failed to save changes");
-        });
-      }, 1000);
-
-      return () => {
-        debug.log("Clearing auto-save timeout");
-        clearTimeout(saveTimeout);
-      };
-    });
-
-    return () => {
-      debug.log("Cleaning up form watcher subscription");
-      subscription.unsubscribe();
-    };
-  }, [form]);
-
-  // Navigate to a specific step
-  const navigateToStep = (targetStep: AssignmentStep) => {
-    debug.log("Attempting to navigate to step", { from: currentStep, to: targetStep });
-    
-    const formData = form.getValues();
-    debug.log("Current form data", { formData });
-
-    if (stepService.canNavigateToStep(targetStep, currentStep, formData)) {
-      debug.log("Navigation allowed, updating step");
-      stepService.markStepVisited(targetStep);
-      setCurrentStep(targetStep);
-    } else {
-      debug.log("Navigation blocked - incomplete required fields");
-      toastService.error("Please complete all required fields before proceeding");
-    }
-  };
-
-  // Navigate to the next step if available
-  const nextStep = () => {
-    const formData = form.getValues();
-    debug.log("Attempting to move to next step", { currentStep, formData });
-    
-    const next = stepService.getNext(currentStep, formData);
-
-    if (next) {
-      debug.log("Moving to next step", { from: currentStep, to: next });
-      stepService.markStepVisited(next);
-      setCurrentStep(next);
-    } else {
-      debug.log("Cannot move to next step - validation failed");
-      toastService.error("Please complete all required fields before proceeding");
-    }
-  };
-
-  // Navigate to the previous step if available
-  const previousStep = () => {
-    debug.log("Attempting to move to previous step", { currentStep });
-    
-    const prev = stepService.getPrevious(currentStep);
-    if (prev) {
-      debug.log("Moving to previous step", { from: currentStep, to: prev });
-      setCurrentStep(prev);
-    } else {
-      debug.log("No previous step available");
-    }
-  };
-
-  // Check if current step is complete
-  const isCurrentStepComplete = () => {
-    const formData = form.getValues();
-    // Always mark the current step as visited to ensure validation works
-    stepService.markStepVisited(currentStep);
-    const isValid = stepService.validateStep(currentStep, formData);
-    debug.log("Checking current step completion", { step: currentStep, isValid, formData });
-    return isValid;
-  };
-
-  // Handle form submission
-  const onSubmit = async (data: AssignmentFormValues) => {
-    debug.log("Starting form submission", { data, currentStep });
-    
-    // Get form status - this will contain any updates made before submission
-    const status = data.status || AssignmentStatus.DRAFT;
-    debug.log("Form status before submission", { status });
-    
-    // Check if this is a final submission (from the review-submit step or status is already SUBMITTED)
-    const isFinalSubmission = currentStep === "review-submit" || status === AssignmentStatus.SUBMITTED;
-    
-    // Validate all steps before submission
-    const stepValidations = STEPS.map(step => ({
-      step: step.id,
-      isValid: stepService.validateStep(step.id, data)
-    }));
-    
-    debug.log("Step validations", { stepValidations });
-    
-    const isValid = stepValidations.every(v => v.isValid);
-
-    if (!isValid && !isFinalSubmission) {
-      debug.log("Submission blocked - invalid steps", {
-        invalidSteps: stepValidations.filter(v => !v.isValid).map(v => v.step)
-      });
-      toastService.error("Please complete all required fields before submitting");
-      return;
-    }
-
+  // Loads and initializes assignment data
+  const loadAssignment = useCallback(async () => {
     setIsLoading(true);
     try {
-      // If this is the final submission, ensure status is SUBMITTED
-      if (isFinalSubmission) {
-        debug.log("Final submission - ensuring status is SUBMITTED");
-        
-        // Only update the status if not already set
-        const dataWithStatus = {
-          ...data,
-          status: AssignmentStatus.SUBMITTED
-        };
-        
-        // Update the form state to reflect the new status
-        form.setValue("status", AssignmentStatus.SUBMITTED);
-        
-        await assignmentService.submit(dataWithStatus);
-        debug.log("Assignment submitted successfully with status SUBMITTED");
+      const data = await assignments.initialize(assignmentId);
+      if (data) {
+        const parsedData = baseAssignmentFormSchema.parse(data);
+        form.reset(parsedData);
+        STEPS.forEach(step => steps.markStepVisited(step.id));
+        if (data.id) await fetchFiles(data.id);
+      } else if (assignmentId) {
+        toast.error("Assignment not found");
+      }
+    } catch (error) {
+      debug.error("Assignment load failed", error);
+      toast.error("Failed to load assignment");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [assignmentId, assignments, fetchFiles, form, steps, toast]);
+
+  useEffect(() => { loadAssignment(); }, [loadAssignment]);
+
+  // Auto-saves form data with 1-second debounce
+  useEffect(() => {
+    const subscription = form.watch((data) => {
+      if (!data?.id) return;
+      if (timeoutId.current) clearTimeout(timeoutId.current);
+      timeoutId.current = setTimeout(() => {
+        assignments.autoSave(data.id!, data).catch(error => {
+          debug.error("Auto-save failed", error);
+          toast.error("Failed to save changes");
+        });
+      }, 5000);
+    });
+    return () => {
+      if (timeoutId.current) clearTimeout(timeoutId.current);
+      subscription.unsubscribe();
+    };
+  }, [form, assignments, toast]);
+
+  // Validates and navigates to target step
+  const validateAndNavigate = useCallback((target: AssignmentStep, data: AssignmentFormValues) => {
+    if (steps.canNavigateToStep(target, currentStep, data)) {
+      steps.markStepVisited(target);
+      setCurrentStep(target);
+    } else {
+      toast.error("Please complete all required fields");
+    }
+  }, [currentStep, steps, toast]);
+
+  // Advances to next step if valid
+  const nextStep = useCallback(() => {
+    const data = form.getValues();
+    const next = steps.getNext(currentStep, data);
+    if (next) validateAndNavigate(next, data);
+  }, [currentStep, form, steps, validateAndNavigate]);
+
+  // Returns to previous step if available
+  const previousStep = useCallback(() => {
+    const prev = steps.getPrevious(currentStep);
+    if (prev) setCurrentStep(prev);
+  }, [currentStep, steps]);
+
+  // Checks if current step is complete
+  const isStepComplete = useCallback(() => {
+    const data = form.getValues();
+    steps.markStepVisited(currentStep);
+    return steps.validateStep(currentStep, data);
+  }, [currentStep, form, steps]);
+
+  // Handles form submission with strict validation
+  const handleSubmit = useCallback(async (data: AssignmentFormValues) => {
+    setIsLoading(true);
+    try {
+      const isFinal = currentStep === "review-submit" || data.status === AssignmentStatus.SUBMITTED;
+      if (isFinal || STEPS.every(step => steps.validateStep(step.id, data))) {
+        if (isFinal) {
+          const finalData = { ...data, status: AssignmentStatus.SUBMITTED };
+          form.setValue("status", AssignmentStatus.SUBMITTED);
+          await assignments.submit(finalData);
+        } else {
+          await assignments.submit(data);
+        }
       } else {
-        // Regular auto-save
-        await assignmentService.submit(data);
-        debug.log("Assignment auto-saved successfully");
+        const invalidSteps = STEPS.filter(step => !steps.validateStep(step.id, data))
+          .map(step => step.id);
+        toast.error(`Please complete required fields in: ${invalidSteps.join(", ")}`);
       }
     } catch (error) {
       debug.error("Submission failed", error);
-      toastService.error("Failed to submit assignment");
+      toast.error("Failed to submit assignment");
     } finally {
       setIsLoading(false);
-      debug.log("Submission process completed");
     }
-  };
+  }, [currentStep, form, assignments, steps, toast]);
 
   return {
     form,
     currentStep,
-    setCurrentStep: navigateToStep,
+    setCurrentStep: (step: AssignmentStep) => validateAndNavigate(step, form.getValues()),
     nextStep,
     previousStep,
-    isCurrentStepComplete,
-    validateStep: (stepId: AssignmentStep, data: AssignmentFormValues) => {
-      const isValid = stepService.validateStep(stepId, data);
-      debug.log("Step validation requested", { step: stepId, isValid });
-      return isValid;
-    },
-    onSubmit: form.handleSubmit(onSubmit),
+    isCurrentStepComplete: isStepComplete,
+    validateStep: steps.validateStep.bind(steps),
+    onSubmit: form.handleSubmit(handleSubmit),
     isLoading,
   };
 }

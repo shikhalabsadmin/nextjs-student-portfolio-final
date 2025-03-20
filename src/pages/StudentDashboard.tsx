@@ -18,6 +18,7 @@ import {
 } from "@/utils/student-dashboard-utils";
 import { toast } from "sonner";
 import { getCssVariableColor } from "@/utils/color-utils";
+import { User } from "@supabase/supabase-js";
 
 // Current student's grade - this would typically come from the student's profile
 const CURRENT_GRADE = GRADE_LEVELS.GRADE_7;
@@ -26,7 +27,8 @@ const CURRENT_GRADE = GRADE_LEVELS.GRADE_7;
 const allAssignments = generateAssignments() as StudentAssignment[];
 const dummyAssignments = getGradeAssignments(allAssignments, CURRENT_GRADE);
 
-export default function StudentDashboard() {
+export default function StudentDashboard({ user }: { user: User }) {
+  console.log("user", user);
   const [searchQuery, setSearchQuery] = useState("");
   const [assignments, setAssignments] =
     useState<StudentAssignment[]>(dummyAssignments);

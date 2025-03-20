@@ -21,6 +21,7 @@ import {
 import { useBasicInfoStep } from "@/hooks/useBasicInfoStep";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { FileUploadSection, YoutubeLinksSection } from "./file-upload";
+import { GRADE_SUBJECTS, ALL_SUBJECTS, GRADE_LEVELS } from "@/constants/grade-subjects";
 
 interface BasicInfoStepProps {
   form: UseFormReturn<AssignmentFormValues>;
@@ -29,7 +30,13 @@ interface BasicInfoStepProps {
 export function BasicInfoStep({ form }: BasicInfoStepProps) {
   const files = form.watch("files") as AssignmentFile[] || [];
   const youtubeLinks = form.watch("youtubelinks") || [{ url: "", title: "" }];
+  const userGrade = form.watch("grade") || "";
   const isMobile = useIsMobile();
+  
+  // Get subjects for the user's grade
+  const gradeSubjects = userGrade && GRADE_LEVELS[userGrade as keyof typeof GRADE_LEVELS] 
+    ? GRADE_SUBJECTS[GRADE_LEVELS[userGrade as keyof typeof GRADE_LEVELS]]
+    : [];
   
   const { 
     handleFiles, 
@@ -37,6 +44,10 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
     handleYoutubeUrl, 
     FileIcon 
   } = useBasicInfoStep(form);
+
+  console.log("gradeSubjects", gradeSubjects);  
+  console.log("userGrade", userGrade);
+  console.log("form", form.getValues());
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -81,6 +92,46 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
                 {...field}
               />
             </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      
+      <FormField
+        control={form.control}
+        name="subject"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="text-base font-medium text-gray-900">
+              What subject is this for? <span className="text-red-500">*</span>
+            </FormLabel>
+            <FormDescription className="text-sm text-gray-600">
+              Select the subject that this work is related to.
+            </FormDescription>
+            <Select
+              onValueChange={field.onChange}
+              value={field.value}
+              defaultValue={field.value}
+            >
+              <FormControl>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="----- Select Subject -----" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {gradeSubjects.length > 0 ? (
+                  gradeSubjects.map((subject) => (
+                    <SelectItem key={subject} value={subject}>
+                      {subject}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no_subject_available" disabled>
+                    {userGrade ? "No subjects available for your grade" : "Please set your grade in profile settings"}
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
             <FormMessage />
           </FormItem>
         )}
