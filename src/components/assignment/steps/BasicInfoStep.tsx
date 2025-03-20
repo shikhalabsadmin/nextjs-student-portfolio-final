@@ -2,6 +2,7 @@ import type { UseFormReturn } from "react-hook-form";
 import type { AssignmentFormValues } from "@/lib/validations/assignment";
 import type { AssignmentFile } from "@/types/file";
 import { MONTHS } from "@/constants/months";
+import { useMemo, memo, useCallback } from "react";
 import {
   FormField,
   FormItem,
@@ -21,32 +22,112 @@ import {
 import { useBasicInfoStep } from "@/hooks/useBasicInfoStep";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { FileUploadSection, YoutubeLinksSection } from "./file-upload";
-import { GRADE_SUBJECTS, ALL_SUBJECTS, GRADE_LEVELS } from "@/constants/grade-subjects";
+import { GRADE_SUBJECTS, ALL_SUBJECTS, GRADE_LEVELS, GradeLevel } from "@/constants/grade-subjects";
 
 interface BasicInfoStepProps {
   form: UseFormReturn<AssignmentFormValues>;
 }
 
+// Memoized Subject Select component
+const SubjectSelect = memo(({ 
+  gradeSubjects, 
+  userGrade, 
+  field 
+}: { 
+  gradeSubjects: string[], 
+  userGrade: string, 
+  field: {
+    onChange: (value: string) => void;
+    value: string;
+  }
+}) => (
+  <Select
+    onValueChange={field.onChange}
+    value={field.value}
+    defaultValue={field.value}
+  >
+    <FormControl>
+      <SelectTrigger className="mt-2">
+        <SelectValue placeholder="Select Subject" className="text-muted-foreground" />
+      </SelectTrigger>
+    </FormControl>
+    <SelectContent>
+      {gradeSubjects.length > 0 ? (
+        gradeSubjects.map((subject) => (
+          <SelectItem key={subject} value={subject}>
+            {subject}
+          </SelectItem>
+        ))
+      ) : (
+        <SelectItem value="no_subject_available" disabled>
+          {userGrade ? "No subjects available for your grade" : "Please set your grade in profile settings"}
+        </SelectItem>
+      )}
+    </SelectContent>
+  </Select>
+));
+
+SubjectSelect.displayName = "SubjectSelect";
+
+// Memoized Month Select component
+const MonthSelect = memo(({ field }: { 
+  field: {
+    onChange: (value: string) => void;
+    value: string;
+  }
+}) => (
+  <Select
+    onValueChange={field.onChange}
+    value={field.value}
+    defaultValue={field.value}
+  >
+    <FormControl>
+      <SelectTrigger className="mt-2">
+        <SelectValue placeholder="Select Month" className="text-muted-foreground" />
+      </SelectTrigger>
+    </FormControl>
+    <SelectContent>
+      {MONTHS.map((month) => (
+        <SelectItem key={month} value={month}>
+          {month}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+));
+
+MonthSelect.displayName = "MonthSelect";
+
 export function BasicInfoStep({ form }: BasicInfoStepProps) {
-  const files = form.watch("files") as AssignmentFile[] || [];
-  const youtubeLinks = form.watch("youtubelinks") || [{ url: "", title: "" }];
-  const userGrade = form.watch("grade") || "";
+  // Use a single watch call with array of fields to reduce overhead
+  const watchedValues = form.watch(["files", "youtubelinks", "grade"]);
+  const files = (watchedValues[0] || []) as AssignmentFile[];
+  const youtubelinks = watchedValues[1] || [{ url: "", title: "" }];
+  const grade = (watchedValues[2] || "") as string;
   const isMobile = useIsMobile();
   
-  // Get subjects for the user's grade
-  const gradeSubjects = userGrade && GRADE_LEVELS[userGrade as keyof typeof GRADE_LEVELS] 
-    ? GRADE_SUBJECTS[GRADE_LEVELS[userGrade as keyof typeof GRADE_LEVELS]]
-    : [];
+  // Memoize grade subjects
+  const gradeSubjects = useMemo(() => 
+    grade 
+      ? GRADE_SUBJECTS[grade as GradeLevel] || []
+      : []
+  , [grade]);
   
   const { 
-    handleFiles, 
-    handleDeleteFile, 
-    handleYoutubeUrl, 
+    handleFiles: originalHandleFiles, 
+    handleDeleteFile: originalHandleDeleteFile, 
+    handleYoutubeUrl: originalHandleYoutubeUrl, 
     FileIcon 
   } = useBasicInfoStep(form);
+  
+  // Memoize handlers with useCallback
+  const handleFiles = useCallback(originalHandleFiles, [originalHandleFiles]);
+  const handleDeleteFile = useCallback(originalHandleDeleteFile, [originalHandleDeleteFile]);
+  const handleYoutubeUrl = useCallback(originalHandleYoutubeUrl, [originalHandleYoutubeUrl]);
 
+  // Debug logging
   console.log("gradeSubjects", gradeSubjects);  
-  console.log("userGrade", userGrade);
+  console.log("userGrade", grade);
   console.log("form", form.getValues());
 
   return (
@@ -108,30 +189,11 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
             <FormDescription className="text-sm text-gray-600">
               Select the subject that this work is related to.
             </FormDescription>
-            <Select
-              onValueChange={field.onChange}
-              value={field.value}
-              defaultValue={field.value}
-            >
-              <FormControl>
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="----- Select Subject -----" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {gradeSubjects.length > 0 ? (
-                  gradeSubjects.map((subject) => (
-                    <SelectItem key={subject} value={subject}>
-                      {subject}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="no_subject_available" disabled>
-                    {userGrade ? "No subjects available for your grade" : "Please set your grade in profile settings"}
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
+            <SubjectSelect 
+              gradeSubjects={gradeSubjects} 
+              userGrade={grade} 
+              field={field} 
+            />
             <FormMessage />
           </FormItem>
         )}
@@ -148,24 +210,7 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
             <FormDescription className="text-sm text-gray-600">
               Select the month in which you worked on this artifact.
             </FormDescription>
-            <Select
-              onValueChange={field.onChange}
-              value={field.value}
-              defaultValue={field.value}
-            >
-              <FormControl>
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="----- Select Month -----" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {MONTHS.map((month) => (
-                  <SelectItem key={month} value={month}>
-                    {month}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MonthSelect field={field} />
             <FormMessage />
           </FormItem>
         )}
@@ -185,16 +230,16 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
             
             <FileUploadSection 
               files={files}
-              youtubeLinks={youtubeLinks}
+              youtubeLinks={youtubelinks}
               handleFiles={handleFiles}
               handleYoutubeUrl={handleYoutubeUrl}
               isMobile={isMobile}
             />
 
-            {(files.length > 0 || youtubeLinks.some(link => link.url)) && (
+            {(files.length > 0 || youtubelinks.some(link => link.url)) && (
               <YoutubeLinksSection 
                 files={files}
-                youtubeLinks={youtubeLinks}
+                youtubeLinks={youtubelinks}
                 handleDeleteFile={handleDeleteFile}
                 form={form}
                 FileIcon={FileIcon}
