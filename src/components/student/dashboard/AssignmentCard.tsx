@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AssignmentStatus, STATUS_COLORS, STATUS_DISPLAY_NAMES, ASSIGNMENT_STATUS } from '@/constants/assignment-status';
 import { Subject, GradeLevel } from '@/constants/grade-subjects';
-import { Trash2, MoreHorizontal, Edit, Eye, FileDown, RefreshCw, Clock, AlertTriangle } from 'lucide-react';
+import { Trash2, MoreHorizontal, Edit } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,7 +32,25 @@ interface AssignmentCardProps {
   status: AssignmentStatus;
   imageUrl?: string;
   onDelete?: () => void;
+  onEdit?: () => void;
 }
+
+// Create a custom StatusBadge that uses STATUS_COLORS
+const StatusBadge = ({ status }: { status: AssignmentStatus }) => {
+  return (
+    <div 
+      className={cn(
+        "absolute bottom-3 left-3 z-10 rounded-full px-2.5 py-0.5 text-xs font-medium inline-flex items-center",
+        STATUS_COLORS[status]
+      )}
+      style={{ 
+        pointerEvents: 'none'
+      }}
+    >
+      {STATUS_DISPLAY_NAMES[status]}
+    </div>
+  );
+};
 
 export function AssignmentCard({ 
   title, 
@@ -41,7 +59,8 @@ export function AssignmentCard({
   dueDate, 
   status,
   imageUrl = "/images/chalkboard-math.jpg",
-  onDelete
+  onDelete,
+  onEdit
 }: AssignmentCardProps) {
   const canDelete = (status: AssignmentStatus): boolean => {
     // Only allow deletion for these statuses
@@ -51,6 +70,17 @@ export function AssignmentCard({
       ASSIGNMENT_STATUS.OVERDUE
     ];
     return deletableStatuses.includes(status);
+  };
+
+  const canEdit = (status: AssignmentStatus): boolean => {
+    // Only allow editing for these statuses
+    const editableStatuses: AssignmentStatus[] = [
+      ASSIGNMENT_STATUS.DRAFT,
+      ASSIGNMENT_STATUS.IN_PROGRESS,
+      ASSIGNMENT_STATUS.NEEDS_REVISION,
+      ASSIGNMENT_STATUS.REJECTED
+    ];
+    return editableStatuses.includes(status);
   };
 
   const getDeleteConfirmationMessage = (status: AssignmentStatus): string => {
@@ -69,130 +99,22 @@ export function AssignmentCard({
   const getStatusActions = () => {
     const items = [];
     
-    switch (status) {
-      case ASSIGNMENT_STATUS.DRAFT:
-        items.push(
-          <DropdownMenuItem key="start" onClick={() => console.log("Start Assignment")}>
-            <Edit className="mr-2 h-4 w-4" />
-            Start Assignment
-          </DropdownMenuItem>
-        );
-        items.push(
-          <DropdownMenuItem key="instructions" onClick={() => console.log("View Instructions")}>
-            <Eye className="mr-2 h-4 w-4" />
-            View Instructions
-          </DropdownMenuItem>
-        );
-        break;
-        
-      case ASSIGNMENT_STATUS.IN_PROGRESS:
-        items.push(
-          <DropdownMenuItem key="continue" onClick={() => console.log("Continue Working")}>
-            <Edit className="mr-2 h-4 w-4" />
-            Continue Working
-          </DropdownMenuItem>
-        );
-        items.push(
-          <DropdownMenuItem key="save" onClick={() => console.log("Save Draft")}>
-            <Clock className="mr-2 h-4 w-4" />
-            Save Draft
-          </DropdownMenuItem>
-        );
-        break;
-        
-      case ASSIGNMENT_STATUS.OVERDUE:
-        items.push(
-          <DropdownMenuItem key="submit" onClick={() => console.log("Submit Now")}>
-            <AlertTriangle className="mr-2 h-4 w-4 text-destructive" />
-            <span className="text-destructive">Submit Now</span>
-          </DropdownMenuItem>
-        );
-        items.push(
-          <DropdownMenuItem key="extension" onClick={() => console.log("Request Extension")}>
-            <Clock className="mr-2 h-4 w-4" />
-            Request Extension
-          </DropdownMenuItem>
-        );
-        break;
-        
-      case ASSIGNMENT_STATUS.NEEDS_REVISION:
-        items.push(
-          <DropdownMenuItem key="revisions" onClick={() => console.log("Make Revisions")}>
-            <Edit className="mr-2 h-4 w-4" />
-            Make Revisions
-          </DropdownMenuItem>
-        );
-        items.push(
-          <DropdownMenuItem key="feedback" onClick={() => console.log("View Feedback")}>
-            <Eye className="mr-2 h-4 w-4" />
-            View Feedback
-          </DropdownMenuItem>
-        );
-        break;
-        
-      case ASSIGNMENT_STATUS.UNDER_REVIEW:
-        items.push(
-          <DropdownMenuItem key="view" disabled>
-            Under Review
-          </DropdownMenuItem>
-        );
-        items.push(
-          <DropdownMenuItem key="submission" onClick={() => console.log("View Submission")}>
-            <Eye className="mr-2 h-4 w-4" />
-            View Submission
-          </DropdownMenuItem>
-        );
-        break;
-        
-      case ASSIGNMENT_STATUS.SUBMITTED:
-        items.push(
-          <DropdownMenuItem key="status" disabled>
-            Submitted
-          </DropdownMenuItem>
-        );
-        items.push(
-          <DropdownMenuItem key="view-submission" onClick={() => console.log("View Submission")}>
-            <Eye className="mr-2 h-4 w-4" />
-            View Submission
-          </DropdownMenuItem>
-        );
-        break;
-        
-      case ASSIGNMENT_STATUS.COMPLETED:
-      case ASSIGNMENT_STATUS.APPROVED:
-        items.push(
-          <DropdownMenuItem key="details" onClick={() => console.log("View Details")}>
-            <Eye className="mr-2 h-4 w-4" />
-            View Details
-          </DropdownMenuItem>
-        );
-        items.push(
-          <DropdownMenuItem key="certificate" onClick={() => console.log("Download Certificate")}>
-            <FileDown className="mr-2 h-4 w-4" />
-            Download Certificate
-          </DropdownMenuItem>
-        );
-        break;
-        
-      case ASSIGNMENT_STATUS.REJECTED:
-        items.push(
-          <DropdownMenuItem key="resubmit" onClick={() => console.log("Resubmit")}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Resubmit
-          </DropdownMenuItem>
-        );
-        items.push(
-          <DropdownMenuItem key="rejected-feedback" onClick={() => console.log("View Feedback")}>
-            <Eye className="mr-2 h-4 w-4" />
-            View Feedback
-          </DropdownMenuItem>
-        );
-        break;
+    // Add Edit Assignment option for applicable statuses
+    if (canEdit(status)) {
+      items.push(
+        <DropdownMenuItem key="edit" onClick={onEdit}>
+          <Edit className="mr-2 h-4 w-4" />
+          Edit Assignment
+        </DropdownMenuItem>
+      );
     }
     
     // Add delete option for applicable statuses
     if (canDelete(status)) {
-      items.push(<DropdownMenuSeparator key="separator" />);
+      if (items.length > 0) {
+        items.push(<DropdownMenuSeparator key="separator" />);
+      }
+      
       items.push(
         <AlertDialog key="delete-dialog">
           <AlertDialogTrigger asChild>
@@ -238,14 +160,7 @@ export function AssignmentCard({
           alt={title}
           className="w-full h-full object-cover"
         />
-        <Badge 
-          className={cn(
-            "absolute bottom-3 left-3 font-medium px-2.5 py-0.5 text-xs rounded-full",
-            STATUS_COLORS[status]
-          )}
-        >
-          {STATUS_DISPLAY_NAMES[status]}
-        </Badge>
+        <StatusBadge status={status} />
       </div>
 
       {/* Content Section */}

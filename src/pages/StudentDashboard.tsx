@@ -42,7 +42,7 @@ export default function StudentDashboard({ user }: { user: EnhancedUser }) {
     );
 
   // Use the custom hook to fetch and manage assignments
-  const { assignments, isLoading, error, deleteAssignment, refetch } =
+  const { assignments, isLoading, error, deleteAssignment, editAssignment, refetch } =
     useStudentAssignments(user);
 
   // Memoize the filtered assignments to prevent unnecessary recalculations
@@ -56,12 +56,20 @@ export default function StudentDashboard({ user }: { user: EnhancedUser }) {
       ),
     [assignments, searchQuery, selectedFilters, availableSubjects]
   );
+  
   // Memoize callback function to prevent unnecessary recreations
   const handleDeleteAssignment = useCallback(
     (assignmentId: number) => {
       deleteAssignment(assignmentId);
     },
     [deleteAssignment]
+  );
+
+  const handleEditAssignment = useCallback(
+    (assignmentId: number) => {
+      editAssignment(assignmentId);
+    },
+    [editAssignment]
   );
 
   {
@@ -146,8 +154,10 @@ export default function StudentDashboard({ user }: { user: EnhancedUser }) {
               {filteredAssignments?.map((assignment) => (
                 <AssignmentCard
                   key={assignment.id}
+                  id={assignment.id}
                   {...assignment}
                   onDelete={() => handleDeleteAssignment(assignment.id)}
+                  onEdit={() => handleEditAssignment(assignment.id)}
                 />
               ))}
             </div>

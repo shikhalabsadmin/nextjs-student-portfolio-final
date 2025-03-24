@@ -6,6 +6,8 @@ import { getGradeAssignments } from "@/utils/student-dashboard-utils";
 import { GradeLevel } from "@/constants/grade-subjects";
 import { AssignmentStatus } from "@/constants/assignment-status";
 import { Subject } from "@/constants/grade-subjects";
+import { ROUTES } from "@/config/routes";
+import { useNavigate } from "react-router-dom";
 
 interface AssignmentRecord {
   id: number;
@@ -23,12 +25,14 @@ interface UseStudentAssignmentsResult {
   isLoading: boolean;
   error: string | null;
   deleteAssignment: (assignmentId: number) => Promise<void>;
+  editAssignment: (assignmentId: number) => void;
   refetch: () => Promise<void>;
 }
 
 export function useStudentAssignments(
   user: EnhancedUser
 ): UseStudentAssignmentsResult {
+  const navigate = useNavigate();
   const [assignments, setAssignments] = useState<StudentAssignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +105,12 @@ export function useStudentAssignments(
     }
   };
 
+  const editAssignment = (assignmentId: number) => {
+    const path = ROUTES.STUDENT.MANAGE_ASSIGNMENT.replace(':id?', assignmentId.toString());
+    console.log("editAssignment", path);
+    navigate(path);
+  };
+
   useEffect(() => {
     fetchAssignments();
   }, [fetchAssignments]);
@@ -110,6 +120,7 @@ export function useStudentAssignments(
     isLoading,
     error,
     deleteAssignment,
+    editAssignment,
     refetch: fetchAssignments,
   };
 }

@@ -54,6 +54,7 @@ function AssignmentForm({ user }: AssignmentFormProps) {
       return;
     }
 
+    // Save current form data and then navigate to next step
     onSubmit();
     nextStep();
   }, [currentStep, isCurrentStepComplete, onSubmit, nextStep]);
