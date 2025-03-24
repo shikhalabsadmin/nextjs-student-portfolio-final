@@ -254,11 +254,11 @@ export function AssignmentCard({
         <div>
           <h3 className="font-semibold text-base text-[#101828] line-clamp-2 mb-2">{title}</h3>
           <div className="flex items-center text-sm text-[#475467] gap-1">
-            <span>{dueDate}</span>
-            <span className="text-[#98A2B3]">•</span>
-            <span>{subject}</span>
-            <span className="text-[#98A2B3]">•</span>
-            <span>Grade {grade}</span>
+            {dueDate && <span>{dueDate}</span>}
+            {dueDate && subject && <span className="text-[#98A2B3]">•</span>}
+            {subject && <span>{subject}</span>}
+            {subject && grade && <span className="text-[#98A2B3]">•</span>}
+            {grade && <span>Grade {grade}</span>}
           </div>
         </div>
         
