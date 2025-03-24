@@ -14,10 +14,10 @@ export function initializeStudentFilters(availableSubjects: Subject[]): StudentD
   }), {});
 
   // Initialize subject filters based on grade-specific subjects
-  const subjectFilters = availableSubjects.reduce((acc, subject) => ({
+  const subjectFilters = availableSubjects?.reduce?.((acc, subject) => ({
     ...acc,
     [subject.toLowerCase().replace(/\s+/g, '')]: false
-  }), {});
+  }), {}) ?? {};
 
   return { ...statusFilters, ...subjectFilters } as StudentDashboardFilters;
 }
@@ -26,14 +26,14 @@ export function initializeStudentFilters(availableSubjects: Subject[]): StudentD
  * Checks if an assignment matches the search query
  */
 export function matchesStudentSearch(assignment: StudentAssignment, searchQuery: string): boolean {
-  if (!searchQuery.trim()) return true;
+  if (!searchQuery?.trim()) return true;
   
   const query = searchQuery.toLowerCase().trim();
   const searchableText = [
-    assignment.title,
-    assignment.subject,
-    assignment.status
-  ].join(' ').toLowerCase();
+    assignment?.title,
+    assignment?.subject,
+    assignment?.status
+  ].filter(Boolean).join(' ').toLowerCase();
   
   return searchableText.includes(query);
 }
@@ -46,10 +46,10 @@ export function matchesStudentStatusFilters(
   selectedFilters: StudentDashboardFilters
 ): boolean {
   const activeStatuses = Object.values(ASSIGNMENT_STATUS)
-    .filter(status => selectedFilters[status.toLowerCase()]);
+    .filter(status => selectedFilters?.[status.toLowerCase()]);
   
-  if (activeStatuses.length === 0) return true;
-  return activeStatuses.includes(assignment.status);
+  if (!activeStatuses?.length) return true;
+  return activeStatuses.includes(assignment?.status);
 }
 
 /**
@@ -60,11 +60,16 @@ export function matchesStudentSubjectFilters(
   selectedFilters: StudentDashboardFilters,
   availableSubjects: Subject[]
 ): boolean {
-  const activeSubjects = availableSubjects
-    .filter(subject => selectedFilters[subject.toLowerCase().replace(/\s+/g, '')]);
+  // If no subjects available or empty array, don't filter
+  if (!availableSubjects?.length) return true;
   
-  if (activeSubjects.length === 0) return true;
-  return activeSubjects.includes(assignment.subject);
+  const activeSubjects = availableSubjects
+    .filter(subject => selectedFilters?.[subject.toLowerCase().replace(/\s+/g, '')]);
+  
+  // If no active filters, don't filter
+  if (!activeSubjects?.length) return true;
+  
+  return activeSubjects.includes(assignment?.subject);
 }
 
 /**
@@ -76,25 +81,33 @@ export function filterStudentAssignments(
   selectedFilters: StudentDashboardFilters,
   availableSubjects: Subject[]
 ): StudentAssignment[] {
+  console.log('filterStudentAssignments', {
+    assignments,
+    searchQuery,
+    selectedFilters,
+    availableSubjects
+  });
+  if (!assignments?.length) return [];
+  
   return assignments.filter(assignment => 
-    matchesStudentSearch(assignment, searchQuery) &&
+    matchesStudentSearch(assignment, searchQuery || '') &&
     matchesStudentStatusFilters(assignment, selectedFilters) &&
-    matchesStudentSubjectFilters(assignment, selectedFilters, availableSubjects)
+    matchesStudentSubjectFilters(assignment, selectedFilters, availableSubjects || [])
   );
 }
 
 /**
  * Gets the count of active filters
  */
-export function getActiveStudentFilterCount(filters: StudentDashboardFilters): number {
-  return Object.values(filters).filter(value => value).length;
+export function getActiveStudentFilterCount(filters?: StudentDashboardFilters): number {
+  return Object.values(filters || {}).filter(Boolean).length;
 }
 
 /**
  * Checks if any student filters are active
  */
-export function hasActiveStudentFilters(filters: StudentDashboardFilters): boolean {
-  return Object.values(filters).some(value => value);
+export function hasActiveStudentFilters(filters?: StudentDashboardFilters): boolean {
+  return Object.values(filters || {}).some(Boolean);
 }
 
 /**
@@ -102,7 +115,8 @@ export function hasActiveStudentFilters(filters: StudentDashboardFilters): boole
  */
 export function getGradeAssignments(
   assignments: StudentAssignment[],
-  grade: GradeLevel
+  grade?: GradeLevel
 ): StudentAssignment[] {
-  return assignments.filter(assignment => assignment.grade === grade);
+  if (!assignments?.length || !grade) return [];
+  return assignments.filter(assignment => assignment?.grade === grade);
 } 

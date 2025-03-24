@@ -10,7 +10,7 @@ import {
   ConfirmationModal,
 } from "@/components/assignment";
 import { type AssignmentStep } from "@/types/assignment";
-import { AssignmentStatus } from "@/types/assignment-status";
+import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
 
 type AssignmentFormProps = {
   user: User;
@@ -33,13 +33,13 @@ function AssignmentForm({ user }: AssignmentFormProps) {
   const currentStepConfig = STEPS.find((step) => step.id === currentStep);
   
   // Get current assignment status from form values
-  const assignmentStatus = form.getValues().status || AssignmentStatus.DRAFT;
+  const assignmentStatus = form.getValues().status || ASSIGNMENT_STATUS.DRAFT;
   
-  // Force navigation to teacher-feedback when status is SUBMITTED or VERIFIED
+  // Force navigation to teacher-feedback when status is SUBMITTED or UNDER_REVIEW
   useEffect(() => {
     if (
-      (assignmentStatus === AssignmentStatus.SUBMITTED || 
-       assignmentStatus === AssignmentStatus.VERIFIED) && 
+      (assignmentStatus === ASSIGNMENT_STATUS.SUBMITTED || 
+       assignmentStatus === ASSIGNMENT_STATUS.UNDER_REVIEW) && 
       currentStep !== "teacher-feedback"
     ) {
       setCurrentStep("teacher-feedback");
@@ -60,7 +60,7 @@ function AssignmentForm({ user }: AssignmentFormProps) {
 
   const handleConfirmSubmit = useCallback(() => {
     // Set status to SUBMITTED first
-    form.setValue("status", AssignmentStatus.SUBMITTED);
+    form.setValue("status", ASSIGNMENT_STATUS.SUBMITTED);
     
     // Submit form with updated status
     onSubmit();
@@ -114,8 +114,8 @@ function AssignmentForm({ user }: AssignmentFormProps) {
                 title={currentStepConfig.header}
                 description={currentStepConfig.description}
                 showContinueButton={currentStep !== "teacher-feedback" && 
-                  assignmentStatus !== AssignmentStatus.SUBMITTED && 
-                  assignmentStatus !== AssignmentStatus.VERIFIED}
+                  assignmentStatus !== ASSIGNMENT_STATUS.SUBMITTED && 
+                  assignmentStatus !== ASSIGNMENT_STATUS.UNDER_REVIEW}
                 onContinue={handleSaveAndContinue}
                 disabled={isLoading || !isCurrentStepComplete()}
               />

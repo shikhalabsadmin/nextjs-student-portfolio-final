@@ -1,7 +1,0 @@
-export enum AssignmentStatus {
-  DRAFT = "DRAFT",
-  SUBMITTED = "SUBMITTED",
-  IN_REVIEW = "IN_REVIEW",
-  COMPLETED = "COMPLETED",
-  REJECTED = "REJECTED",
-}

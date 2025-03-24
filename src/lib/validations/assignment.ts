@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { AssignmentStatus } from "@/types/assignment-status";
+import { ASSIGNMENT_STATUS, AssignmentStatus } from "@/constants/assignment-status";
 
 // Schema for YouTube link objects
 export const youtubeLinkSchema = z.object({
@@ -26,7 +26,7 @@ export const baseAssignmentFormSchema = z.object({
   title: z.string().default(""),
   subject: z.string().optional().default(""),
   grade: z.string().optional().default(""),
-  status: z.nativeEnum(AssignmentStatus).optional().default(AssignmentStatus.DRAFT),
+  status: z.nativeEnum(ASSIGNMENT_STATUS).optional().default(ASSIGNMENT_STATUS.DRAFT),
   artifact_type: z.string().default(""),
   month: z.string().default("March"),
   student_id: z.string().optional(),

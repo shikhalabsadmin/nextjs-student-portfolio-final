@@ -2,7 +2,7 @@ import { type AssignmentStep, type StepConfig } from "@/types/assignment";
 import { type AssignmentFormValues } from "@/lib/validations/assignment";
 import { STEPS } from "@/lib/config/steps";
 import { debug } from "@/lib/utils/debug.service";
-import { AssignmentStatus } from "@/types/assignment-status";
+import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
 
 export interface StepValidation {
   id: AssignmentStep;
@@ -137,10 +137,10 @@ export class StepService {
     }
     
     // Check assignment status
-    const status = formData.status || AssignmentStatus.DRAFT;
+    const status = formData.status || ASSIGNMENT_STATUS.DRAFT;
     
-    // If status is SUBMITTED or VERIFIED, only allow navigation to teacher-feedback
-    if (status === AssignmentStatus.SUBMITTED || status === AssignmentStatus.VERIFIED) {
+    // If status is SUBMITTED or UNDER_REVIEW, only allow navigation to teacher-feedback
+    if (status === ASSIGNMENT_STATUS.SUBMITTED || status === ASSIGNMENT_STATUS.UNDER_REVIEW) {
       debug.log(`Assignment is ${status}, restricting navigation`);
       return targetStep === 'teacher-feedback';
     }
@@ -165,10 +165,10 @@ export class StepService {
    */
   getNext(currentStep: AssignmentStep, formData: AssignmentFormValues): AssignmentStep | null {
     // Check assignment status
-    const status = formData.status || AssignmentStatus.DRAFT;
+    const status = formData.status || ASSIGNMENT_STATUS.DRAFT;
     
-    // If status is SUBMITTED or VERIFIED, only allow teacher-feedback as next
-    if (status === AssignmentStatus.SUBMITTED || status === AssignmentStatus.VERIFIED) {
+    // If status is SUBMITTED or UNDER_REVIEW, only allow teacher-feedback as next
+    if (status === ASSIGNMENT_STATUS.SUBMITTED || status === ASSIGNMENT_STATUS.UNDER_REVIEW) {
       debug.log(`Assignment is ${status}, next step is teacher-feedback`);
       return 'teacher-feedback';
     }

@@ -9,7 +9,7 @@ import {
   baseAssignmentFormSchema,
 } from "@/lib/validations/assignment";
 import { type AssignmentStep } from "@/types/assignment";
-import { AssignmentStatus } from "@/types/assignment-status";
+import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
 import { STEPS } from "@/lib/config/steps";
 import { getAssignmentFiles } from "@/lib/services/file-upload.service";
 import { debug } from "@/lib/utils/debug.service";
@@ -130,11 +130,11 @@ export function useAssignmentForm({ user }: { user: User }) {
   const handleSubmit = useCallback(async (data: AssignmentFormValues) => {
     setIsLoading(true);
     try {
-      const isFinal = currentStep === "review-submit" || data.status === AssignmentStatus.SUBMITTED;
+      const isFinal = currentStep === "review-submit" || data.status === ASSIGNMENT_STATUS.SUBMITTED;
       if (isFinal || STEPS.every(step => steps.validateStep(step.id, data))) {
         if (isFinal) {
-          const finalData = { ...data, status: AssignmentStatus.SUBMITTED };
-          form.setValue("status", AssignmentStatus.SUBMITTED);
+          const finalData = { ...data, status: ASSIGNMENT_STATUS.SUBMITTED };
+          form.setValue("status", ASSIGNMENT_STATUS.SUBMITTED);
           await assignments.submit(finalData);
         } else {
           await assignments.submit(data);

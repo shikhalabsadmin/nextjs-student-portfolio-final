@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { AssignmentStatus } from './assignment-status';
+import { AssignmentStatus } from '@/constants/assignment-status';
 
 // API Types
 // FileUploadResponse and FileRecordData are now imported from file.ts
@@ -12,7 +12,7 @@ export interface Assignment {
   teacher_id: string | null;
   title: string;
   subject: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: AssignmentStatus;
   created_at: string;
   artifact_type: string;
   artifact_url: string | null;

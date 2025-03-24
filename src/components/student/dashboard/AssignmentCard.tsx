@@ -1,11 +1,10 @@
-import React from 'react';
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AssignmentStatus, STATUS_COLORS, STATUS_DISPLAY_NAMES, ASSIGNMENT_STATUS } from '@/constants/assignment-status';
 import { Subject, GradeLevel } from '@/constants/grade-subjects';
-import { Trash2 } from 'lucide-react';
+import { Trash2, MoreHorizontal, Edit, Eye, FileDown, RefreshCw, Clock, AlertTriangle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +16,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface AssignmentCardProps {
   title: string;
@@ -60,138 +66,167 @@ export function AssignmentCard({
     }
   };
 
-  const DeleteButton = () => {
-    if (!canDelete(status)) return null;
-
-    return (
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Assignment</AlertDialogTitle>
-            <AlertDialogDescription>
-              {getDeleteConfirmationMessage(status)}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={onDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    );
-  };
-
   const getStatusActions = () => {
+    const items = [];
+    
     switch (status) {
       case ASSIGNMENT_STATUS.DRAFT:
-        return (
-          <div className="flex gap-2">
-            <Button variant="default" size="sm" className="flex-1">
-              Start Assignment
-            </Button>
-            <Button variant="outline" size="sm" className="flex-1">
-              View Instructions
-            </Button>
-            <DeleteButton />
-          </div>
+        items.push(
+          <DropdownMenuItem key="start" onClick={() => console.log("Start Assignment")}>
+            <Edit className="mr-2 h-4 w-4" />
+            Start Assignment
+          </DropdownMenuItem>
         );
+        items.push(
+          <DropdownMenuItem key="instructions" onClick={() => console.log("View Instructions")}>
+            <Eye className="mr-2 h-4 w-4" />
+            View Instructions
+          </DropdownMenuItem>
+        );
+        break;
+        
       case ASSIGNMENT_STATUS.IN_PROGRESS:
-        return (
-          <div className="flex gap-2">
-            <Button variant="default" size="sm" className="flex-1">
-              Continue Working
-            </Button>
-            <Button variant="outline" size="sm" className="flex-1">
-              Save Draft
-            </Button>
-            <DeleteButton />
-          </div>
+        items.push(
+          <DropdownMenuItem key="continue" onClick={() => console.log("Continue Working")}>
+            <Edit className="mr-2 h-4 w-4" />
+            Continue Working
+          </DropdownMenuItem>
         );
+        items.push(
+          <DropdownMenuItem key="save" onClick={() => console.log("Save Draft")}>
+            <Clock className="mr-2 h-4 w-4" />
+            Save Draft
+          </DropdownMenuItem>
+        );
+        break;
+        
       case ASSIGNMENT_STATUS.OVERDUE:
-        return (
-          <div className="flex gap-2">
-            <Button variant="destructive" size="sm" className="flex-1">
-              Submit Now
-            </Button>
-            <Button variant="outline" size="sm" className="flex-1">
-              Request Extension
-            </Button>
-            <DeleteButton />
-          </div>
+        items.push(
+          <DropdownMenuItem key="submit" onClick={() => console.log("Submit Now")}>
+            <AlertTriangle className="mr-2 h-4 w-4 text-destructive" />
+            <span className="text-destructive">Submit Now</span>
+          </DropdownMenuItem>
         );
+        items.push(
+          <DropdownMenuItem key="extension" onClick={() => console.log("Request Extension")}>
+            <Clock className="mr-2 h-4 w-4" />
+            Request Extension
+          </DropdownMenuItem>
+        );
+        break;
+        
       case ASSIGNMENT_STATUS.NEEDS_REVISION:
-        return (
-          <div className="flex gap-2">
-            <Button variant="secondary" size="sm" className="flex-1">
-              Make Revisions
-            </Button>
-            <Button variant="outline" size="sm" className="flex-1">
-              View Feedback
-            </Button>
-          </div>
+        items.push(
+          <DropdownMenuItem key="revisions" onClick={() => console.log("Make Revisions")}>
+            <Edit className="mr-2 h-4 w-4" />
+            Make Revisions
+          </DropdownMenuItem>
         );
+        items.push(
+          <DropdownMenuItem key="feedback" onClick={() => console.log("View Feedback")}>
+            <Eye className="mr-2 h-4 w-4" />
+            View Feedback
+          </DropdownMenuItem>
+        );
+        break;
+        
       case ASSIGNMENT_STATUS.UNDER_REVIEW:
-        return (
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="flex-1" disabled>
-              Under Review
-            </Button>
-            <Button variant="outline" size="sm" className="flex-1">
-              View Submission
-            </Button>
-          </div>
+        items.push(
+          <DropdownMenuItem key="view" disabled>
+            Under Review
+          </DropdownMenuItem>
         );
+        items.push(
+          <DropdownMenuItem key="submission" onClick={() => console.log("View Submission")}>
+            <Eye className="mr-2 h-4 w-4" />
+            View Submission
+          </DropdownMenuItem>
+        );
+        break;
+        
       case ASSIGNMENT_STATUS.SUBMITTED:
-        return (
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="flex-1" disabled>
-              Submitted
-            </Button>
-            <Button variant="outline" size="sm" className="flex-1">
-              View Submission
-            </Button>
-          </div>
+        items.push(
+          <DropdownMenuItem key="status" disabled>
+            Submitted
+          </DropdownMenuItem>
         );
+        items.push(
+          <DropdownMenuItem key="view-submission" onClick={() => console.log("View Submission")}>
+            <Eye className="mr-2 h-4 w-4" />
+            View Submission
+          </DropdownMenuItem>
+        );
+        break;
+        
       case ASSIGNMENT_STATUS.COMPLETED:
       case ASSIGNMENT_STATUS.APPROVED:
-        return (
-          <div className="flex gap-2">
-            <Button variant="default" size="sm" className="flex-1">
-              View Details
-            </Button>
-            <Button variant="outline" size="sm" className="flex-1">
-              Download Certificate
-            </Button>
-          </div>
+        items.push(
+          <DropdownMenuItem key="details" onClick={() => console.log("View Details")}>
+            <Eye className="mr-2 h-4 w-4" />
+            View Details
+          </DropdownMenuItem>
         );
+        items.push(
+          <DropdownMenuItem key="certificate" onClick={() => console.log("Download Certificate")}>
+            <FileDown className="mr-2 h-4 w-4" />
+            Download Certificate
+          </DropdownMenuItem>
+        );
+        break;
+        
       case ASSIGNMENT_STATUS.REJECTED:
-        return (
-          <div className="flex gap-2">
-            <Button variant="destructive" size="sm" className="flex-1">
-              Resubmit
-            </Button>
-            <Button variant="outline" size="sm" className="flex-1">
-              View Feedback
-            </Button>
-          </div>
+        items.push(
+          <DropdownMenuItem key="resubmit" onClick={() => console.log("Resubmit")}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Resubmit
+          </DropdownMenuItem>
         );
-      default:
-        return null;
+        items.push(
+          <DropdownMenuItem key="rejected-feedback" onClick={() => console.log("View Feedback")}>
+            <Eye className="mr-2 h-4 w-4" />
+            View Feedback
+          </DropdownMenuItem>
+        );
+        break;
     }
+    
+    // Add delete option for applicable statuses
+    if (canDelete(status)) {
+      items.push(<DropdownMenuSeparator key="separator" />);
+      items.push(
+        <AlertDialog key="delete-dialog">
+          <AlertDialogTrigger asChild>
+            <DropdownMenuItem 
+              key="delete"
+              className="text-destructive"
+              onSelect={(e) => e.preventDefault()}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete Assignment
+            </DropdownMenuItem>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Assignment</AlertDialogTitle>
+              <AlertDialogDescription>
+                {getDeleteConfirmationMessage(status)}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={onDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      );
+    }
+    
+    return items;
   };
 
   return (
@@ -215,7 +250,8 @@ export function AssignmentCard({
 
       {/* Content Section */}
       <div className="p-4 relative">
-        <div className="group-hover:opacity-0 transition-opacity duration-200">
+        {/* Main content - Always visible */}
+        <div>
           <h3 className="font-semibold text-base text-[#101828] line-clamp-2 mb-2">{title}</h3>
           <div className="flex items-center text-sm text-[#475467] gap-1">
             <span>{dueDate}</span>
@@ -225,8 +261,24 @@ export function AssignmentCard({
             <span>Grade {grade}</span>
           </div>
         </div>
-        <div className="absolute inset-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          {getStatusActions()}
+        
+        {/* Three Dots Menu - visible on hover */}
+        <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 rounded-full bg-white shadow-sm hover:bg-gray-100"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+                <span className="sr-only">More options</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 p-1">
+              {getStatusActions()}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </Card>

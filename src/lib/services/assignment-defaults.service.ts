@@ -1,11 +1,11 @@
-import { AssignmentStatus } from "@/types/assignment-status";
+import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
 import { AssignmentFormValues } from "@/lib/validations/assignment";
 
 export const getDefaultValues = (): AssignmentFormValues => ({
   title: "",
   subject: "",
   grade: "",
-  status: AssignmentStatus.DRAFT,
+  status: ASSIGNMENT_STATUS.DRAFT,
   artifact_type: "",
   month: new Date().toLocaleString('default', { month: 'long' }),
   is_team_work: false,

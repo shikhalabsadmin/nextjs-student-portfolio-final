@@ -1,7 +1,7 @@
 import { type NavigateFunction } from "react-router-dom";
 import { createAssignment, updateAssignment, getAssignment } from "@/lib/api/assignments";
 import { type AssignmentFormValues } from "@/lib/validations/assignment";
-import { AssignmentStatus } from "@/types/assignment-status";
+import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
 import { NotificationService } from "@/lib/services/notification.service";
 import { supabase } from "@/integrations/supabase/client";
 import { ROUTES } from "@/config/routes";
@@ -243,7 +243,7 @@ export class AssignmentService {
 
       const updatedAssignment = await updateAssignment(data.id, {
         ...sanitizedData,
-        status: AssignmentStatus.SUBMITTED,
+        status: ASSIGNMENT_STATUS.SUBMITTED,
         submitted_at: new Date().toISOString(),
       });
 

@@ -1,13 +1,13 @@
 export const ASSIGNMENT_STATUS = {
-  DRAFT: 'draft',
-  IN_PROGRESS: 'inProgress',
-  COMPLETED: 'completed',
-  OVERDUE: 'overdue',
-  SUBMITTED: 'submitted',
-  UNDER_REVIEW: 'underReview',
-  NEEDS_REVISION: 'needsRevision',
-  APPROVED: 'approved',
-  REJECTED: 'rejected'
+  DRAFT: 'DRAFT',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  OVERDUE: 'OVERDUE',
+  SUBMITTED: 'SUBMITTED',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  NEEDS_REVISION: 'NEEDS_REVISION',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
 } as const;
 
 export type AssignmentStatus = typeof ASSIGNMENT_STATUS[keyof typeof ASSIGNMENT_STATUS];

@@ -1,40 +1,39 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { DashboardHeader } from "@/components/student/dashboard/DashboardHeader";
 import { AssignmentCard } from "@/components/student/dashboard/AssignmentCard";
 import { StickyCorner } from "@/components/student/dashboard/StickyCorner";
 import StudentCard from "@/components/student/dashboard/StudentDetailCard";
 import GridPatternBase from "@/components/ui/grid-pattern";
-import { generateAssignments } from "@/data/assignments";
-import { studentData } from "@/data/student";
-import {
-  StudentDashboardFilters,
-  StudentAssignment,
-} from "@/types/student-dashboard";
-import { getSubjectsForGrade, GRADE_LEVELS } from "@/constants/grade-subjects";
+import { StudentDashboardFilters } from "@/types/student-dashboard";
+import { getSubjectsForGrade, GradeLevel } from "@/constants/grade-subjects";
 import {
   initializeStudentFilters,
   filterStudentAssignments,
-  getGradeAssignments,
 } from "@/utils/student-dashboard-utils";
-import { toast } from "sonner";
-import { getCssVariableColor } from "@/utils/color-utils";
-import { User } from "@supabase/supabase-js";
+import { useStudentAssignments } from "@/hooks/useStudentAssignments";
+import { Loading } from "@/components/ui/loading";
+import { Error } from "@/components/ui/error";
+import { EnhancedUser } from "@/hooks/useAuthState";
 
-// Current student's grade - this would typically come from the student's profile
-const CURRENT_GRADE = GRADE_LEVELS.GRADE_7;
+// Empty state component
+const EmptyAssignments = () => (
+  <div
+    className="col-span-full flex items-center justify-center flex-grow h-[50vh] md:h-[60vh] bg-gray-50 border border-gray-200 rounded-lg"
+    role="status"
+    aria-live="polite"
+  >
+    <p className="text-gray-500">No assignments found</p>
+  </div>
+);
 
-// Generate assignments and filter for current grade
-const allAssignments = generateAssignments() as StudentAssignment[];
-const dummyAssignments = getGradeAssignments(allAssignments, CURRENT_GRADE);
-
-export default function StudentDashboard({ user }: { user: User }) {
-  console.log("user", user);
+export default function StudentDashboard({ user }: { user: EnhancedUser }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [assignments, setAssignments] =
-    useState<StudentAssignment[]>(dummyAssignments);
 
   // Get available subjects for the current grade
-  const availableSubjects = getSubjectsForGrade(CURRENT_GRADE);
+  const availableSubjects = useMemo(
+    () => getSubjectsForGrade(user?.grades as GradeLevel) || [],
+    [user?.grades]
+  );
 
   // Initialize filters dynamically
   const [selectedFilters, setSelectedFilters] =
@@ -42,26 +41,58 @@ export default function StudentDashboard({ user }: { user: User }) {
       initializeStudentFilters(availableSubjects)
     );
 
-  // Filter assignments using student-specific utility
-  const filteredAssignments = filterStudentAssignments(
-    assignments,
-    searchQuery,
-    selectedFilters,
-    availableSubjects
+  // Use the custom hook to fetch and manage assignments
+  const { assignments, isLoading, error, deleteAssignment, refetch } =
+    useStudentAssignments(user);
+
+  // Memoize the filtered assignments to prevent unnecessary recalculations
+  const filteredAssignments = useMemo(
+    () =>
+      filterStudentAssignments(
+        assignments,
+        searchQuery,
+        selectedFilters,
+        availableSubjects
+      ),
+    [assignments, searchQuery, selectedFilters, availableSubjects]
+  );
+  // Memoize callback function to prevent unnecessary recreations
+  const handleDeleteAssignment = useCallback(
+    (assignmentId: number) => {
+      deleteAssignment(assignmentId);
+    },
+    [deleteAssignment]
   );
 
-  const handleDelete = (assignmentId: number) => {
-    setAssignments((prevAssignments) => {
-      const updatedAssignments = prevAssignments.filter(
-        (assignment) => assignment.id !== assignmentId
-      );
-      toast.success("Assignment deleted successfully");
-      return updatedAssignments;
-    });
-  };
+  {
+    /* Loading and Error States */
+  }
 
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-dvh">
+        <Loading
+          text="Loading assignments..."
+          aria-label="Loading assignments"
+        />
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="flex justify-center items-center min-h-dvh">
+        <Error
+          message={error}
+          title="Failed to load assignments"
+          retry={refetch}
+          retryButtonText="Retry"
+          showHomeButton={false}
+        />
+      </div>
+    );
+  }
   return (
-    <div className="relative min-h-screen bg-gray-50">
+    <div className="relative bg-gray-50 min-h-dvh">
       {/* Grid Pattern Background */}
       <GridPatternBase
         width={40}
@@ -79,30 +110,49 @@ export default function StudentDashboard({ user }: { user: User }) {
       {/* Sticky Corner - Positioned absolutely */}
       <StickyCorner />
 
-      <div className="relative container mx-auto py-8 px-4 space-y-8">
+      <div className="relative container mx-auto py-8 px-4 space-y-8 flex flex-col min-h-[calc(100vh-8rem)]">
         {/* Student Details Card */}
-        <StudentCard {...studentData} />
-
-        {/* Dashboard Header */}
-        <DashboardHeader
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          selectedFilters={selectedFilters}
-          onFilterChange={setSelectedFilters}
-          availableSubjects={availableSubjects}
-          currentGrade={CURRENT_GRADE}
+        <StudentCard
+          name={
+            user?.user_metadata?.full_name ||
+            user.email?.split("@")[0] ||
+            "Student"
+          }
+          className_name={(user?.grades as GradeLevel) || `Update your grade`}
+          school={user?.user_metadata?.school_name || "Shikha"}
+          imageUrl={user?.user_metadata?.avatar_url}
+          description={user?.user_metadata?.bio || "Student at Shikha"}
         />
-
-        {/* Assignments Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredAssignments.map((assignment) => (
-            <AssignmentCard
-              key={assignment.id}
-              {...assignment}
-              onDelete={() => handleDelete(assignment.id)}
+        {filteredAssignments?.length === 0 ? (
+          <EmptyAssignments />
+        ) : (
+          <>
+            {/* Dashboard Header */}
+            <DashboardHeader
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              selectedFilters={selectedFilters}
+              onFilterChange={setSelectedFilters}
+              availableSubjects={availableSubjects}
+              currentGrade={user?.grades as GradeLevel}
             />
-          ))}
-        </div>
+
+            {/* Assignments Grid */}
+            <div
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+              aria-live="polite"
+              aria-busy={isLoading}
+            >
+              {filteredAssignments?.map((assignment) => (
+                <AssignmentCard
+                  key={assignment.id}
+                  {...assignment}
+                  onDelete={() => handleDeleteAssignment(assignment.id)}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

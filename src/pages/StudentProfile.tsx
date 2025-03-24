@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -166,13 +166,15 @@ export const StudentProfile = ({ user }: { user: User }) => {
     defaultValues: { full_name: "", grade: "" },
   });
 
-  // Update form when profile loads
-  if (profile && form.getValues("full_name") !== profile.full_name) {
-    form.reset({
-      full_name: profile.full_name || "",
-      grade: profile.grade || "",
-    });
-  }
+  // Move form reset to useEffect
+  useEffect(() => {
+    if (profile && form.getValues("full_name") !== profile.full_name) {
+      form.reset({
+        full_name: profile.full_name || "",
+        grade: profile.grade || "",
+      });
+    }
+  }, [profile, form]);
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);

@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { type StepConfig } from "@/types/assignment";
-import { AssignmentStatus } from "@/types/assignment-status";
+import { ASSIGNMENT_STATUS, AssignmentStatus } from "@/constants/assignment-status";
 import { StepButton } from "@/components/assignment/StepButton";
 import { StepIndicator } from "@/components/assignment/StepIndicator";
 import { getFilteredSteps } from "@/utils/student-assignment-steps-utils";
@@ -30,7 +30,7 @@ export function StepProgress({
   currentStep,
   setCurrentStep,
   validateStep,
-  status = AssignmentStatus.DRAFT,
+  status = ASSIGNMENT_STATUS.DRAFT,
 }: StepProgressProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 

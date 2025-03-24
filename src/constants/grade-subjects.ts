@@ -136,11 +136,11 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
 };
 
 // Helper function to get subjects for a specific grade
-export function getSubjectsForGrade(grade: GradeLevel): Subject[] {
-  return GRADE_SUBJECTS[grade];
+export function getSubjectsForGrade(grade?: GradeLevel): Subject[] {
+  return GRADE_SUBJECTS[grade as GradeLevel] ?? [];
 }
 
 // Helper function to check if a subject is available for a grade
-export function isSubjectAvailableForGrade(subject: Subject, grade: GradeLevel): boolean {
-  return GRADE_SUBJECTS[grade].includes(subject);
+export function isSubjectAvailableForGrade(subject: Subject, grade?: GradeLevel): boolean {
+  return GRADE_SUBJECTS[grade as GradeLevel]?.includes(subject) ?? false;
 } 
