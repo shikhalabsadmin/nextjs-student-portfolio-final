@@ -126,7 +126,7 @@ export default function StudentDashboard({ user }: { user: EnhancedUser }) {
             user.email?.split("@")[0] ||
             "Student"
           }
-          className_name={(user?.grades as GradeLevel) || `Update your grade`}
+          className_name={user?.grade as GradeLevel || `Update your grade`}
           school={user?.user_metadata?.school_name || "Shikha"}
           imageUrl={user?.user_metadata?.avatar_url}
           description={user?.user_metadata?.bio || "Student at Shikha"}
