@@ -12,6 +12,18 @@ export const ASSIGNMENT_STATUS = {
 
 export type AssignmentStatus = typeof ASSIGNMENT_STATUS[keyof typeof ASSIGNMENT_STATUS];
 
+// Subset for statuses where editing and navigation are restricted
+export type RestrictedStatus = 
+  | typeof ASSIGNMENT_STATUS.COMPLETED
+  | typeof ASSIGNMENT_STATUS.SUBMITTED
+  | typeof ASSIGNMENT_STATUS.UNDER_REVIEW
+  | typeof ASSIGNMENT_STATUS.APPROVED;
+
+// Subset for statuses where "Save & Continue" button is hidden
+export type LockedForContinueStatus = 
+  | typeof ASSIGNMENT_STATUS.SUBMITTED
+  | typeof ASSIGNMENT_STATUS.UNDER_REVIEW;
+
 // Status display names for UI
 export const STATUS_DISPLAY_NAMES: Record<AssignmentStatus, string> = {
   [ASSIGNMENT_STATUS.DRAFT]: 'Draft',

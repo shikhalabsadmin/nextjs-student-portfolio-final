@@ -2,217 +2,222 @@ import { type AssignmentStep, type StepConfig } from "@/types/assignment";
 import { type AssignmentFormValues } from "@/lib/validations/assignment";
 import { STEPS } from "@/lib/config/steps";
 import { debug } from "@/lib/utils/debug.service";
-import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
+import { ASSIGNMENT_STATUS, type AssignmentStatus, type RestrictedStatus } from "@/constants/assignment-status";
 
-export interface StepValidation {
+const RESTRICTED_STATUSES: RestrictedStatus[] = [
+  ASSIGNMENT_STATUS.SUBMITTED,
+  ASSIGNMENT_STATUS.UNDER_REVIEW,
+  ASSIGNMENT_STATUS.APPROVED,
+  ASSIGNMENT_STATUS.COMPLETED,
+];
+
+interface StepValidation {
   id: AssignmentStep;
   requiredFields: (keyof AssignmentFormValues)[];
   isComplete: boolean;
+  validator?: (formData: AssignmentFormValues) => boolean;
 }
 
-/**
- * Enhanced StepService with better type safety and validation
- */
 export class StepService {
-  private stepValidations: StepValidation[];
-  private visitedSteps: Set<AssignmentStep> = new Set();
+  private readonly stepValidations: Map<AssignmentStep, StepValidation>;
+  private readonly visitedSteps: Set<AssignmentStep> = new Set();
+  private readonly steps: ReadonlyArray<StepConfig>;
 
-  constructor(private steps = STEPS) {
-    this.stepValidations = [
-      { id: 'basic-info', requiredFields: ['title', 'artifact_type', 'month', 'subject'], isComplete: false },
-      { id: 'role-originality', requiredFields: ['is_team_work', 'is_original_work'], isComplete: false },
-      { id: 'skills-reflection', requiredFields: ['selected_skills'], isComplete: false },
-      { id: 'process-challenges', requiredFields: ['creation_process', 'challenges'], isComplete: false },
-      { id: 'review-submit', requiredFields: [], isComplete: false },
-      { id: 'teacher-feedback', requiredFields: [], isComplete: false },
-    ];
-    debug.info("StepService initialized with validations", this.stepValidations);
+  constructor(steps: ReadonlyArray<StepConfig> = STEPS) {
+    this.steps = steps;
+    this.stepValidations = new Map<AssignmentStep, StepValidation>([
+      ['basic-info', { 
+        id: 'basic-info', 
+        requiredFields: ['title', 'artifact_type', 'subject', 'month'],
+        isComplete: false,
+        validator: this.hasArtifacts.bind(this),
+      }],
+      ['role-originality', { 
+        id: 'role-originality', 
+        requiredFields: ['is_team_work', 'is_original_work'],
+        isComplete: false,
+        validator: this.validateRoleOriginality.bind(this),
+      }],
+      ['skills-reflection', { 
+        id: 'skills-reflection', 
+        requiredFields: ['selected_skills', 'skills_justification', 'pride_reason'],
+        isComplete: false,
+      }],
+      ['process-challenges', { 
+        id: 'process-challenges', 
+        requiredFields: ['creation_process', 'learnings', 'challenges', 'improvements', 'acknowledgments'],
+        isComplete: false,
+      }],
+      ['review-submit', { 
+        id: 'review-submit', 
+        requiredFields: [],
+        isComplete: false,
+      }],
+      ['teacher-feedback', { 
+        id: 'teacher-feedback', 
+        requiredFields: [],
+        isComplete: false,
+        validator: this.hasFeedback.bind(this),
+      }],
+    ]);
+    debug.info("StepService initialized", Array.from(this.stepValidations.keys()));
   }
 
-  /**
-   * Mark a step as visited
-   */
   markStepVisited(stepId: AssignmentStep): void {
     this.visitedSteps.add(stepId);
     debug.log(`Step ${stepId} marked as visited`);
   }
 
-  /**
-   * Check if a step has been visited
-   */
   isStepVisited(stepId: AssignmentStep): boolean {
     return this.visitedSteps.has(stepId);
   }
 
-  /**
-   * Validate a step with form data
-   */
   validateStep(stepId: AssignmentStep, formData: AssignmentFormValues): boolean {
-    if (!this.isStepVisited(stepId)) {
-      this.markStepVisited(stepId); // Auto-mark as visited to fix potential initialization issues
-    }
-
-    const step = this.stepValidations.find(s => s.id === stepId);
+    const step = this.stepValidations.get(stepId);
     if (!step) {
-      debug.error(`Step ${stepId} not found in validations`);
+      debug.error(`Step ${stepId} not found`);
       return false;
     }
 
-    // Special case for review-submit step - it's only valid if all previous steps are valid
-    if (stepId === 'review-submit') {
-      const previousSteps = this.stepValidations.filter(s => s.id !== 'review-submit' && s.id !== 'teacher-feedback');
-      const allPreviousStepsValid = previousSteps.every(s => this.validateStep(s.id, formData));
-      step.isComplete = allPreviousStepsValid;
-      debug.log(`Review step validation result`, { isComplete: step.isComplete });
-      return step.isComplete;
-    }
-    
-    // Special case for teacher-feedback step - it's only valid if feedback exists
-    if (stepId === 'teacher-feedback') {
-      const hasFeedback = !!formData.feedback && 
-                         typeof formData.feedback === 'object' && 
-                         Object.keys(formData.feedback).length > 0;
-      step.isComplete = hasFeedback;
-      debug.log(`Teacher feedback step validation result`, { isComplete: step.isComplete });
-      return step.isComplete;
-    }
-
-    // Check required fields
-    const requiredFieldsValid = step.requiredFields.every(field => {
-      const value = formData[field];
-      if (Array.isArray(value)) return value.length > 0;
-      if (typeof value === 'boolean') return true;
-      return value !== null && value !== undefined && value !== '';
-    });
-
-    debug.log(`Required fields validation for ${stepId}`, { requiredFieldsValid });
-
-    // Additional validation for role-originality step
-    if (stepId === 'role-originality') {
-      const teamWorkValid = !formData.is_team_work || 
-                          (formData.team_contribution && formData.team_contribution.trim() !== "");
-      
-      const originalWorkValid = !formData.is_original_work || 
-                              (formData.originality_explanation && formData.originality_explanation.trim() !== "");
-      
-      debug.log(`Additional validations for ${stepId}`, { 
-        teamWorkValid, 
-        originalWorkValid 
+    // First check if all previous steps are complete
+    const currentStepIndex = this.getStepIndex(stepId);
+    const allPreviousStepsComplete = this.steps
+      .slice(0, currentStepIndex)
+      .every(prevStep => {
+        const validation = this.stepValidations.get(prevStep.id);
+        if (!validation) return false;
+        
+        // Check required fields
+        const requiredFieldsValid = this.validateRequiredFields(validation.requiredFields, formData);
+        
+        // Apply custom validator if it exists
+        let customValid = true;
+        if (validation.validator) {
+          customValid = validation.validator(formData);
+        }
+        
+        return requiredFieldsValid && customValid;
       });
-      
-      if (!teamWorkValid || !originalWorkValid) {
-        step.isComplete = false;
-        return false;
-      }
+
+    // Only validate current step if all previous steps are complete
+    if (!allPreviousStepsComplete) {
+      step.isComplete = false;
+      return false;
     }
 
-    // For basic-info step, also check if either files or youtubelinks are provided
-    if (stepId === 'basic-info') {
-      const hasFiles = Array.isArray(formData.files) && formData.files.length > 0;
-      const hasYoutubeLinks = Array.isArray(formData.youtubelinks) && 
-                             formData.youtubelinks.some(link => link.url && link.url.trim() !== '');
-      
-      const hasArtifacts = hasFiles || hasYoutubeLinks;
-      debug.log(`Artifact validation for ${stepId}`, { hasFiles, hasYoutubeLinks, hasArtifacts });
-      
-      step.isComplete = requiredFieldsValid && hasArtifacts;
-    } else {
-      step.isComplete = requiredFieldsValid;
+    const requiredFieldsValid = this.validateRequiredFields(step.requiredFields, formData);
+    let customValid = true;
+    if (step.validator) {
+      customValid = step.validator(formData);
     }
+    step.isComplete = requiredFieldsValid && customValid;
 
-    debug.log(`Step ${stepId} validation result`, { isComplete: step.isComplete });
+    debug.log(`Step ${stepId} validation`, { isComplete: step.isComplete });
     return step.isComplete;
   }
 
-  /**
-   * Check if navigation to a target step is allowed
-   */
   canNavigateToStep(targetStep: AssignmentStep, currentStep: AssignmentStep, formData: AssignmentFormValues): boolean {
-    const currentIndex = this.steps.findIndex(step => step.id === currentStep);
-    const targetIndex = this.steps.findIndex(step => step.id === targetStep);
+    const currentIndex = this.getStepIndex(currentStep);
+    const targetIndex = this.getStepIndex(targetStep);
 
-    if (targetIndex < 0 || currentIndex < 0) {
-      debug.warn(`Invalid step navigation from ${currentStep} to ${targetStep}`);
+    if (currentIndex === -1 || targetIndex === -1) {
+      debug.warn(`Invalid navigation from ${currentStep} to ${targetStep}`);
       return false;
     }
-    
-    // Check assignment status
-    const status = formData.status || ASSIGNMENT_STATUS.DRAFT;
-    
-    // If status is SUBMITTED or UNDER_REVIEW, only allow navigation to teacher-feedback
-    if (status === ASSIGNMENT_STATUS.SUBMITTED || status === ASSIGNMENT_STATUS.UNDER_REVIEW) {
-      debug.log(`Assignment is ${status}, restricting navigation`);
-      return targetStep === 'teacher-feedback';
-    }
-    
-    // Always allow going backward
-    if (targetIndex < currentIndex) {
-      debug.log(`Backward navigation from ${currentStep} to ${targetStep} allowed`);
-      return true;
+
+    const status: AssignmentStatus = formData.status || ASSIGNMENT_STATUS.DRAFT;
+    if (RESTRICTED_STATUSES.includes(status as RestrictedStatus)) {
+      return targetStep === 'teacher-feedback'; // Lock to teacher-feedback for restricted statuses
     }
 
-    // For forward navigation, validate all previous steps
-    const allPreviousStepsValid = this.steps.slice(0, currentIndex + 1).every(step => 
-      this.validateStep(step.id, formData)
-    );
-    
-    debug.log(`Forward navigation from ${currentStep} to ${targetStep}`, { allowed: allPreviousStepsValid });
-    return allPreviousStepsValid;
+    // Check if all steps before the target step are complete
+    const allPreviousStepsComplete = this.steps
+      .slice(0, targetIndex)
+      .every(step => this.validateStep(step.id, formData));
+
+    if (!allPreviousStepsComplete) {
+      debug.warn(`Navigation to ${targetStep} blocked: previous steps incomplete`);
+      return false;
+    }
+
+    return true;
   }
 
-  /**
-   * Get the next step if current step is valid
-   */
   getNext(currentStep: AssignmentStep, formData: AssignmentFormValues): AssignmentStep | null {
-    // Check assignment status
-    const status = formData.status || ASSIGNMENT_STATUS.DRAFT;
-    
-    // If status is SUBMITTED or UNDER_REVIEW, only allow teacher-feedback as next
-    if (status === ASSIGNMENT_STATUS.SUBMITTED || status === ASSIGNMENT_STATUS.UNDER_REVIEW) {
-      debug.log(`Assignment is ${status}, next step is teacher-feedback`);
+    const status: AssignmentStatus = formData.status || ASSIGNMENT_STATUS.DRAFT;
+    if (RESTRICTED_STATUSES.includes(status as RestrictedStatus)) {
       return 'teacher-feedback';
     }
-    
-    if (!this.validateStep(currentStep, formData)) {
-      debug.log(`Cannot proceed from ${currentStep}: validation failed`);
-      return null;
-    }
 
-    const currentIndex = this.steps.findIndex(step => step.id === currentStep);
-    const nextStep = currentIndex < this.steps.length - 1 ? this.steps[currentIndex + 1].id : null;
-    
-    debug.log(`Next step from ${currentStep}`, { nextStep });
-    return nextStep;
+    const currentIndex = this.getStepIndex(currentStep);
+    const nextIndex = currentIndex + 1;
+    if (nextIndex >= this.steps.length) return null;
+
+    // Check if all steps up to the current one are complete
+    const allPreviousStepsComplete = this.steps
+      .slice(0, currentIndex + 1) // Include current step
+      .every(step => this.validateStep(step.id, formData));
+
+    return allPreviousStepsComplete ? this.steps[nextIndex].id : null;
   }
 
-  /**
-   * Get the previous step
-   */
-  getPrevious(currentStep: AssignmentStep): AssignmentStep | null {
-    const currentIndex = this.steps.findIndex(step => step.id === currentStep);
-    const prevStep = currentIndex > 0 ? this.steps[currentIndex - 1].id : null;
-    
-    debug.log(`Previous step from ${currentStep}`, { prevStep });
-    return prevStep;
+  getPrevious(currentStep: AssignmentStep, formData: AssignmentFormValues): AssignmentStep | null {
+    const currentIndex = this.getStepIndex(currentStep);
+    if (currentIndex <= 0) return null;
+
+    const prevIndex = currentIndex - 1;
+    const prevStep = this.steps[prevIndex].id;
+
+    // Check if all steps before the previous step are complete
+    const allPreviousStepsComplete = this.steps
+      .slice(0, prevIndex)
+      .every(step => this.validateStep(step.id, formData));
+
+    return allPreviousStepsComplete ? prevStep : null;
   }
 
-  /**
-   * Check if a step is complete based on cached validation results
-   */
   isStepComplete(stepId: AssignmentStep): boolean {
-    const isComplete = this.stepValidations.find(s => s.id === stepId)?.isComplete ?? false;
-    debug.log(`Step ${stepId} completion check`, { isComplete });
-    return isComplete;
+    return this.stepValidations.get(stepId)?.isComplete ?? false;
   }
 
-  /**
-   * Reset all step validation state
-   */
-  resetStepValidation(): void {
-    this.stepValidations.forEach(step => {
-      step.isComplete = false;
-    });
-    this.visitedSteps.clear();
-    debug.log("Step validation state has been reset");
+  isStepEditable(stepId: AssignmentStep, formData: AssignmentFormValues): boolean {
+    const status: AssignmentStatus = formData.status || ASSIGNMENT_STATUS.DRAFT;
+    return !RESTRICTED_STATUSES.includes(status as RestrictedStatus) || stepId === 'teacher-feedback';
   }
-} 
+
+  resetStepValidation(): void {
+    this.stepValidations.forEach(step => (step.isComplete = false));
+    this.visitedSteps.clear();
+    debug.log("Step validation reset");
+  }
+
+  private validateRequiredFields(fields: (keyof AssignmentFormValues)[], formData: AssignmentFormValues): boolean {
+    return fields.every(field => {
+      const value = formData[field];
+      return Array.isArray(value) ? value.length > 0 : 
+             typeof value === 'boolean' ? true : 
+             value != null && value !== '';
+    });
+  }
+
+  private hasArtifacts(formData: AssignmentFormValues): boolean {
+    const hasFiles = Array.isArray(formData.files) && formData.files.length > 0;
+    const hasYoutubeLinks = Array.isArray(formData.youtubelinks) && 
+                           formData.youtubelinks.some(link => link.url?.trim());
+    return hasFiles || hasYoutubeLinks;
+  }
+
+  private validateRoleOriginality(formData: AssignmentFormValues): boolean {
+    const teamWorkValid = !formData.is_team_work || !!formData.team_contribution?.trim();
+    const originalWorkValid = !formData.is_original_work || !!formData.originality_explanation?.trim();
+    return teamWorkValid && originalWorkValid;
+  }
+
+  private hasFeedback(formData: AssignmentFormValues): boolean {
+    return !!formData.feedback && typeof formData.feedback === 'object' && Object.keys(formData.feedback).length > 0;
+  }
+
+  private getStepIndex(stepId: AssignmentStep): number {
+    return this.steps.findIndex(step => step.id === stepId);
+  }
+}

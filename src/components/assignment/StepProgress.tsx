@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { type StepConfig } from "@/types/assignment";
+import { AssignmentStep, type StepConfig } from "@/types/assignment";
 import { ASSIGNMENT_STATUS, AssignmentStatus } from "@/constants/assignment-status";
 import { StepButton } from "@/components/assignment/StepButton";
 import { StepIndicator } from "@/components/assignment/StepIndicator";
@@ -16,7 +16,7 @@ interface StepProgressProps {
   /** Callback to update the current step */
   setCurrentStep: (stepId: string) => void;
   /** Function to validate if a step is complete */
-  validateStep: (stepId: string) => boolean;
+  validateStep: (stepId: AssignmentStep) => boolean;
   /** Assignment status, defaults to DRAFT */
   status?: AssignmentStatus;
 }
@@ -76,7 +76,7 @@ export function StepProgress({
         >
           <div className="flex items-center gap-3">
             <StepIndicator 
-              isComplete={validateStep(currentStep)} 
+              isComplete={validateStep(currentStep as AssignmentStep)} 
               isCurrent={true}
             />
             <span className="font-medium text-gray-900">

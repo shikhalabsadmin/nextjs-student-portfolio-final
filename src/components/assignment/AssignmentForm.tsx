@@ -10,7 +10,7 @@ import {
   ConfirmationModal,
 } from "@/components/assignment";
 import { type AssignmentStep } from "@/types/assignment";
-import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
+import { ASSIGNMENT_STATUS, type AssignmentStatus, type LockedForContinueStatus } from "@/constants/assignment-status";
 
 type AssignmentFormProps = {
   user: User;
@@ -21,109 +21,101 @@ function AssignmentForm({ user }: AssignmentFormProps) {
     form,
     currentStep,
     setCurrentStep,
-    nextStep,
-    onSubmit,
-    isLoading,
+    handleSaveAndContinue,
+    previousStep,
     isCurrentStepComplete,
+    isCurrentStepEditable,
     validateStep,
+    isLoading,
   } = useAssignmentForm({ user });
 
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
-
   const currentStepConfig = STEPS.find((step) => step.id === currentStep);
-  
-  // Get current assignment status from form values
-  const assignmentStatus = form.getValues().status || ASSIGNMENT_STATUS.DRAFT;
-  
-  // Force navigation to teacher-feedback when status is SUBMITTED or UNDER_REVIEW
+  const assignmentStatus: AssignmentStatus = form.getValues().status || ASSIGNMENT_STATUS.DRAFT;
+
   useEffect(() => {
+    const lockedStatuses: LockedForContinueStatus[] = [
+      ASSIGNMENT_STATUS.SUBMITTED,
+      ASSIGNMENT_STATUS.UNDER_REVIEW,
+    ];
     if (
-      (assignmentStatus === ASSIGNMENT_STATUS.SUBMITTED || 
-       assignmentStatus === ASSIGNMENT_STATUS.UNDER_REVIEW) && 
+      lockedStatuses.includes(assignmentStatus as LockedForContinueStatus) &&
       currentStep !== "teacher-feedback"
     ) {
       setCurrentStep("teacher-feedback");
     }
   }, [assignmentStatus, currentStep, setCurrentStep]);
 
-  const handleSaveAndContinue = useCallback(() => {
-    if (!isCurrentStepComplete()) return;
-
-    if (currentStep === "review-submit") {
+  const handleSaveAndContinueClick = useCallback(() => {
+    if (currentStep === "review-submit" && isCurrentStepComplete()) {
       setShowConfirmationModal(true);
-      return;
+    }else{
+      handleSaveAndContinue();
     }
-
-    // Save current form data and then navigate to next step
-    onSubmit();
-    nextStep();
-  }, [currentStep, isCurrentStepComplete, onSubmit, nextStep]);
+  }, [currentStep, isCurrentStepComplete, handleSaveAndContinue]);
 
   const handleConfirmSubmit = useCallback(() => {
-    // Set status to SUBMITTED first
-    form.setValue("status", ASSIGNMENT_STATUS.SUBMITTED);
-    
-    // Submit form with updated status
-    onSubmit();
-    
-    // Close modal
+    handleSaveAndContinue();
     setShowConfirmationModal(false);
-    
-    // Force navigation to teacher-feedback
-    setCurrentStep("teacher-feedback");
-  }, [form, onSubmit, setCurrentStep]);
+  }, [handleSaveAndContinue]);
+
+  const handleSetCurrentStep = useCallback(
+    (stepId: string) => {
+      if (STEPS.some(step => step.id === stepId)) {
+        setCurrentStep(stepId as AssignmentStep);
+      }
+    },
+    [setCurrentStep]
+  );
 
   if (!currentStepConfig) return null;
 
+  const isContinueDisabled = isLoading || !isCurrentStepComplete() || !isCurrentStepEditable();
+  const lockedStatuses: LockedForContinueStatus[] = [
+    ASSIGNMENT_STATUS.SUBMITTED,
+    ASSIGNMENT_STATUS.UNDER_REVIEW,
+  ];
+
   return (
     <div className="flex flex-col gap-4 md:gap-8 container my-4 md:my-10">
-      {/* Progress - Full width on mobile, sidebar on desktop */}
       <div className="w-full md:hidden">
         <StepProgress 
           steps={STEPS}
           currentStep={currentStep}
-          setCurrentStep={setCurrentStep}
-          validateStep={(stepId: AssignmentStep) =>
-            validateStep(stepId, form.getValues())
-          }
+          setCurrentStep={handleSetCurrentStep}
+          validateStep={validateStep}
           status={assignmentStatus}
         />
       </div>
 
       <div className="flex flex-col md:flex-row md:gap-8">
-        {/* Left Sidebar - Progress (hidden on mobile) */}
         <div className="hidden md:block w-80 h-max border-2 border-slate-200 rounded-md">
           <StepProgress 
             steps={STEPS}
             currentStep={currentStep}
-            setCurrentStep={setCurrentStep}
-            validateStep={(stepId: AssignmentStep) =>
-              validateStep(stepId, form.getValues())
-            }
+            setCurrentStep={handleSetCurrentStep}
+            validateStep={validateStep}
             status={assignmentStatus}
           />
         </div>
 
-        {/* Main Content - Form */}
         <div className="flex-1">
           <Form {...form}>
-            <form
-              onSubmit={onSubmit}
-              className="rounded-md border border-gray-200 space-y-0 flex flex-col h-[calc(100vh-8rem)] overflow-hidden"
-            >
+            <div className="rounded-md border border-gray-200 flex flex-col h-[calc(100vh-8rem)] overflow-hidden">
               <StepHeader
                 title={currentStepConfig.header}
                 description={currentStepConfig.description}
-                showContinueButton={currentStep !== "teacher-feedback" && 
-                  assignmentStatus !== ASSIGNMENT_STATUS.SUBMITTED && 
-                  assignmentStatus !== ASSIGNMENT_STATUS.UNDER_REVIEW}
-                onContinue={handleSaveAndContinue}
-                disabled={isLoading || !isCurrentStepComplete()}
+                showContinueButton={
+                  currentStep !== "teacher-feedback" && 
+                  !lockedStatuses.includes(assignmentStatus as LockedForContinueStatus)
+                }
+                onContinue={handleSaveAndContinueClick}
+                disabled={isContinueDisabled}
               />
               <section className="py-6 md:py-10 px-4 md:px-6 flex-1 overflow-y-auto">
                 <StepContent step={currentStep} form={form} />
               </section>
-            </form>
+            </div>
           </Form>
 
           <ConfirmationModal
