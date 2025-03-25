@@ -67,7 +67,8 @@ export function AssignmentCard({
     const deletableStatuses: AssignmentStatus[] = [
       ASSIGNMENT_STATUS.DRAFT,
       ASSIGNMENT_STATUS.IN_PROGRESS,
-      ASSIGNMENT_STATUS.OVERDUE
+      ASSIGNMENT_STATUS.OVERDUE,
+      ASSIGNMENT_STATUS.SUBMITTED,
     ];
     return deletableStatuses.includes(status);
   };
@@ -78,6 +79,7 @@ export function AssignmentCard({
       ASSIGNMENT_STATUS.DRAFT,
       ASSIGNMENT_STATUS.IN_PROGRESS,
       ASSIGNMENT_STATUS.NEEDS_REVISION,
+      ASSIGNMENT_STATUS.SUBMITTED,
       ASSIGNMENT_STATUS.REJECTED
     ];
     return editableStatuses.includes(status);
