@@ -166,7 +166,7 @@ const App: React.FC = () => {
           index: true,
           element: (
             <ProtectedRoute roles={[UserRole.TEACHER]}>
-              <RoleBasedAssignments />
+              <TeacherDashboard user={user} />
             </ProtectedRoute>
           ),
         },

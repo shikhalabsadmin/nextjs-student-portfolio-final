@@ -17,7 +17,7 @@ const TeacherDashboard = ({ user }: { user: UserWithTeacherData }) => {
     [user?.grade_levels, user?.teaching_subjects]
   );
 
-  return isProfileComplete ? <DashboardContent /> : <ProfileCompletionPrompt />;
+  return isProfileComplete ? <DashboardContent user={user} /> : <ProfileCompletionPrompt />;
 };
 
 export default TeacherDashboard;
