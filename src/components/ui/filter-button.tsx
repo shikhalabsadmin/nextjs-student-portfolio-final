@@ -14,7 +14,7 @@ const FilterButton = memo(({ onClick, count }: FilterButtonProps) => {
       variant="outline"
       onClick={onClick}
       aria-label="Filter"
-      className="h-10 border border-gray-200 bg-white hover:bg-gray-50 flex-shrink-0 relative px-4 flex items-center gap-2.5 rounded-[6px]"
+      className="h-10 border border-slate-200 bg-white hover:bg-slate-50 flex-shrink-0 relative px-4 py-2 flex items-center gap-2.5 rounded-[6px]"
     >
       <FilterIcon className="h-4 w-4 text-slate-800" />
       <span className="text-slate-800 text-sm font-medium">Filter</span>

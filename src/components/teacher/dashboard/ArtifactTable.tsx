@@ -9,8 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PencilIcon } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
+import { cn, formatSubject } from "@/lib/utils";
 import {
   ASSIGNMENT_STATUS,
   STATUS_COLORS,
@@ -35,37 +34,48 @@ export interface Artifact {
 interface ArtifactTableProps {
   artifacts: Artifact[];
   onRowClick?: (artifact: Artifact) => void;
+  isLoading?: boolean;
+  searchQuery?: string;
 }
 
-
 export const ArtifactTable = memo(
-  ({ artifacts, onRowClick }: ArtifactTableProps) => {
+  ({ artifacts, onRowClick, isLoading = false, searchQuery = "" }: ArtifactTableProps) => {
+    if (artifacts.length === 0) {
+      return null;
+    }
+
     return (
-      <div className="border rounded-[6px] overflow-hidden bg-white w-full">
+      <div 
+        className="border rounded-[6px] overflow-hidden bg-white w-full"
+        role="region"
+        aria-label="Artifacts table"
+      >
         <div className="w-full overflow-x-auto">
           <Table className="w-full">
             <TableHeader>
               <TableRow className="bg-[#F9FAFB] border-b border-[#E4E7EB] text-xs font-medium text-[#475467]">
-                <TableHead className="whitespace-nowrap">
+                <TableHead className="whitespace-nowrap px-6 py-3">
                   Artifact Name
                 </TableHead>
-                <TableHead className="whitespace-nowrap hidden md:table-cell">
+                <TableHead className="whitespace-nowrap hidden md:table-cell px-6 py-3">
                   Subject
                 </TableHead>
-                <TableHead className="whitespace-nowrap">
+                <TableHead className="whitespace-nowrap px-6 py-3">
                   Student Name
                 </TableHead>
-                <TableHead className="whitespace-nowrap hidden sm:table-cell">
+                <TableHead className="whitespace-nowrap hidden sm:table-cell px-6 py-3">
                   Class
                 </TableHead>
-                <TableHead className="whitespace-nowrap">Status</TableHead>
-                <TableHead className="whitespace-nowrap hidden lg:table-cell">
+                <TableHead className="whitespace-nowrap px-6 py-3">
+                  Status
+                </TableHead>
+                <TableHead className="whitespace-nowrap hidden lg:table-cell px-6 py-3">
                   Created
                 </TableHead>
-                <TableHead className="whitespace-nowrap hidden lg:table-cell">
+                <TableHead className="whitespace-nowrap hidden lg:table-cell px-6 py-3">
                   Last updated
                 </TableHead>
-                <TableHead className="w-[40px] py-3">
+                <TableHead className="w-[40px] px-6 py-3">
                   <span className="sr-only">Actions</span>
                 </TableHead>
               </TableRow>
@@ -77,21 +87,21 @@ export const ArtifactTable = memo(
                   className="cursor-pointer hover:bg-gray-50 border-b border-gray-100"
                   onClick={() => onRowClick?.(artifact)}
                 >
-                  <TableCell className="font-medium text-sm py-4 whitespace-nowrap">
+                  <TableCell className="font-medium text-slate-900 text-sm py-4 px-6 whitespace-nowrap">
                     {artifact.name}
                   </TableCell>
-                  <TableCell className="text-sm py-4 whitespace-nowrap hidden md:table-cell">
-                    {artifact.subject}
+                  <TableCell className="text-sm py-4 font-normal text-slate-900 whitespace-nowrap hidden md:table-cell px-6">
+                    {formatSubject(artifact.subject)}
                   </TableCell>
-                  <TableCell className="py-4 whitespace-nowrap">
-                    <div className="flex items-center text-sm">
+                  <TableCell className="py-4 px-6 whitespace-nowrap">
+                    <div className="text-sm text-[#475467] font-normal">
                       {artifact.studentName}
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm py-4 whitespace-nowrap hidden sm:table-cell">
+                  <TableCell className="text-sm py-4 font-normal text-slate-900 whitespace-nowrap hidden sm:table-cell px-6">
                     {artifact.class}
                   </TableCell>
-                  <TableCell className="py-4 whitespace-nowrap">
+                  <TableCell className="py-4 px-6 whitespace-nowrap">
                     <Badge
                       className={cn(
                         "font-normal text-xs py-0.5 px-2 rounded-[15px]",
@@ -101,20 +111,20 @@ export const ArtifactTable = memo(
                       {STATUS_DISPLAY_NAMES[artifact.status]}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm py-4 whitespace-nowrap hidden lg:table-cell">
+                  <TableCell className="text-sm py-4 font-normal text-slate-900 whitespace-nowrap hidden lg:table-cell px-6">
                     {artifact.created}
                   </TableCell>
-                  <TableCell className="text-sm py-4 whitespace-nowrap hidden lg:table-cell">
+                  <TableCell className="text-sm py-4 font-normal text-slate-900 whitespace-nowrap hidden lg:table-cell px-6">
                     {artifact.lastUpdated}
                   </TableCell>
-                  <TableCell className="py-4">
+                  <TableCell className="py-4 px-6">
                     <button
                       className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                       onClick={(e) => {
                         e.stopPropagation();
                         onRowClick?.(artifact);
-                        // Handle edit action
                       }}
+                      aria-label={`Edit ${artifact.name}`}
                     >
                       <PencilIcon className="size-5 text-[#475467]" />
                     </button>

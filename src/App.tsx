@@ -171,7 +171,7 @@ const App: React.FC = () => {
           ),
         },
         {
-          path: "profile",
+          path: ROUTES.TEACHER.PROFILE,
           element: (
             <ProtectedRoute roles={[UserRole.TEACHER]}>
               <TeacherProfile user={user} />
@@ -179,18 +179,10 @@ const App: React.FC = () => {
           ),
         },
         {
-          path: "assignments/new",
+          path: ROUTES.TEACHER.MANAGE_ASSIGNMENT,
           element: (
             <ProtectedRoute roles={[UserRole.TEACHER]}>
               <AssignmentForm />
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: "verify/:id",
-          element: (
-            <ProtectedRoute roles={[UserRole.TEACHER]}>
-              <VerifyAssignment />
             </ProtectedRoute>
           ),
         },

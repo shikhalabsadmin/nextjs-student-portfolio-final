@@ -22,7 +22,7 @@ export const ROUTES = {
   TEACHER: {
     DASHBOARD: "/teacher",
     PROFILE: "/teacher/profile",
-    MANAGE_ASSIGNMENT: "/teacher/assignment/:id?",
+    MANAGE_ASSIGNMENT: "/teacher/assignment/:id",
   },
 
   // Admin routes (UserRole.ADMIN)
