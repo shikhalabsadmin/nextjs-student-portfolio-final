@@ -31,6 +31,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import { UpdatePassword } from "@/components/auth/UpdatePassword";
 import StudentAssignmentForm from "@/components/assignment/AssignmentForm";
 import TeacherDashboard from "@/components/teacher/dashboard";
+import TeacherAssignmentView from "./components/teacher/assignment_view";
 
 // Debug utility enabled in development
 const DEBUG = {
@@ -182,7 +183,7 @@ const App: React.FC = () => {
           path: ROUTES.TEACHER.MANAGE_ASSIGNMENT,
           element: (
             <ProtectedRoute roles={[UserRole.TEACHER]}>
-              <AssignmentForm />
+              <TeacherAssignmentView user={user} />
             </ProtectedRoute>
           ),
         },
