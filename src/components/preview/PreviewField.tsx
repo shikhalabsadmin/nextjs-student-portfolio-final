@@ -1,37 +1,49 @@
 import { cn } from "@/lib/utils";
 import { PreviewFieldProps } from "@/lib/types/preview";
 import { BadgeCheck } from "lucide-react";
+import { memo } from "react";
 
-export function PreviewField({ label, value, className }: PreviewFieldProps) {
+const PreviewField = memo(({ label = "", value, className = "" }: PreviewFieldProps) => {
   if (value === undefined || value === null) return null;
 
   return (
-    <div className={cn("space-y-1.5", className)}>
-      <p className="text-sm font-medium text-gray-500">{label}</p>
+    <div className={cn("space-y-1.5 sm:space-y-2", className)}>
+      <p className="text-lg sm:text-xl font-semibold text-slate-900">{label}</p>
       {typeof value === "boolean" ? (
-        <p className="text-sm text-gray-900 font-medium">
+        <p className="text-base sm:text-lg text-slate-700">
           {value ? (
             <span className="flex items-center gap-1 text-green-600">
-              <BadgeCheck className="h-4 w-4" /> Yes
+              <BadgeCheck className="h-4 w-4 sm:h-5 sm:w-5" /> Yes
             </span>
           ) : (
             "No"
           )}
         </p>
       ) : Array.isArray(value) ? (
-        <div className="flex flex-wrap gap-2">
-          {value.map((item, i) => (
-            <span
-              key={i}
-              className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium"
-            >
-              {item}
-            </span>
-          ))}
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
+          {value.length > 0 ? (
+            value.map((item, i) => (
+              <span
+                key={i}
+                className="px-2 py-1 sm:px-3 sm:py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm sm:text-base font-medium"
+              >
+                {item || ""}
+              </span>
+            ))
+          ) : (
+            <span className="text-base sm:text-lg text-slate-500 italic">None selected</span>
+          )}
         </div>
       ) : (
-        <p className="text-sm text-gray-900 whitespace-pre-wrap break-words max-w-full overflow-hidden">{value}</p>
+        <p className="text-base sm:text-lg text-slate-700 whitespace-pre-wrap break-words max-w-full overflow-hidden font-normal">
+          {String(value) || ""}
+        </p>
       )}
     </div>
   );
-} 
+});
+
+// Add display name for debugging
+PreviewField.displayName = "PreviewField";
+
+export { PreviewField }; 

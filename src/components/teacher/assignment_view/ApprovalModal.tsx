@@ -1,4 +1,4 @@
-import { useState, useEffect, memo } from "react";
+import { useState, useEffect, memo, useMemo } from "react";
 import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,19 +44,33 @@ interface ApprovalModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (skillsData: FormValues) => Promise<void>;
+  defaultSkills?: string[];
+  defaultJustification?: string;
+  defaultFeedback?: string;
 }
 
 export const ApprovalModal = memo(
-  ({ isOpen, onClose, onSubmit }: ApprovalModalProps) => {
+  ({ isOpen, onClose, onSubmit, defaultSkills = [], defaultJustification = "", defaultFeedback = "" }: ApprovalModalProps) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Normalize default skills with memoization to avoid recalculation
+    const normalizedDefaultSkills = useMemo(() => 
+      defaultSkills?.map(skill => {
+        // Try to find a match in SKILLS ignoring case
+        return SKILLS?.find(s => s?.toLowerCase() === skill?.toLowerCase()) || skill;
+      }) || [],
+    [defaultSkills]);
+
+    // Create form with memoized defaultValues
+    const defaultValues = useMemo(() => ({
+      selectedSkills: normalizedDefaultSkills,
+      justification: defaultJustification || "",
+      feedback: defaultFeedback || "",
+    }), [normalizedDefaultSkills, defaultJustification, defaultFeedback]);
 
     const form = useForm<FormValues>({
       resolver: zodResolver(formSchema),
-      defaultValues: {
-        selectedSkills: [],
-        justification: "",
-        feedback: "",
-      },
+      defaultValues,
     });
 
     // Reset form when modal is opened or closed
@@ -67,15 +81,18 @@ export const ApprovalModal = memo(
           form.reset();
         }, 300);
         return () => clearTimeout(timer);
+      } else {
+        // Reset with provided defaults when modal opens
+        form.reset(defaultValues);
       }
-    }, [isOpen, form]);
+    }, [isOpen, form, defaultValues]);
 
     const handleSubmitForm = async (values: FormValues) => {
       setIsSubmitting(true);
       try {
-        await onSubmit(values);
+        await onSubmit?.(values);
         form.reset();
-        onClose();
+        onClose?.();
       } catch (err) {
         form.setError("root", {
           message: "Failed to submit approval. Please try again.",
@@ -86,7 +103,7 @@ export const ApprovalModal = memo(
     };
 
     return (
-      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose?.()}>
         <DialogPortal>
           <DialogOverlay className="fixed inset-0 z-50 bg-black/80" />
           <div className="fixed left-[50%] top-[50%] z-50 grid w-[90vw] max-w-[20rem] sm:max-w-[24rem] md:max-w-3xl translate-x-[-50%] translate-y-[-50%] bg-white px-4 py-5 sm:px-5 sm:py-7 md:px-10 md:py-[56px] shadow-lg border border-slate-200 rounded-[6px]">
@@ -125,23 +142,25 @@ export const ApprovalModal = memo(
                             >
                               <Checkbox
                                 id={`skill-${skill}`}
-                                checked={field.value.includes(skill)}
+                                checked={field.value?.includes?.(skill) || false}
                                 onCheckedChange={(checked) => {
                                   if (checked) {
-                                    if (field.value.length < 3) {
-                                      field.onChange([...field.value, skill]);
+                                    if ((field.value?.length || 0) < 3) {
+                                      field.onChange([...(field.value || []), skill]);
                                     }
                                   } else {
                                     field.onChange(
-                                      field.value.filter(
+                                      field.value?.filter?.(
                                         (value) => value !== skill
-                                      )
+                                      ) || []
                                     );
                                   }
                                 }}
                                 disabled={
-                                  !field.value.includes(skill) &&
-                                  field.value.length >= 3
+                                  !field.value?.includes?.(skill) &&
+                                  (field.value?.length || 0) >= 3
+                                  ||
+                                  isSubmitting
                                 }
                               />
                               <Label
@@ -178,7 +197,7 @@ export const ApprovalModal = memo(
                           <Textarea
                             {...field}
                             placeholder="How did each skill help in creating this artifact?"
-                            className="min-h-[100px] sm:min-h-[120px] resize-y w-full border border-slate-300 rounded-md text-sm text-slate-400 font-normal"
+                            className="min-h-[100px] sm:min-h-[120px] resize-y w-full border border-slate-300 rounded-md text-sm font-normal text-slate-900 placeholder:text-slate-400"
                             disabled={isSubmitting}
                             maxLength={200}
                           />
@@ -186,7 +205,7 @@ export const ApprovalModal = memo(
                         <div className="relative w-full flex">
                           <FormMessage className="text-red-500 text-xs sm:text-sm" />
                           <span className="absolute right-0 text-slate-500 text-xs sm:text-sm font-normal">
-                            {field.value.length}/200
+                            {field.value?.length || 0}/200
                           </span>
                         </div>
                       </FormItem>
@@ -211,7 +230,7 @@ export const ApprovalModal = memo(
                           <Textarea
                             {...field}
                             placeholder="Eg: Keep up the good work!"
-                            className="min-h-[100px] sm:min-h-[120px] resize-y w-full border border-slate-300 rounded-md text-sm text-slate-400 font-normal"
+                            className="min-h-[100px] sm:min-h-[120px] resize-y w-full border border-slate-300 rounded-md text-sm font-normal text-slate-900 placeholder:text-slate-400"
                             disabled={isSubmitting}
                           />
                         </FormControl>
@@ -226,7 +245,7 @@ export const ApprovalModal = memo(
 
                   {form.formState.errors.root && (
                     <p className="text-red-500 text-xs sm:text-sm">
-                      {form.formState.errors.root.message}
+                      {form.formState.errors.root?.message}
                     </p>
                   )}
 

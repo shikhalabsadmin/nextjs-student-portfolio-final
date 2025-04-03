@@ -8,7 +8,7 @@ import { ASSIGNMENT_STATUS, AssignmentStatus } from "@/constants/assignment-stat
  * @returns Filtered array of steps
  */
 export function getFilteredSteps(steps: StepConfig[], status: AssignmentStatus): StepConfig[] {
-  if (status === ASSIGNMENT_STATUS.SUBMITTED || status === ASSIGNMENT_STATUS.UNDER_REVIEW) {
+  if (status === ASSIGNMENT_STATUS.SUBMITTED) {
     // First check if teacher-feedback step exists in the array
     const feedbackStep = steps.find(step => step.id === 'teacher-feedback');
     if (feedbackStep) {

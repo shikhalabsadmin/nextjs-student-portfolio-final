@@ -68,7 +68,7 @@ export function useAssignmentForm({ user }: { user: User }) {
       form.reset(baseAssignmentFormSchema.parse(data), { keepDirty: false });
       STEPS.forEach(step => steps.markStepVisited(step.id));
       if (data.id) await fetchFiles(data.id);
-      if (data.status === ASSIGNMENT_STATUS.SUBMITTED || data.status === ASSIGNMENT_STATUS.UNDER_REVIEW) {
+      if (data.status === ASSIGNMENT_STATUS.SUBMITTED) {
         setCurrentStepState('teacher-feedback');
       }
     } finally {

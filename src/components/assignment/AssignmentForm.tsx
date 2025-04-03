@@ -36,7 +36,6 @@ function AssignmentForm({ user }: AssignmentFormProps) {
   useEffect(() => {
     const lockedStatuses: LockedForContinueStatus[] = [
       ASSIGNMENT_STATUS.SUBMITTED,
-      ASSIGNMENT_STATUS.UNDER_REVIEW,
     ];
     if (
       lockedStatuses.includes(assignmentStatus as LockedForContinueStatus) &&
@@ -73,7 +72,6 @@ function AssignmentForm({ user }: AssignmentFormProps) {
   const isContinueDisabled = isLoading || !isCurrentStepComplete() || !isCurrentStepEditable();
   const lockedStatuses: LockedForContinueStatus[] = [
     ASSIGNMENT_STATUS.SUBMITTED,
-    ASSIGNMENT_STATUS.UNDER_REVIEW,
   ];
 
   return (

@@ -12,7 +12,6 @@ interface ArtifactTabFilterProps {
 export const ArtifactTabFilter = memo(({ activeTab, onTabChange }: ArtifactTabFilterProps) => {
   const tabs: ArtifactFilterTab[] = [
     "All",
-    ASSIGNMENT_STATUS.UNDER_REVIEW,
     ASSIGNMENT_STATUS.NEEDS_REVISION,
     ASSIGNMENT_STATUS.APPROVED,
     ASSIGNMENT_STATUS.SUBMITTED

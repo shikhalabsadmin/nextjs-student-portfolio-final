@@ -6,9 +6,7 @@ import { ASSIGNMENT_STATUS, type AssignmentStatus, type RestrictedStatus } from 
 
 const RESTRICTED_STATUSES: RestrictedStatus[] = [
   ASSIGNMENT_STATUS.SUBMITTED,
-  ASSIGNMENT_STATUS.UNDER_REVIEW,
   ASSIGNMENT_STATUS.APPROVED,
-  ASSIGNMENT_STATUS.COMPLETED,
 ];
 
 interface StepValidation {

@@ -1,15 +1,13 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { User } from "@supabase/supabase-js";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
-import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { type AssignmentFormValues } from "@/lib/validations/assignment";
-import { getAssignment } from "@/lib/api/assignments";
+import { getAllAssignmentsData } from "@/lib/api/assignments";
 import { ToastService } from "@/lib/services/toast.service";
-import { NotificationService } from "@/lib/services/notification.service";
 
 // Import the components directly now that we have declaration files
 import { TeacherSidebar } from "./TeacherSidebar";
@@ -19,6 +17,7 @@ import { ApprovalModal } from "./ApprovalModal";
 
 // Import UI components
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FormViewAccordion, type AccordionSection } from "@/components/ui/form-view-accordion";
 
 // Import the PreviewStep component directly
 import { PreviewStep } from "@/components/assignment/steps/PreviewStep";
@@ -27,15 +26,9 @@ import { CollaborationStep } from "@/components/assignment/steps/CollaborationSt
 import { ProcessStep } from "@/components/assignment/steps/ProcessStep";
 import { ReflectionStep } from "@/components/assignment/steps/ReflectionStep";
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { FileText, Users, Lightbulb, PenTool, Brain } from "lucide-react";
 import { Loading } from "@/components/ui/loading";
 import { Error } from "@/components/ui/error";
+import { ROUTES } from "@/config/routes";
 
 interface StudentProfile {
   id: string;
@@ -45,16 +38,11 @@ interface StudentProfile {
   avatar_url?: string;
 }
 
-// Type for feedback
-interface Feedback {
-  text: string;
-  date: string;
-  [key: string]: unknown; // Index signature to make it compatible with Record<string, unknown>
-}
-
 type TeacherAssignmentViewProps = {
   user: User;
 };
+
+type Tabs = "template" | "form";
 
 const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
   const { id } = useParams<{ id: string }>();
@@ -65,16 +53,12 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
     null
   );
   const [student, setStudent] = useState<StudentProfile | null>(null);
-  const [activeTab, setActiveTab] = useState("template");
-  const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
-  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tabs>("template");
+  const [isRevisionModalOpen, setIsRevisionModalOpen] = useState<boolean>(false);
+  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState<boolean>(false);
 
   // Create services only once with useMemo to prevent recreation on re-renders
   const toast = useMemo(() => new ToastService(), []);
-  const notificationService = useMemo(
-    () => NotificationService.getInstance(),
-    []
-  );
 
   // Set up form with default values
   const form = useForm<AssignmentFormValues>({
@@ -88,21 +72,39 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
     mode: "onSubmit",
   });
 
-  const openRevisionModal = () => {
-    setIsRevisionModalOpen(true);
+  // Handle revision modal
+  const handleRevisionModal = () => {
+    setIsRevisionModalOpen((pre) => !pre);
   };
 
-  const closeRevisionModal = () => {
-    setIsRevisionModalOpen(false);
+  // Handle approval modal
+  const handleApprovalModal = () => {
+    setIsApprovalModalOpen((pre) => !pre);
   };
 
-  const openApprovalModal = () => {
-    setIsApprovalModalOpen(true);
-  };
-
-  const closeApprovalModal = () => {
-    setIsApprovalModalOpen(false);
-  };
+  // Define accordion sections
+  const formSections: AccordionSection[] = useMemo(() => [
+    {
+      id: "basic-info",
+      title: "Basic Information",
+      content: <BasicInfoStep form={form} />
+    },
+    {
+      id: "collaboration",
+      title: "Collaboration and Originality",
+      content: <CollaborationStep form={form} />
+    },
+    {
+      id: "skills",
+      title: "Skills and Reflection",
+      content: <ProcessStep form={form} />
+    },
+    {
+      id: "process",
+      title: "Process and Challenges",
+      content: <ReflectionStep form={form} />
+    }
+  ], [form]);
 
   // Memoize fetchAssignment to prevent unnecessary recreations
   const fetchAssignment = useCallback(async () => {
@@ -111,26 +113,33 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
     setIsLoading(true);
     try {
       // Get assignment data
-      const assignmentData = await getAssignment(id);
+      const assignmentData = await getAllAssignmentsData(id);
+
+      // Check if assignment data is found
       if (!assignmentData) {
-        toast.error("Assignment not found");
+        toast.error("Error while loading student assignment");
         return;
       }
 
-      // Store the assignment data in state to reduce form.getValues() calls
-      setAssignment(assignmentData);
-
       // Fetch student profile
-      if (assignmentData.student_id) {
+      if (assignmentData?.student_id) {
         const { data: studentData, error: studentError } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", assignmentData.student_id)
           .single();
 
-        if (studentError) throw studentError;
-        setStudent(studentData as StudentProfile);
+        if (studentError) {
+          toast.error("Error while loading student profile");
+          // Continue with null student data instead of returning
+          console.error("Student profile error:", studentError);
+        } else {
+          setStudent(studentData as StudentProfile || null);
+        }
       }
+
+      // Store the assignment data in state to reduce form.getValues() calls
+      setAssignment(assignmentData);
 
       // Set form values
       form.reset(assignmentData, {
@@ -145,6 +154,112 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
     }
   }, [id, form, toast]);
 
+  const handleApprove = useCallback(
+    async (skillsData: {
+      selectedSkills: string[];
+      justification: string;
+      feedback?: string;
+    }) => {
+      if (!assignment?.id) return;
+
+      let feedbackData = {}
+
+      if(skillsData?.feedback){
+        feedbackData = {
+          text: skillsData.feedback,
+          date: new Date().toISOString(),
+          teacher_id: user?.id || null,
+        };
+      }
+
+      const updatedData = {
+        status: ASSIGNMENT_STATUS.APPROVED,
+        verified_at: new Date().toISOString(),
+        selected_skills: skillsData?.selectedSkills || [],
+        skills_justification: skillsData?.justification || "",
+        feedback: feedbackData,
+      };
+
+      console.log("Handle Approve request","Updated Data", updatedData)
+
+      try {
+        const { error } = await supabase
+          .from("assignments")
+          .update(updatedData)
+          .eq("id", assignment.id);
+
+        if (error) {
+          console.error("Error approving assignment:", error);
+          toast.error("Failed to approve assignment");
+          return;
+        }
+
+        console.log("Handle Approve request","Updated Data", updatedData)
+
+        // Update form and assignment state
+        const updatedAssignment = {
+          ...assignment,
+          ...updatedData
+        };
+        setAssignment(updatedAssignment);
+        form.reset(updatedAssignment, { keepDefaultValues: true });
+        toast.success("Assignment approved successfully");
+        setActiveTab("template");
+        navigate(ROUTES.TEACHER.DASHBOARD);
+      } catch (error) {
+        console.error("Error approving assignment:", error);
+        toast.error("Failed to approve assignment");
+      }
+    },
+    [assignment, form, navigate, toast, user?.id]
+  );
+
+  const handleRequestRevision = useCallback(
+    async (feedbackText: string) => {
+      if (!assignment?.id) return;
+
+      try {
+        // Create the feedback object
+        const feedbackData = {
+          text: feedbackText || "",
+          date: new Date().toISOString(),
+          teacher_id: user?.id || null,
+        };
+
+        const { error } = await supabase
+          .from("assignments")
+          .update({
+            status: ASSIGNMENT_STATUS.NEEDS_REVISION,
+            feedback: feedbackData,
+          })
+          .eq("id", assignment.id);
+
+        if (error) {
+          toast.error("Failed to request revision");
+          return;
+        }
+        
+
+        // Update form and assignment state
+        const updatedAssignment = {
+          ...assignment,
+          status: ASSIGNMENT_STATUS.NEEDS_REVISION,
+          feedback: feedbackData,
+        };
+        setAssignment(updatedAssignment);
+        form.reset(updatedAssignment, { keepDefaultValues: true });
+
+        toast.success("Revision requested successfully");
+        setActiveTab("template");
+        navigate(ROUTES.TEACHER.DASHBOARD);
+      } catch (error) {
+        console.error("Error requesting revision:", error);
+        toast.error("Failed to request revision");
+      }
+    },
+    [assignment, form, navigate, toast, user?.id]
+  );
+
   // Fetch assignment data only once when component mounts or id changes
   useEffect(() => {
     fetchAssignment();
@@ -156,164 +271,32 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
     };
   }, [id, fetchAssignment]);
 
-  const handleApprove = useCallback(
-    async (skillsData: {
-      selectedSkills: string[];
-      justification: string;
-      feedback?: string;
-    }) => {
-      if (!assignment?.id) return;
-
-      try {
-        const { error } = await supabase
-          .from("assignments")
-          .update({
-            status: ASSIGNMENT_STATUS.APPROVED,
-            teacher_id: user.id,
-            verified_at: new Date().toISOString(),
-            teacher_skills: skillsData.selectedSkills,
-            skills_justification: skillsData.justification,
-            teacher_feedback: skillsData.feedback || null,
-          })
-          .eq("id", assignment.id);
-
-        if (error) throw error;
-
-        // Update form and assignment state
-        const updatedAssignment = {
-          ...assignment,
-          status: ASSIGNMENT_STATUS.APPROVED,
-          verified_at: new Date().toISOString(),
-          teacher_skills: skillsData.selectedSkills,
-          skills_justification: skillsData.justification,
-          teacher_feedback: skillsData.feedback || null,
-        };
-        setAssignment(updatedAssignment);
-        form.reset(updatedAssignment, { keepDefaultValues: true });
-
-        // Notify student
-        const studentId = assignment.student_id;
-        const title = assignment.title || "Untitled Assignment";
-
-        if (studentId) {
-          try {
-            // Using notifyAssignmentVerified from the notification service
-            await notificationService.notifyAssignmentVerified(
-              studentId,
-              title,
-              assignment.id
-            );
-          } catch (err) {
-            console.error("Failed to send notification:", err);
-            // Continue anyway - approval was successful
-          }
-        }
-
-        toast.success("Assignment approved successfully");
-      } catch (error) {
-        console.error("Error approving assignment:", error);
-        toast.error("Failed to approve assignment");
-      }
-    },
-    [assignment, form, notificationService, toast, user.id]
-  );
-
-  const handleRequestRevision = useCallback(
-    async (feedbackText: string) => {
-      if (!assignment?.id) return;
-
-      try {
-        // Create the feedback object
-        const feedbackData = {
-          text: feedbackText,
-          date: new Date().toISOString(),
-        };
-
-        const { error } = await supabase
-          .from("assignments")
-          .update({
-            status: ASSIGNMENT_STATUS.NEEDS_REVISION,
-            teacher_id: user.id,
-            feedback: feedbackData,
-          })
-          .eq("id", assignment.id);
-
-        if (error) throw error;
-
-        // Update form and assignment state
-        const updatedAssignment = {
-          ...assignment,
-          status: ASSIGNMENT_STATUS.NEEDS_REVISION,
-          feedback: feedbackData,
-        };
-        setAssignment(updatedAssignment);
-        form.reset(updatedAssignment, { keepDefaultValues: true });
-
-        // Notify student
-        const studentId = assignment.student_id;
-        const title = assignment.title || "Untitled Assignment";
-
-        if (studentId) {
-          try {
-            // Using notifyAssignmentNeedsRevision from the notification service
-            await notificationService.notifyAssignmentNeedsRevision(
-              studentId,
-              title,
-              feedbackText,
-              assignment.id
-            );
-          } catch (err) {
-            console.error("Failed to send notification:", err);
-            // Continue anyway - revision request was successful
-          }
-        }
-
-        toast.success("Revision requested successfully");
-        setActiveTab("template");
-      } catch (error) {
-        console.error("Error requesting revision:", error);
-        toast.error("Failed to request revision");
-      }
-    },
-    [assignment, form, notificationService, toast, user.id]
-  );
-
-  // Show loading state until data is fetched
   if (isLoading) {
-    return <Loading fullScreen text="Loading assignment..." />;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loading />
+      </div>
+    );
   }
 
   // Don't attempt to render content if no assignment was loaded
   if (!assignment?.id) {
     return (
-      <Error
-        fullScreen
-        title="Assignment Not Found"
-        message="The assignment you're looking for doesn't exist or you don't have permission to view it."
-        homeButtonText="Return to Dashboard"
-        onHome={() => navigate("/app/teacher/dashboard")}
-        retryButtonText="Try Again"
-        retry={fetchAssignment}
-      />
+      <div className="flex items-center justify-center h-screen">
+        <Error
+          fullScreen
+          title="Assignment Not Found"
+          message="The assignment you're looking for doesn't exist or you don't have permission to view it."
+          homeButtonText="Return to Dashboard"
+          onHome={() => navigate("/app/teacher/dashboard")}
+          retryButtonText="Try Again"
+          retry={fetchAssignment}
+        />
+      </div>
     );
   }
 
-  // Use the assignment state directly instead of form.getValues() to reduce rerenders
-  const assignmentStatus = assignment.status;
-  const canApprove = assignmentStatus === ASSIGNMENT_STATUS.SUBMITTED;
-  const isApproved = assignmentStatus === ASSIGNMENT_STATUS.APPROVED;
-  const needsRevision = assignmentStatus === ASSIGNMENT_STATUS.NEEDS_REVISION;
-
-  // Get feedback and handle type conversion safely
-  const feedbackData = assignment.feedback;
-  // Validate the feedback object structure
-  const feedback =
-    feedbackData &&
-    typeof feedbackData === "object" &&
-    "text" in feedbackData &&
-    "date" in feedbackData
-      ? (feedbackData as Feedback)
-      : undefined;
+  console.log("Assignment", assignment)
 
   return (
     <div className="px-8 py-5 md:px-16 md:py-10">
@@ -328,12 +311,12 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
               {/* Custom header for teacher view */}
               <div className="sticky top-0 z-10 bg-white border-b border-slate-200">
                 <TeacherHeader
-                  studentName={student?.full_name}
-                  subject={assignment.subject}
-                  grade={assignment.grade}
-                  isApproved={isApproved}
-                  onApprove={openApprovalModal}
-                  openRevisionModal={openRevisionModal}
+                  studentName={student?.full_name || "Student"}
+                  subject={assignment.subject || "Unknown Subject"}
+                  grade={assignment.grade || "Unknown Grade"}
+                  isApproved={assignment?.status === ASSIGNMENT_STATUS.APPROVED}
+                  onApprove={handleApprovalModal}
+                  openRevisionModal={handleRevisionModal}
                 />
               </div>
 
@@ -341,7 +324,7 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
               <div className="flex-1 overflow-auto">
                 <Tabs
                   value={activeTab}
-                  onValueChange={setActiveTab}
+                  onValueChange={(value) => setActiveTab(value as Tabs)}
                   className="w-full"
                 >
                   <div className="sticky top-0 z-10 bg-white">
@@ -368,76 +351,14 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
                     </TabsContent>
 
                     <TabsContent value="form" className="mt-0 p-6">
-                      {/* Form View - Display only the form steps in an accordion */}
-                      <Accordion type="single" collapsible className="w-full">
-                        <AccordionItem
-                          value="step1"
-                          className="border-b border-gray-200"
-                        >
-                          <AccordionTrigger className="py-4">
-                            <div className="flex items-center">
-                              <PenTool className="h-5 w-5 text-blue-500 mr-2" />
-                              <h2 className="text-lg font-medium">
-                                Basic Information
-                              </h2>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="pb-4">
-                            <BasicInfoStep form={form} />
-                          </AccordionContent>
-                        </AccordionItem>
-
-                        <AccordionItem
-                          value="step2"
-                          className="border-b border-gray-200"
-                        >
-                          <AccordionTrigger className="py-4">
-                            <div className="flex items-center">
-                              <Users className="h-5 w-5 text-purple-500 mr-2" />
-                              <h2 className="text-lg font-medium">
-                                Collaboration and Originality
-                              </h2>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="pb-4">
-                            <CollaborationStep form={form} />
-                          </AccordionContent>
-                        </AccordionItem>
-
-                        <AccordionItem
-                          value="step3"
-                          className="border-b border-gray-200"
-                        >
-                          <AccordionTrigger className="py-4">
-                            <div className="flex items-center">
-                              <Lightbulb className="h-5 w-5 text-amber-500 mr-2" />
-                              <h2 className="text-lg font-medium">
-                                Skills and Reflection
-                              </h2>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="pb-4">
-                            <ProcessStep form={form} />
-                          </AccordionContent>
-                        </AccordionItem>
-
-                        <AccordionItem
-                          value="step4"
-                          className="border-b border-gray-200"
-                        >
-                          <AccordionTrigger className="py-4">
-                            <div className="flex items-center">
-                              <Brain className="h-5 w-5 text-green-500 mr-2" />
-                              <h2 className="text-lg font-medium">
-                                Process and Challenges
-                              </h2>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="pb-4">
-                            <ReflectionStep form={form} />
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
+                      {/* Form View - Use the FormViewAccordion with sections as props */}
+                      <FormViewAccordion 
+                        sections={formSections}
+                        defaultValue="basic-info"
+                        customClassName={{
+                          content:"pointer-events-none "
+                        }}
+                      />
                     </TabsContent>
                   </div>
                 </Tabs>
@@ -450,16 +371,19 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
       {/* Revision Modal at the parent level */}
       <RevisionModal
         isOpen={isRevisionModalOpen}
-        onClose={closeRevisionModal}
+        onClose={handleRevisionModal}
         onSubmit={handleRequestRevision}
-        currentFeedback={feedback?.text || ""}
+        currentFeedback={typeof assignment?.feedback?.text === 'string' ? assignment.feedback.text : ""}
       />
 
       {/* Approval Modal at the parent level */}
       <ApprovalModal
         isOpen={isApprovalModalOpen}
-        onClose={closeApprovalModal}
+        onClose={handleApprovalModal}
         onSubmit={handleApprove}
+        defaultSkills={Array.isArray(assignment?.selected_skills) ? assignment.selected_skills : []}
+        defaultJustification={typeof assignment?.skills_justification === 'string' ? assignment.skills_justification : ""}
+        defaultFeedback={typeof assignment?.feedback?.text === 'string' ? assignment.feedback.text : ""}
       />
     </div>
   );

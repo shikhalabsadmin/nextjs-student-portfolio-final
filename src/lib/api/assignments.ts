@@ -229,6 +229,36 @@ export async function getAssignment(
   return data as AssignmentFormValues | null;
 }
 
+export async function getAllAssignmentsData(
+  id: string
+): Promise<AssignmentFormValues> {
+  if (!id) {
+    debug.error("No id provided");
+    throw new Error("No id provided");
+  }
+
+  debug.log("Fetching all data for assignment from Supabase", { id });
+
+  let formData: AssignmentFormValues = {};
+
+  const assignment = await getAssignment(id);
+
+  if (assignment) {
+    formData = {
+      ...assignment,
+      files: [],
+    };
+  }
+
+  const files = await fetchAssignmentFiles(id);
+
+  if (files) {
+    formData.files = files.data;
+  }
+
+  return formData;
+}
+
 async function deleteStorageFiles(files: StorageFile[]): Promise<void> {
   for (const file of files) {
     const filePath = file.file_url.split("/").pop();
