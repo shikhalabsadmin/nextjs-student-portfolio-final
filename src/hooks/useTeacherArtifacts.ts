@@ -5,6 +5,7 @@ import { Artifact } from "@/components/teacher/dashboard/ArtifactTable";
 import { format } from "date-fns";
 import { ASSIGNMENT_STATUS, AssignmentStatus } from "@/constants/assignment-status";
 import { TeachingSubject } from "@/types/teacher-dashboard";
+import { toast } from "sonner";
 
 interface UseTeacherArtifactsResult {
   artifacts: Artifact[];
@@ -95,10 +96,19 @@ export function useTeacherArtifacts(
           query = query.eq('teacher_id', user.id);
         }
         
+        // Only show assignments with status SUBMITTED, NEEDS_REVISION, or APPROVED
+        query = query.in('status', [
+          ASSIGNMENT_STATUS.SUBMITTED,
+          ASSIGNMENT_STATUS.NEEDS_REVISION,
+          ASSIGNMENT_STATUS.APPROVED
+        ]);
+        
         const { data: assignmentsData, error: fetchError } = await query;
 
         if (fetchError) {
-          throw fetchError;
+          toast.error("Error fetching assignments");
+          console.error("Error fetching assignments:", fetchError);
+          return;
         }
 
         console.log(`Fetched ${assignmentsData?.length || 0} assignment(s) for this teacher`);
