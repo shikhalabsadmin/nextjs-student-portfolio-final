@@ -33,33 +33,13 @@ export function StepProgress({
   status = ASSIGNMENT_STATUS.DRAFT,
 }: StepProgressProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-
-  // Memoize filtered steps to prevent unnecessary recalculations
-  const filteredSteps = useMemo(() => {
-    const filtered = getFilteredSteps(steps, status);
-    // Ensure we always have at least one step
-    return filtered.length > 0 ? filtered : steps;
-  }, [steps, status]);
-  
-  // Memoize derived data
-  const currentStepData = useMemo(() => {
-    const stepData = filteredSteps.find((step) => step.id === currentStep);
-    // If current step not found in filtered steps, default to first available step
-    if (!stepData && filteredSteps.length > 0) {
-      return filteredSteps[0];
-    }
-    return stepData;
-  }, [filteredSteps, currentStep]);
-
-  // Update current step if it's not in filtered steps
-  useEffect(() => {
-    if (filteredSteps.length > 0 && !filteredSteps.some(step => step.id === currentStep)) {
-      setCurrentStep(filteredSteps[0].id);
-    }
-  }, [filteredSteps, currentStep, setCurrentStep]);
-
   // Optimize toggle handler
   const toggleExpand = useCallback(() => setIsExpanded((prev) => !prev), []);
+
+  const currentStepData = useMemo(() => {
+    return steps?.find((step) => step?.id === currentStep);
+  }, [steps, currentStep]);
+
 
   return (
     <div className="w-full">
@@ -96,7 +76,7 @@ export function StepProgress({
             className="border-t border-slate-200 p-3 bg-white animate-in slide-in-from-top duration-200"
           >
             <nav className="space-y-2" aria-label="Step navigation">
-              {filteredSteps.map((step) => (
+              {steps?.map((step) => (
                 <StepButton
                   key={step.id}
                   step={step}
@@ -119,7 +99,7 @@ export function StepProgress({
           <h2 className="text-base font-medium text-gray-900">Your Progress</h2>
         </div>
         <nav className="space-y-2.5 px-4 py-6" aria-label="Step navigation">
-          {filteredSteps.map((step) => (
+          {steps?.map((step) => (
             <StepButton
               key={step.id}
               step={step}

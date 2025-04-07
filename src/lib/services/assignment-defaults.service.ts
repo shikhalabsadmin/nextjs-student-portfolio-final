@@ -1,7 +1,7 @@
 import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
 import { AssignmentFormValues } from "@/lib/validations/assignment";
 
-export const getDefaultValues = (): AssignmentFormValues => ({
+export const getDefaultValues = (): Omit<AssignmentFormValues, 'files'> => ({
   title: "",
   subject: "",
   grade: "",
@@ -10,13 +10,10 @@ export const getDefaultValues = (): AssignmentFormValues => ({
   month: new Date().toLocaleString('default', { month: 'long' }),
   is_team_work: false,
   is_original_work: true,
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
   is_parent: false,
   artifact_url: "",
   team_contribution: "",
-  originality_explanation: "",
-  selected_skills: [],
+  selected_skills: [] as string[],
   skills_justification: "",
   pride_reason: "",
   creation_process: "",
@@ -24,10 +21,8 @@ export const getDefaultValues = (): AssignmentFormValues => ({
   challenges: "",
   improvements: "",
   acknowledgments: "",
+  feedback: {},
+  youtubelinks: [],
   submitted_at: new Date().toISOString(),
   verified_at: new Date().toISOString(),
-  feedback: {},
-  revision_history: [],
-  youtubelinks: [{ url: "", title: "" }],
-  files: [],
 });

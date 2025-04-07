@@ -123,7 +123,7 @@ export class StepService {
       return false;
     }
 
-    const status: AssignmentStatus = formData.status || ASSIGNMENT_STATUS.DRAFT;
+    const status = (formData.status || ASSIGNMENT_STATUS.DRAFT) as AssignmentStatus;
     if (RESTRICTED_STATUSES.includes(status as RestrictedStatus)) {
       return targetStep === 'teacher-feedback'; // Lock to teacher-feedback for restricted statuses
     }
@@ -142,7 +142,7 @@ export class StepService {
   }
 
   getNext(currentStep: AssignmentStep, formData: AssignmentFormValues): AssignmentStep | null {
-    const status: AssignmentStatus = formData.status || ASSIGNMENT_STATUS.DRAFT;
+    const status = (formData.status || ASSIGNMENT_STATUS.DRAFT) as AssignmentStatus;
     if (RESTRICTED_STATUSES.includes(status as RestrictedStatus)) {
       return 'teacher-feedback';
     }
@@ -179,7 +179,7 @@ export class StepService {
   }
 
   isStepEditable(stepId: AssignmentStep, formData: AssignmentFormValues): boolean {
-    const status: AssignmentStatus = formData.status || ASSIGNMENT_STATUS.DRAFT;
+    const status = (formData.status || ASSIGNMENT_STATUS.DRAFT) as AssignmentStatus;
     return !RESTRICTED_STATUSES.includes(status as RestrictedStatus) || stepId === 'teacher-feedback';
   }
 
@@ -199,16 +199,14 @@ export class StepService {
   }
 
   private hasArtifacts(formData: AssignmentFormValues): boolean {
-    const hasFiles = Array.isArray(formData.files) && formData.files.length > 0;
     const hasYoutubeLinks = Array.isArray(formData.youtubelinks) && 
                            formData.youtubelinks.some(link => link.url?.trim());
-    return hasFiles || hasYoutubeLinks;
+    const hasArtifactUrl = !!formData.artifact_url?.trim();
+    return hasYoutubeLinks || hasArtifactUrl;
   }
 
   private validateRoleOriginality(formData: AssignmentFormValues): boolean {
-    const teamWorkValid = !formData.is_team_work || !!formData.team_contribution?.trim();
-    const originalWorkValid = !formData.is_original_work || !!formData.originality_explanation?.trim();
-    return teamWorkValid && originalWorkValid;
+    return !formData.is_team_work || !!formData.team_contribution?.trim();
   }
 
   private hasFeedback(formData: AssignmentFormValues): boolean {

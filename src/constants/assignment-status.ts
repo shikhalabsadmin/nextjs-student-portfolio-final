@@ -14,7 +14,9 @@ export type RestrictedStatus =
   | typeof ASSIGNMENT_STATUS.APPROVED;
 
 // Subset for statuses where "Save & Continue" button is hidden
-export type LockedForContinueStatus = typeof ASSIGNMENT_STATUS.SUBMITTED;
+export type LockedForContinueStatus =
+  | typeof ASSIGNMENT_STATUS.SUBMITTED
+  | typeof ASSIGNMENT_STATUS.NEEDS_REVISION;
 
 // Status display names for UI
 export const STATUS_DISPLAY_NAMES: Record<AssignmentStatus, string> = {

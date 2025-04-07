@@ -15,6 +15,7 @@ export type FileUploadResponse = {
 // File data with optional assignment relationship
 export type FileRecordData = BaseFileData & {
   assignment_id?: string;
+  student_id?: string;
 };
 
 // Simple file reference (used in StorageFile)

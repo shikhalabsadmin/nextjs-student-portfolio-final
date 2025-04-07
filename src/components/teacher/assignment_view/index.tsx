@@ -6,7 +6,7 @@ import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
 import { Form } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { type AssignmentFormValues } from "@/lib/validations/assignment";
-import { getAllAssignmentsData } from "@/lib/api/assignments";
+import { getAssignmentWithFiles } from "@/lib/api/assignments";
 import { ToastService } from "@/lib/services/toast.service";
 
 // Import the components directly now that we have declaration files
@@ -113,7 +113,7 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
     setIsLoading(true);
     try {
       // Get assignment data
-      const assignmentData = await getAllAssignmentsData(id);
+      const assignmentData = await getAssignmentWithFiles(id);
 
       // Check if assignment data is found
       if (!assignmentData) {

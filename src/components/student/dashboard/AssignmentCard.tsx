@@ -2,9 +2,14 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { AssignmentStatus, STATUS_COLORS, STATUS_DISPLAY_NAMES, ASSIGNMENT_STATUS } from '@/constants/assignment-status';
-import { Subject, GradeLevel } from '@/constants/grade-subjects';
-import { Trash2, MoreHorizontal, Edit } from 'lucide-react';
+import {
+  AssignmentStatus,
+  STATUS_COLORS,
+  STATUS_DISPLAY_NAMES,
+  ASSIGNMENT_STATUS,
+} from "@/constants/assignment-status";
+import { Subject, GradeLevel } from "@/constants/grade-subjects";
+import { Trash2, MoreHorizontal, Edit } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,13 +43,13 @@ interface AssignmentCardProps {
 // Create a custom StatusBadge that uses STATUS_COLORS
 const StatusBadge = ({ status }: { status: AssignmentStatus }) => {
   return (
-    <div 
+    <div
       className={cn(
         "absolute bottom-3 left-3 z-10 rounded-full px-2.5 py-0.5 text-xs font-medium inline-flex items-center",
         STATUS_COLORS[status]
       )}
-      style={{ 
-        pointerEvents: 'none'
+      style={{
+        pointerEvents: "none",
       }}
     >
       {STATUS_DISPLAY_NAMES[status]}
@@ -52,23 +57,20 @@ const StatusBadge = ({ status }: { status: AssignmentStatus }) => {
   );
 };
 
-export function AssignmentCard({ 
-  title, 
-  subject, 
+export function AssignmentCard({
+  title,
+  subject,
   grade,
-  dueDate, 
+  dueDate,
   status,
   imageUrl = "/images/chalkboard-math.jpg",
   onDelete,
-  onEdit
+  onEdit,
 }: AssignmentCardProps) {
   const canDelete = (status: AssignmentStatus): boolean => {
     // Only allow deletion for these statuses
     const deletableStatuses: AssignmentStatus[] = [
-      ASSIGNMENT_STATUS.DRAFT,
-      ASSIGNMENT_STATUS.IN_PROGRESS,
-      ASSIGNMENT_STATUS.OVERDUE,
-      ASSIGNMENT_STATUS.SUBMITTED,
+      ASSIGNMENT_STATUS.DRAFT
     ];
     return deletableStatuses.includes(status);
   };
@@ -77,10 +79,7 @@ export function AssignmentCard({
     // Only allow editing for these statuses
     const editableStatuses: AssignmentStatus[] = [
       ASSIGNMENT_STATUS.DRAFT,
-      ASSIGNMENT_STATUS.IN_PROGRESS,
       ASSIGNMENT_STATUS.NEEDS_REVISION,
-      ASSIGNMENT_STATUS.SUBMITTED,
-      ASSIGNMENT_STATUS.REJECTED
     ];
     return editableStatuses.includes(status);
   };
@@ -89,10 +88,8 @@ export function AssignmentCard({
     switch (status) {
       case ASSIGNMENT_STATUS.DRAFT:
         return "Are you sure you want to delete this draft assignment? This action cannot be undone.";
-      case ASSIGNMENT_STATUS.IN_PROGRESS:
-        return "Are you sure you want to delete this in-progress assignment? All your work will be lost.";
-      case ASSIGNMENT_STATUS.OVERDUE:
-        return "Are you sure you want to delete this overdue assignment? You may need to request a new one.";
+      case ASSIGNMENT_STATUS.SUBMITTED:
+        return "Are you sure you want to delete this submitted assignment? This action cannot be undone.";
       default:
         return "Are you sure you want to delete this assignment?";
     }
@@ -100,7 +97,7 @@ export function AssignmentCard({
 
   const getStatusActions = () => {
     const items = [];
-    
+
     // Add Edit Assignment option for applicable statuses
     if (canEdit(status)) {
       items.push(
@@ -110,17 +107,17 @@ export function AssignmentCard({
         </DropdownMenuItem>
       );
     }
-    
+
     // Add delete option for applicable statuses
     if (canDelete(status)) {
       if (items.length > 0) {
         items.push(<DropdownMenuSeparator key="separator" />);
       }
-      
+
       items.push(
         <AlertDialog key="delete-dialog">
           <AlertDialogTrigger asChild>
-            <DropdownMenuItem 
+            <DropdownMenuItem
               key="delete"
               className="text-destructive"
               onSelect={(e) => e.preventDefault()}
@@ -149,7 +146,7 @@ export function AssignmentCard({
         </AlertDialog>
       );
     }
-    
+
     return items;
   };
 
@@ -169,7 +166,9 @@ export function AssignmentCard({
       <div className="p-4 relative">
         {/* Main content - Always visible */}
         <div>
-          <h3 className="font-semibold text-base text-[#101828] line-clamp-2 mb-2">{title}</h3>
+          <h3 className="font-semibold text-base text-[#101828] line-clamp-1 mb-2">
+            {title}
+          </h3>
           <div className="flex items-center text-sm text-[#475467] gap-1">
             {dueDate && <span>{dueDate}</span>}
             {dueDate && subject && <span className="text-[#98A2B3]">•</span>}
@@ -178,26 +177,32 @@ export function AssignmentCard({
             {grade && <span>Grade {grade}</span>}
           </div>
         </div>
-        
-        {/* Three Dots Menu - visible on hover */}
-        <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 rounded-full bg-white shadow-sm hover:bg-gray-100"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-                <span className="sr-only">More options</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 p-1">
-              {getStatusActions()}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+
+        {getStatusActions()?.length ? (
+          <>
+            {/* Three Dots Menu - visible on hover */}
+            <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 !bg-transparent"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">More options</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 p-1">
+                  {getStatusActions()}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </>
+        ) : (
+          <></>
+        )}
       </div>
     </Card>
   );
-} 
+}

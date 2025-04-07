@@ -1,97 +1,17 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { AssignmentFormValues } from "@/lib/validations/assignment";
-import type {
-  AssignmentFile,
-  FileUploadResponse,
-  FileRecordData,
-  AssignmentFileInput,
-  StorageFile,
-} from "@/types/file";
+import type { FileRecordData } from "@/types/file";
 import { getFileTypeCategory } from "@/lib/utils/file-type.utils";
-import { createDebugService, debugAPI } from "@/lib/utils/debug.service";
+import { createDebugService } from "@/lib/utils/debug.service";
 
 const debug = createDebugService("Assignments API");
 
-// File handling functions
-async function uploadFileToStorage(
-  file: File,
-  filePath: string
-): Promise<FileUploadResponse> {
-  debugAPI.step("Uploading to storage", { filePath });
-  const { error: uploadError } = await supabase.storage
+// Assignment CRUD operations
+export const createAssignment = async (data: AssignmentFormValues) => {
+  debug.log("Creating assignment", data);
+  const { data: createdData, error } = await supabase
     .from("assignments")
-    .upload(filePath, file);
-
-  if (uploadError) {
-    debugAPI.error("Storage upload failed", uploadError);
-    throw uploadError;
-  }
-
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from("assignments").getPublicUrl(filePath);
-
-  return { publicUrl };
-}
-
-async function createFileRecord(
-  fileData: FileRecordData
-): Promise<AssignmentFile> {
-  debugAPI.step("Creating database record");
-  const { data, error: fileError } = await supabase
-    .from("assignment_files")
-    .insert(fileData)
-    .select()
-    .single();
-
-  if (fileError) {
-    debugAPI.error("Database insert failed", fileError);
-    throw fileError;
-  }
-
-  return data;
-}
-
-export async function uploadAssignmentFile(
-  file: File,
-  assignment_id?: string
-): Promise<AssignmentFile> {
-  debugAPI.step("Starting single file upload", {
-    fileName: file.name,
-    assignment_id,
-  });
-
-  const fileExt = file.name.split(".").pop();
-  const fileName = `${crypto.randomUUID()}.${fileExt}`;
-  const filePath = fileName;
-
-  const { publicUrl } = await uploadFileToStorage(file, filePath);
-  debugAPI.info("File uploaded successfully");
-
-  const fileData = await createFileRecord({
-    assignment_id,
-    file_url: publicUrl,
-    file_name: file.name,
-    file_type: getFileTypeCategory(file.type),
-    file_size: file.size,
-  });
-
-  debugAPI.info("File record created successfully", fileData);
-  return fileData;
-}
-
-// Assignment handling functions
-async function createAssignmentRecord(
-  data: Omit<
-    AssignmentFormValues,
-    "files" | "id" | "student_id" | "teacher_id" | "parent_assignment_id"
-  >
-) {
-  debug.log("Creating assignment in Supabase", data);
-
-  const { data: created, error } = await supabase
-    .from("assignments")
-    .insert(data) // No id in payload; Supabase generates it
+    .insert(data)
     .select()
     .single();
 
@@ -100,121 +20,11 @@ async function createAssignmentRecord(
     throw error;
   }
 
-  debug.log("Assignment created in Supabase", created);
-  return created as AssignmentFormValues;
-}
+  return createdData;
+};
 
-async function handleAssignmentFiles(
-  files: AssignmentFileInput[],
-  assignmentId: string
-): Promise<void> {
-  const newFiles = files.filter((file): file is File => file instanceof File);
-  if (newFiles.length > 0) {
-    const filePromises = newFiles.map((file) =>
-      uploadAssignmentFile(file, assignmentId)
-    );
-    await Promise.all(filePromises);
-  }
-}
-
-export async function createAssignment(data: AssignmentFormValues) {
-  const { files = [], ...assignmentData } = data;
-
-  const assignment = await createAssignmentRecord(assignmentData);
-
-  if (Array.isArray(files) && files.length > 0) {
-    await handleAssignmentFiles(files as AssignmentFileInput[], assignment.id);
-  }
-
-  return assignment;
-}
-
-async function updateAssignmentRecord(
-  id: string,
-  data: Partial<AssignmentFormValues>,
-  signal?: AbortSignal
-): Promise<AssignmentFormValues> {
-  debug.log("Updating assignment in Supabase", { id, data });
-  
-  try {
-    // Use standard update call but check for aborted signal before/after
-    if (signal?.aborted) {
-      throw new DOMException("Aborted", "AbortError");
-    }
-    
-    const { data: updated, error } = await supabase
-      .from("assignments")
-      .update(data)
-      .eq("id", id)
-      .select()
-      .single();
-    
-    // Check if aborted after request completed
-    if (signal?.aborted) {
-      throw new DOMException("Aborted", "AbortError");
-    }
-
-    if (error) {
-      debug.error("Failed to update assignment", error);
-      throw error;
-    }
-
-    return updated as AssignmentFormValues;
-  } catch (error) {
-    // Check if the error was due to an aborted request
-    if (error instanceof Error && error.name === 'AbortError') {
-      debug.log("Assignment update aborted", { id });
-    }
-    throw error;
-  }
-}
-
-async function deleteExistingFiles(assignmentId: string): Promise<void> {
-  await supabase
-    .from("assignment_files")
-    .delete()
-    .eq("assignment_id", assignmentId);
-}
-
-async function fetchUpdatedAssignment(id: string) {
-  const { data: updatedAssignment, error: fetchError } = await supabase
-    .from("assignments")
-    .select(
-      `
-      *,
-      files:assignment_files(*)
-    `
-    )
-    .eq("id", id)
-    .single();
-
-  if (fetchError) throw fetchError;
-  return updatedAssignment;
-}
-
-export async function updateAssignment(
-  id: string, 
-  data: AssignmentFormValues, 
-  signal?: AbortSignal
-) {
-  const { files = [], ...assignmentData } = data;
-
-  // Allow request to be aborted
-  await updateAssignmentRecord(id, assignmentData, signal);
-
-  if (Array.isArray(files) && files.length > 0) {
-    await deleteExistingFiles(id);
-    await handleAssignmentFiles(files as AssignmentFileInput[], id);
-  }
-
-  return fetchUpdatedAssignment(id);
-}
-
-export async function getAssignment(
-  id: string
-): Promise<AssignmentFormValues | null> {
-  debug.log("Fetching assignment from Supabase", { id });
-
+export const getAssignment = async (id: string) => {
+  debug.log("Fetching assignment", { id });
   const { data, error } = await supabase
     .from("assignments")
     .select("*")
@@ -226,63 +36,236 @@ export async function getAssignment(
     throw error;
   }
 
-  return data as AssignmentFormValues | null;
-}
+  return data;
+};
 
-export async function getAllAssignmentsData(
-  id: string
-): Promise<AssignmentFormValues> {
-  if (!id) {
-    debug.error("No id provided");
-    throw new Error("No id provided");
+export const updateAssignment = async (
+  id: string,
+  data: Partial<AssignmentFormValues>
+) => {
+  debug.log("Updating assignment", { id, data });
+  const { data: updatedData, error } = await supabase
+    .from("assignments")
+    .update(data)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    debug.error("Failed to update assignment", error);
+    throw error;
   }
 
-  debug.log("Fetching all data for assignment from Supabase", { id });
+  return updatedData;
+};
 
-  let formData: AssignmentFormValues = {};
+export const deleteAssignment = async (id: string) => {
+  debug.log("Deleting assignment", { id });
+
+  // First delete all associated files
+  const files = await fetchAssignmentFiles(id);
+  if (files && files?.length > 0) {
+    await deleteAssignmentFiles(
+      id,
+      files?.map((file) => file?.id)
+    );
+  }
+
+  // Then delete the assignment
+  const { error } = await supabase.from("assignments").delete().eq("id", id);
+
+  if (error) {
+    debug.error("Failed to delete assignment", error);
+    throw error;
+  }
+
+  return { success: true };
+};
+
+export const getAssignmentWithFiles = async (id: string) => {
+  debug.log("Fetching assignment with files", { id });
+
+  // Fetch the assignment
 
   const assignment = await getAssignment(id);
 
-  if (assignment) {
-    formData = {
-      ...assignment,
-      files: [],
-    };
-  }
-
+  // Fetch the files
   const files = await fetchAssignmentFiles(id);
 
-  if (files) {
-    formData.files = files.data;
+  console.log("getAssignmentWithFiles", {
+    ...(assignment ?? {}),
+    files: files ?? [],
+  });
+
+  // Return the assignment with files
+  return { ...(assignment ?? {}), files: files ?? [] };
+};
+
+// File operations
+export const uploadFileToStorage = async (file: File, filePath: string) => {
+  debug.log("Uploading file to storage", { filePath });
+
+  const { error: uploadError } = await supabase.storage
+    .from("assignments")
+    .upload(filePath, file);
+
+  if (uploadError) {
+    debug.error("Failed to upload file", uploadError);
+    throw uploadError;
   }
 
-  return formData;
-}
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("assignments").getPublicUrl(filePath);
 
-async function deleteStorageFiles(files: StorageFile[]): Promise<void> {
-  for (const file of files) {
-    const filePath = file.file_url.split("/").pop();
-    if (filePath) {
-      await supabase.storage.from("assignments").remove([filePath]);
+  return { publicUrl };
+};
+
+export const createFileRecord = async (fileData: FileRecordData) => {
+  debug.log("Creating file record", fileData);
+  const { data, error } = await supabase
+    .from("assignment_files")
+    .insert(fileData)
+    .select()
+    .single();
+
+  if (error) {
+    debug.error("Failed to create file record", error);
+    throw error;
+  }
+
+  return data;
+};
+
+export const uploadAssignmentFile = async (
+  file: File,
+  assignment_id?: string,
+  student_id?: string
+) => {
+  debug.log("Uploading assignment file", {
+    fileName: file.name,
+    assignment_id,
+  });
+
+  // Generate unique filename
+  const fileExt = file.name.split(".").pop() || "";
+  const fileName = `${crypto.randomUUID()}.${fileExt}`;
+  const filePath = fileName;
+
+  // Upload file to storage
+  const { publicUrl } = await uploadFileToStorage(file, filePath);
+
+  // Create database record
+  const fileData = await createFileRecord({
+    assignment_id,
+    file_url: publicUrl,
+    file_name: file.name,
+    file_type: getFileTypeCategory(file.type),
+    file_size: file.size,
+    student_id,
+  });
+
+  return fileData;
+};
+
+export const fetchAssignmentFiles = async (id: string) => {
+  debug.log("Fetching assignment files", { id });
+  const { data, error } = await supabase
+    .from("assignment_files")
+    .select("*")
+    .eq("assignment_id", id);
+
+  if (error) {
+    debug.error("Failed to fetch assignment files", error);
+    throw error;
+  }
+
+  return data;
+};
+
+export const getFileById = async (id: string) => {
+  debug.log("Fetching file by ID", { id });
+  const { data, error } = await supabase
+    .from("assignment_files")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    debug.error("Failed to fetch file", error);
+    throw error;
+  }
+
+  return data;
+};
+
+export const deleteFileFromStorage = async (filePath: string) => {
+  debug.log("Deleting file from storage", { filePath });
+  const { error } = await supabase.storage
+    .from("assignments") // Fixed the bucket name from "assignment" to "assignments"
+    .remove([filePath]);
+
+  if (error) {
+    debug.error("Failed to delete file from storage", error);
+    throw error;
+  }
+
+  return { success: true };
+};
+
+export const deleteFileRecord = async (id: string) => {
+  debug.log("Deleting file record", { id });
+  const { error } = await supabase
+    .from("assignment_files")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    debug.error("Failed to delete file record", error);
+    throw error;
+  }
+
+  return { success: true };
+};
+
+export const deleteFile = async (id: string) => {
+  debug.log("Deleting file completely", { id });
+
+  // Get the file first to get the URL
+  const file = await getFileById(id);
+  if (!file) {
+    throw new Error(`File with ID ${id} not found`);
+  }
+
+  // Extract the filename from the URL
+  const filePath = file.file_url.split("/").pop();
+  if (filePath) {
+    await deleteFileFromStorage(filePath);
+  }
+
+  // Delete the database record
+  await deleteFileRecord(id);
+
+  return { success: true };
+};
+
+export const deleteAssignmentFiles = async (
+  assignmentId: string,
+  fileIds: string[]
+) => {
+  debug.log("Deleting assignment files", {
+    assignmentId,
+    fileCount: fileIds.length,
+  });
+
+  for (const fileId of fileIds) {
+    try {
+      await deleteFile(fileId);
+    } catch (error) {
+      debug.error(`Failed to delete file ${fileId}`, error);
+      // Continue with other files even if one fails
     }
   }
-}
 
-async function fetchAssignmentFiles(id: string) {
-  return supabase
-    .from("assignment_files")
-    .select("file_url")
-    .eq("assignment_id", id);
-}
-
-export async function deleteAssignment(id: string): Promise<void> {
-  const { data: files } = await fetchAssignmentFiles(id);
-
-  if (files?.length) {
-    await deleteStorageFiles(files);
-  }
-
-  const { error } = await supabase.from("assignments").delete().eq("id", id);
-
-  if (error) throw error;
-}
+  return { success: true };
+};
