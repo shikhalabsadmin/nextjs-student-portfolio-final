@@ -20,6 +20,7 @@ import {
 import { SearchX } from "lucide-react";
 import { ROUTES } from "@/config/routes";
 import { useNavigate } from "react-router-dom";
+import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
 
 // Define teacher-specific properties
 interface TeacherData {
@@ -87,9 +88,13 @@ const DashboardContent = ({ user }: TeacherDataProps) => {
   // Handler for artifact clicks
   const handleArtifactClick = (artifact: Artifact) => {
     console.log("Clicked artifact:", artifact);
-    navigate(
-      ROUTES.TEACHER.MANAGE_ASSIGNMENT.replace(":id", String(artifact.id))
-    );
+    if (artifact.status === ASSIGNMENT_STATUS.APPROVED) {
+      // For approved assignments, navigate to the assignment detail page
+      navigate(ROUTES.withParams(ROUTES.ASSIGNMENT.DETAIL, { id: String(artifact.id) }));
+    } else {
+      // For other assignments, navigate to the teacher assignment management page
+      navigate(ROUTES.withParams(ROUTES.TEACHER.MANAGE_ASSIGNMENT, { id: String(artifact.id) }));
+    }
   };
 
   // Handle loading state

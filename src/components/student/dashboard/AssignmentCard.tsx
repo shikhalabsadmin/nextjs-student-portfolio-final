@@ -9,7 +9,9 @@ import {
   ASSIGNMENT_STATUS,
 } from "@/constants/assignment-status";
 import { Subject, GradeLevel } from "@/constants/grade-subjects";
-import { Trash2, MoreHorizontal, Edit } from "lucide-react";
+import { Trash2, MoreHorizontal, Edit, ExternalLink } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/config/routes";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface AssignmentCardProps {
+  id: string | number;
   title: string;
   subject: Subject;
   grade: GradeLevel;
@@ -58,6 +61,7 @@ const StatusBadge = ({ status }: { status: AssignmentStatus }) => {
 };
 
 export function AssignmentCard({
+  id,
   title,
   subject,
   grade,
@@ -67,6 +71,8 @@ export function AssignmentCard({
   onDelete,
   onEdit,
 }: AssignmentCardProps) {
+  const navigate = useNavigate();
+
   const canDelete = (status: AssignmentStatus): boolean => {
     // Only allow deletion for these statuses
     const deletableStatuses: AssignmentStatus[] = [
@@ -82,6 +88,15 @@ export function AssignmentCard({
       ASSIGNMENT_STATUS.NEEDS_REVISION,
     ];
     return editableStatuses.includes(status);
+  };
+
+  const canView = (status: AssignmentStatus): boolean => {
+    // Only allow viewing for APPROVED status
+    return status === ASSIGNMENT_STATUS.APPROVED;
+  };
+
+  const handleCardClick = () => {
+    navigate(ROUTES.withParams(ROUTES.ASSIGNMENT.DETAIL, { id: String(id) }));
   };
 
   const getDeleteConfirmationMessage = (status: AssignmentStatus): string => {
@@ -111,7 +126,7 @@ export function AssignmentCard({
     // Add delete option for applicable statuses
     if (canDelete(status)) {
       if (items.length > 0) {
-        items.push(<DropdownMenuSeparator key="separator" />);
+        items.push(<DropdownMenuSeparator key="separator-delete" />);
       }
 
       items.push(
@@ -151,7 +166,10 @@ export function AssignmentCard({
   };
 
   return (
-    <Card className="group overflow-hidden rounded-xl border border-[#EAECF0] hover:border-[#D0D5DD] hover:shadow-[0px_4px_8px_-2px_rgba(16,24,40,0.1),0px_2px_4px_-2px_rgba(16,24,40,0.06)] transition-all duration-200">
+    <Card 
+      className="group overflow-hidden rounded-xl border border-[#EAECF0] hover:border-[#D0D5DD] hover:shadow-[0px_4px_8px_-2px_rgba(16,24,40,0.1),0px_2px_4px_-2px_rgba(16,24,40,0.06)] transition-all duration-200 cursor-pointer"
+      onClick={ canView(status) ? handleCardClick : undefined}
+    >
       {/* Image Section */}
       <div className="relative h-[180px] overflow-hidden border-b border-[#EAECF0]">
         <img

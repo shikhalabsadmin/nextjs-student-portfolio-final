@@ -32,6 +32,8 @@ import { UpdatePassword } from "@/components/auth/UpdatePassword";
 import StudentAssignmentForm from "@/components/assignment/AssignmentForm";
 import TeacherDashboard from "@/components/teacher/dashboard";
 import TeacherAssignmentView from "./components/teacher/assignment_view";
+import { AssignmentDetailView } from "./components/assignment/AssignmentDetailView";
+import NotFound from "./pages/NotFound";
 
 // Debug utility enabled in development
 const DEBUG = {
@@ -134,27 +136,7 @@ const App: React.FC = () => {
               <StudentAssignmentForm user={user} />
             </ProtectedRoute>
           ),
-        },
-        {
-          path: ROUTES.STUDENT.FEEDBACK_ASSIGNMENT,
-          element: (
-            <ProtectedRoute roles={[UserRole.STUDENT]}>
-              <div>
-                <h1>Feedback Assignment</h1>
-              </div>
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: ROUTES.STUDENT.VERIFIED_ASSIGNMENT,
-          element: (
-            <ProtectedRoute roles={[UserRole.STUDENT]}>
-              <div>
-                <h1>Verified Assignment</h1>
-              </div>
-            </ProtectedRoute>
-          ),
-        },
+        }
       ],
     },
     // Teacher routes
@@ -198,35 +180,17 @@ const App: React.FC = () => {
         {
           index: true,
           element: (
-            <ProtectedRoute>
-              <RoleBasedAssignments />
-            </ProtectedRoute>
+            <div className="flex items-center justify-center h-full min-h-screen">
+              <h1 className="text-2xl font-bold">Coming Soon</h1>
+            </div>
           ),
         },
         {
-          path: ":id",
+          path: ROUTES.ASSIGNMENT.DETAIL,
           element: (
-            <ProtectedRoute>
-              <AssignmentDetail />
-            </ProtectedRoute>
+            <AssignmentDetailView />
           ),
-        },
-        {
-          path: ":id/edit",
-          element: (
-            <ProtectedRoute>
-              <AssignmentForm />
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: ":id/view",
-          element: (
-            <ProtectedRoute>
-              <ViewAssignment />
-            </ProtectedRoute>
-          ),
-        },
+        }
       ],
     },
     // Admin routes
@@ -268,6 +232,16 @@ const App: React.FC = () => {
           ),
         },
       ],
+    },
+    // NotFound route
+    {
+      path: "/not-found",
+      element: <NotFound />,
+    },
+    // Fallback route for any unmatched routes
+    {
+      path: "*",
+      element: <NotFound />,
     },
   ]);
 

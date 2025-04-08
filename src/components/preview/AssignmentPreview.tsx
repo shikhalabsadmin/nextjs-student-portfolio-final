@@ -58,7 +58,7 @@ const AssignmentPreview = memo(({
   );
 
   const hasOriginalityExplanation = useMemo(() => 
-    values?.is_original_work && values?.originality_explanation, 
+    values?.is_original_work && values?.originality_explanation ? values?.originality_explanation : "", 
     [values?.is_original_work, values?.originality_explanation]
   );
 
