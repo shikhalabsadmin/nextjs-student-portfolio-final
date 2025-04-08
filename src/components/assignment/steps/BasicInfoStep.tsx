@@ -44,33 +44,69 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
   , [grade]);
 
   const handleFiles = useCallback(async (fileList: FileList) => {
+    // Validate files first
+    const filesArray = Array.from(fileList);
+    const invalidFiles = filesArray.filter(
+      file => !validateFileType(file) || !validateFileSize(file)
+    );
+
+    if (invalidFiles.length > 0) {
+      toast({
+        title: "Invalid files",
+        description: "Files must be under 50MB and in a supported format.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create temp files with object URLs for immediate display
+    const currentFiles = form.getValues("files") ?? [];
+    const tempFiles = filesArray.map(file => ({
+      id: null,
+      file_name: file.name,
+      file_type: file.type,
+      file_size: file.size,
+      file_url: URL.createObjectURL(file),
+      assignment_id: assignmentId || null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }));
+
+    // Update UI immediately (optimistic)
+    const newFiles = [...currentFiles, ...tempFiles];
+    form.setValue("files", newFiles, { 
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true 
+    });
+    await form.trigger("files");
+    
     try {
-      const invalidFiles = Array.from(fileList).filter(
-        file => !validateFileType(file) || !validateFileSize(file)
-      );
-
-      if (invalidFiles.length > 0) {
-        toast({
-          title: "Invalid files",
-          description: "Files must be under 50MB and in a supported format.",
-          variant: "destructive",
-        });
-        return;
-      }
-
+      // Make API calls in background
       const studentId = form.getValues("student_id");
-      const uploadedFiles = await Promise.all(
-        Array.from(fileList).map(file => uploadAssignmentFile(file, assignmentId, studentId))
-      );
+      const uploadPromises = filesArray.map(file => uploadAssignmentFile(file, assignmentId, studentId));
+      const uploadedFiles = await Promise.all(uploadPromises);
       
-      const currentFiles = form.getValues("files") ?? [];
-      form.setValue("files", [...currentFiles, ...uploadedFiles], { 
+      // Replace temp file entries with server responses
+      const finalFiles = [...currentFiles];
+      uploadedFiles.forEach((uploadedFile, index) => {
+        if (uploadedFile) {
+          finalFiles.push(uploadedFile);
+        }
+      });
+      
+      // Clean up object URLs to prevent memory leaks
+      tempFiles.forEach(file => {
+        if (typeof file.file_url === 'string' && file.file_url.startsWith('blob:')) {
+          URL.revokeObjectURL(file.file_url);
+        }
+      });
+      
+      form.setValue("files", finalFiles, { 
         shouldValidate: true,
         shouldDirty: true,
         shouldTouch: true 
       });
-      
-      // Trigger form update explicitly
       await form.trigger("files");
       
       toast({
@@ -79,78 +115,133 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
       });
     } catch (error) {
       console.error("Error uploading files:", error);
+      
+      // Clean up object URLs on error too
+      tempFiles.forEach(file => {
+        if (typeof file.file_url === 'string' && file.file_url.startsWith('blob:')) {
+          URL.revokeObjectURL(file.file_url);
+        }
+      });
+      
+      // Revert to previous state
+      form.setValue("files", currentFiles, { 
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true 
+      });
+      await form.trigger("files");
+      
       toast({
         title: "Upload failed",
-        description: "There was an error uploading your files.",
+        description: "There was an error uploading your files. Please try again.",
         variant: "destructive",
       });
     }
   }, [form, assignmentId, toast]);
 
   const handleDeleteFile = useCallback(async (file: AssignmentFile, index: number) => {
+    // Only attempt API delete if file has an ID
+    const hasFileId = Boolean(file.id);
+    
+    // Store current state for potential rollback
+    const currentFiles = form.getValues("files") ?? [];
+    const fileToDelete = {...currentFiles[index]};
+    
+    // Update UI immediately
+    const newFiles = [...currentFiles];
+    newFiles.splice(index, 1);
+    form.setValue("files", newFiles, { 
+      shouldValidate: true,
+      shouldDirty: true 
+    });
+    await form.trigger("files");
+    
+    // If no file ID, no need for server operation
+    if (!hasFileId) return;
+    
     try {
-      if (file.id) {
-        await deleteFile(file.id);
-      }
-      const currentFiles = form.getValues("files") ?? [];
-      const newFiles = [...currentFiles];
-      newFiles.splice(index, 1);
-      form.setValue("files", newFiles, { 
-        shouldValidate: true,
-        shouldDirty: true,
-        shouldTouch: true 
-      });
-      
-      // Trigger form update explicitly
-      await form.trigger("files");
-      
+      await deleteFile(file.id!);
       toast({
         title: "Success",
         description: "File deleted successfully",
       });
     } catch (error) {
       console.error("Error deleting file:", error);
+      
+      // Restore file to UI on error
+      const revertFiles = [...newFiles];
+      revertFiles.splice(index, 0, fileToDelete);
+      form.setValue("files", revertFiles, {
+        shouldValidate: true,
+        shouldDirty: true
+      });
+      await form.trigger("files");
+      
       toast({
         title: "Error",
-        description: "Failed to delete file",
+        description: "Failed to delete file. Please try again.",
         variant: "destructive",
       });
     }
   }, [form, toast]);
 
   const handleYoutubeUrl = useCallback(async (url: string) => {
-    try {
-      if (!isYouTubeUrl(url)) {
-        throw new Error("Please enter a valid YouTube URL");
-      }
-
-      const videoId = getVideoId(url);
-      if (!videoId) {
-        throw new Error("Invalid YouTube URL");
-      }
-
-      const title = await fetchYouTubeVideoTitle(videoId);
-      if (!title) {
-        throw new Error("Could not fetch video title");
-      }
-
-      const currentLinks = form.getValues("youtubelinks") ?? [];
-      const newYoutubeLinks = [...currentLinks];
-      const emptyIndex = newYoutubeLinks.findIndex(link => !link.url);
-      
-      if (emptyIndex !== -1) {
-        newYoutubeLinks[emptyIndex] = { url, title };
-      } else {
-        newYoutubeLinks.push({ url, title });
-      }
-
-      form.setValue("youtubelinks", newYoutubeLinks, { 
-        shouldValidate: true,
-        shouldDirty: true,
-        shouldTouch: true 
+    // Trim the URL to prevent common issues
+    const trimmedUrl = url.trim();
+    
+    // Client-side validation
+    if (!isYouTubeUrl(trimmedUrl)) {
+      toast({
+        title: "Invalid URL",
+        description: "Please enter a valid YouTube URL.",
+        variant: "destructive",
       });
+      return false;
+    }
+
+    const videoId = getVideoId(trimmedUrl);
+    if (!videoId) {
+      toast({
+        title: "Invalid URL",
+        description: "Could not extract YouTube video ID.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    // Set up temporary placeholder and position tracking
+    const currentLinks = form.getValues("youtubelinks") ?? [];
+    const newLinks = [...currentLinks];
+    const emptyIndex = newLinks.findIndex(link => !link.url);
+    const position = emptyIndex !== -1 ? emptyIndex : newLinks.length;
+    
+    // Add placeholder for immediate UI update
+    if (emptyIndex !== -1) {
+      newLinks[position] = { url: trimmedUrl, title: "Loading video title..." };
+    } else {
+      newLinks.push({ url: trimmedUrl, title: "Loading video title..." });
+    }
+    
+    // Update UI immediately
+    form.setValue("youtubelinks", newLinks, { 
+      shouldValidate: true,
+      shouldDirty: true 
+    });
+    await form.trigger("youtubelinks");
+    
+    try {
+      // Fetch video metadata
+      const title = await fetchYouTubeVideoTitle(videoId);
+      if (!title) throw new Error("Could not fetch video title");
       
-      // Trigger form update explicitly
+      // Update with real data
+      const updatedLinks = [...newLinks];
+      updatedLinks[position] = { url: trimmedUrl, title };
+      
+      form.setValue("youtubelinks", updatedLinks, { 
+        shouldValidate: true,
+        shouldDirty: true 
+      });
       await form.trigger("youtubelinks");
       
       toast({
@@ -159,9 +250,20 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
       });
       return true;
     } catch (error) {
+      console.error("Error fetching YouTube data:", error);
+      
+      // Rollback on failure
+      const rollbackLinks = [...currentLinks];
+      
+      form.setValue("youtubelinks", rollbackLinks, { 
+        shouldValidate: true,
+        shouldDirty: true
+      });
+      await form.trigger("youtubelinks");
+      
       toast({
         title: "Invalid URL",
-        description: error instanceof Error ? error.message : "Please enter a valid YouTube URL.",
+        description: error instanceof Error ? error.message : "Could not process YouTube URL.",
         variant: "destructive",
       });
       return false;
