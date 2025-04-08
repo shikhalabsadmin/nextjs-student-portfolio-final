@@ -154,7 +154,7 @@ export default function StudentDashboard({ user }: { user: EnhancedUser }) {
               {filteredAssignments?.map((assignment) => (
                 <AssignmentCard
                   key={assignment.id}
-                  id={assignment.id}
+                  id={String(assignment?.id)}
                   {...assignment}
                   onDelete={() => handleDeleteAssignment(assignment.id)}
                   onEdit={() => handleEditAssignment(assignment.id)}

@@ -37,10 +37,7 @@ export const ROUTES = {
   // Shared Assignment routes (accessible by authenticated users)
   ASSIGNMENT: {
     ROOT: "/assignments",
-    LIST: "/assignments",
     DETAIL: "/assignments/:id",
-    EDIT: "/assignments/:id/edit",
-    VIEW: "/assignments/:id/view",
   },
 
   // Helper function to replace route params
