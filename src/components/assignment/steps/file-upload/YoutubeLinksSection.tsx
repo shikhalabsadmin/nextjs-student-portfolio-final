@@ -37,7 +37,19 @@ export function YoutubeLinksSection({
                   <FileIcon type={file.file_type} />
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-sm font-medium text-gray-900 truncate">{file.file_name}</span>
+                      {file.file_url ? (
+                        <a
+                          href={file.file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-gray-900 hover:text-gray-600 truncate"
+                          title={file.file_name}
+                        >
+                          {file.file_name}
+                        </a>
+                      ) : (
+                        <span className="text-sm font-medium text-gray-900 truncate">{file.file_name}</span>
+                      )}
                       <span className="text-sm text-gray-500 shrink-0">
                         {formatFileSize(file.file_size)}
                       </span>
