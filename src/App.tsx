@@ -100,10 +100,12 @@ const App: React.FC = () => {
           ) : (
             <Index />
           ),
+          errorElement: <Error message="An error occurred loading the index page" fullScreen />,
         },
         {
           path: ROUTES.COMMON.UPDATE_PASSWORD,
           element: <UpdatePassword />,
+          errorElement: <Error message="An error occurred updating your password" fullScreen />,
         },
       ],
     },
@@ -111,7 +113,7 @@ const App: React.FC = () => {
     {
       path: ROUTES.STUDENT.DASHBOARD,
       element: <MainLayout variant={NavVariant.AUTH} />,
-      errorElement: <Error fullScreen />,
+      errorElement: <Error message="An error occurred loading the student dashboard" fullScreen />,
       children: [
         {
           index: true,
@@ -120,6 +122,7 @@ const App: React.FC = () => {
               <StudentDashboard user={user} />
             </ProtectedRoute>
           ),
+          errorElement: <Error message="An error occurred loading student dashboard content" fullScreen />,
         },
         {
           path: ROUTES.STUDENT.PROFILE,
@@ -246,6 +249,28 @@ const App: React.FC = () => {
   ]);
 
   DEBUG.log("Router created", { routes: ROUTES });
+
+  // Add global error handler
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error("Global error caught:", event.error);
+      
+      // Log routing related errors specifically
+      if (event.error?.message?.includes("No route matches") || 
+          event.error?.message?.includes("Cannot find") ||
+          event.error?.message?.includes("Not Found")) {
+        console.error("Routing error detected:", {
+          location: window.location.href,
+          user: user?.id,
+          userRole,
+          error: event.error.message
+        });
+      }
+    };
+
+    window.addEventListener("error", handleError);
+    return () => window.removeEventListener("error", handleError);
+  }, [user, userRole]);
 
   // Render logic
   DEBUG.log("Preparing to render", { user, userRole, isLoading });

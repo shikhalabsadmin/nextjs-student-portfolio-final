@@ -20,30 +20,39 @@ export const ProtectedRoute = ({
   const location = useLocation();
 
   useEffect(() => {
-    console.log('ProtectedRoute mounted:', { 
-      user, 
+    // Always log in production for easier debugging of this critical component
+    console.log('ProtectedRoute evaluation:', { 
+      user: user?.id, 
       userRole, 
       roles,
-      path: location.pathname 
+      path: location.pathname,
+      isLoading,
+      authenticated: !!user
     });
-  }, [user, userRole, roles, location]);
+  }, [user, userRole, roles, location, isLoading]);
 
   // Show loading state
   if (isLoading) {
+    console.log('ProtectedRoute: Loading state', { path: location.pathname });
     return <Loading fullScreen />;
   }
 
   // Not authenticated
   if (!user) {
-    console.log('ProtectedRoute: No user, redirecting to:', redirectTo);
-    return <Navigate to={redirectTo} replace state={{ from: location }} />;
+    console.log('ProtectedRoute: No user, redirecting to:', redirectTo, { from: location.pathname });
+    return <Navigate to={redirectTo} replace state={{ from: location.pathname }} />;
   }
 
   // Check role access if roles are specified
   if (roles && roles.length > 0) {
     const hasRequiredRole = roles.includes(userRole as UserRole);
     if (!hasRequiredRole) {
-      console.log('ProtectedRoute: Invalid role, redirecting to dashboard');
+      console.warn('ProtectedRoute: Invalid role access attempt', { 
+        userRole, 
+        requiredRoles: roles,
+        path: location.pathname 
+      });
+      
       // Redirect to appropriate dashboard based on user role
       const dashboardRoute = 
         userRole === UserRole.STUDENT 
@@ -54,9 +63,11 @@ export const ProtectedRoute = ({
               ? ROUTES.ADMIN.DASHBOARD
               : ROUTES.COMMON.HOME;
               
-      return <Navigate to={dashboardRoute} replace state={{ from: location }} />;
+      console.log('ProtectedRoute: Redirecting to dashboard', { dashboardRoute, from: location.pathname });
+      return <Navigate to={dashboardRoute} replace state={{ from: location.pathname }} />;
     }
   }
 
+  console.log('ProtectedRoute: Access granted', { path: location.pathname, userRole });
   return <>{children}</>;
 }; 

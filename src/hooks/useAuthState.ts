@@ -45,7 +45,7 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
   const fetchProfile = async (
     userId: string,
     role: string,
-    retries = 1
+    retries = 3
   ): Promise<ProfileFetchResult> => {
     DEBUG.log("Starting profile fetch", { userId, role, retries });
     try {
@@ -58,10 +58,12 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
 
       if (error) {
         DEBUG.error("Supabase query failed", error);
+        console.error(`[Auth Error] Profile fetch query failed: ${error.message}`, { userId });
         throw error;
       }
       if (!data) {
         DEBUG.log("No profile data found", { userId });
+        console.warn(`[Auth Warning] No profile data found for user: ${userId}`);
         return { profile: null };
       }
 
@@ -69,6 +71,7 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
       const dbRole = data.role.toUpperCase();
       if (!isValidUserRole(dbRole)) {
         DEBUG.error("Invalid role detected", { dbRole, userId });
+        console.error(`[Auth Error] Invalid role detected: ${dbRole} for user: ${userId}`);
         throw new Error(`Invalid role: ${dbRole}`);
       }
 
@@ -77,6 +80,7 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
       return { profile };
     } catch (error) {
       DEBUG.error("Profile fetch attempt failed", { userId, retries, error });
+      console.error(`[Auth Error] Profile fetch attempt failed for user: ${userId}, retries left: ${retries}`, error);
       if (retries > 0) {
         DEBUG.log("Retrying profile fetch", {
           userId,
