@@ -30,6 +30,7 @@ function AssignmentForm({ user }: AssignmentFormProps) {
     isCurrentStepEditable,
     validateStep,
     isLoading,
+    isContinueDisabled,
   } = useAssignmentForm({ user });
 
   // Modal visibility state
@@ -58,12 +59,6 @@ function AssignmentForm({ user }: AssignmentFormProps) {
           STEPS.filter((step) => step.id === "teacher-feedback"))
         : STEPS,
     [lockedStatuses, assignmentStatus, setCurrentStep]
-  );
-
-  // Continue button disabled state
-  const isContinueDisabled = useMemo(
-    () => isLoading || !isCurrentStepComplete() || !isCurrentStepEditable(),
-    [isLoading, isCurrentStepComplete, isCurrentStepEditable]
   );
 
   const showContinueButton = useMemo(() => {
