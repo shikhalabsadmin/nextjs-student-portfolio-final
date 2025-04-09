@@ -34,6 +34,7 @@ import TeacherDashboard from "@/components/teacher/dashboard";
 import TeacherAssignmentView from "./components/teacher/assignment_view";
 import { AssignmentDetailView } from "./components/assignment/AssignmentDetailView";
 import NotFound from "./pages/NotFound";
+import StudentPortfolio from "./pages/StudentPortfolio";
 
 // Debug utility enabled in development
 const DEBUG = {
@@ -106,6 +107,19 @@ const App: React.FC = () => {
           path: ROUTES.COMMON.UPDATE_PASSWORD,
           element: <UpdatePassword />,
           errorElement: <Error message="An error occurred updating your password" fullScreen />,
+        },
+      ],
+    },
+    // Student Portfolio route (public)
+    {
+      path: ROUTES.PORTFOLIO.STUDENT,
+      element: <MainLayout variant={NavVariant.DEFAULT} />,
+      errorElement: <Error fullScreen />,
+      children: [
+        {
+          index: true,
+          element: <StudentPortfolio />,
+          errorElement: <Error message="An error occurred loading the student portfolio" fullScreen />,
         },
       ],
     },

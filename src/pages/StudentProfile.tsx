@@ -209,7 +209,7 @@ export const StudentProfile = ({ user }: { user: User }) => {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Grade</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select your grade" />

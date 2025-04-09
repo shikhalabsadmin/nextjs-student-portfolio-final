@@ -176,6 +176,9 @@ export function AssignmentCard({
           src={imageUrl}
           alt={title}
           className="w-full h-full object-cover"
+          onError={(e) => {
+            e.currentTarget.src = "/broken-image.png";
+          }}
         />
         <StatusBadge status={status} />
       </div>

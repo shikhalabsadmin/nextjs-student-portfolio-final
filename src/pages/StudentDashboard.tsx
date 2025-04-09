@@ -116,20 +116,20 @@ export default function StudentDashboard({ user }: { user: EnhancedUser }) {
       />
 
       {/* Sticky Corner - Positioned absolutely */}
-      <StickyCorner />
+      <StickyCorner user={user} />
 
       <div className="relative container mx-auto py-8 px-4 space-y-8 flex flex-col min-h-[calc(100vh-8rem)]">
         {/* Student Details Card */}
         <StudentCard
           name={
-            user?.user_metadata?.full_name ||
-            user.email?.split("@")[0] ||
+            (user?.full_name as string) ||
+            (user?.email?.split("@")[0] as string) ||
             "Student"
           }
           className_name={user?.grade as GradeLevel || `Update your grade`}
-          school={user?.user_metadata?.school_name || "Shikha"}
-          imageUrl={user?.user_metadata?.avatar_url}
-          description={user?.user_metadata?.bio || "Student at Shikha"}
+          school={(user?.school as string) || "Shikha"}
+          imageUrl={user?.avatar_url as string}
+          description={(user?.bio as string) || "Student at Shikha"}
         />
         {filteredAssignments?.length === 0 ? (
           <EmptyAssignments />

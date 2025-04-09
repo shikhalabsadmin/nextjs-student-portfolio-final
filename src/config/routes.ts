@@ -39,6 +39,11 @@ export const ROUTES = {
     ROOT: "/assignments",
     DETAIL: "/assignments/:id",
   },
+  
+  // Student Portfolio route (public)
+  PORTFOLIO: {
+    STUDENT: "/:student_id",
+  },
 
   // Helper function to replace route params
   withParams: (route: string, params: Record<string, string>) => {

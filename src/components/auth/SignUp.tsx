@@ -212,7 +212,7 @@ export function SignUp({ onToggleMode }: SignUpProps) {
         // Redirect to profile page for first-time setup
         const profilePath =
           values.role === UserRole.STUDENT
-            ? ROUTES.STUDENT.PROFILE
+            ? ROUTES.STUDENT.DASHBOARD
             : ROUTES.TEACHER.PROFILE;
         console.log("[SignUp] Redirecting to:", profilePath);
         window.location.href = profilePath;
