@@ -196,7 +196,8 @@ export function useTeacherArtifacts(
             grade: record?.grade || "Unknown Grade",
             status: record?.status || ASSIGNMENT_STATUS.DRAFT,
             created: record?.created_at ? format(new Date(record.created_at), 'MMM d, yyyy') : 'Unknown date',
-            lastUpdated: record?.updated_at ? format(new Date(record.updated_at), 'MMM d, yyyy') : 'Unknown date'
+            lastUpdated: record?.updated_at ? format(new Date(record.updated_at), 'MMM d, yyyy') : 'Unknown date',
+            student_id: record?.student_id ?? ""
           };
         });
 

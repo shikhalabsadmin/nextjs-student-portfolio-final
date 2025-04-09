@@ -23,12 +23,10 @@ import {
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AuthLayout } from "./AuthLayout";
-import { grades } from "@/constants/grades";
-import type { Database } from "@/types/supabase";
 import { UserRole } from "@/enums/user.enum";
 import { ROUTES } from "@/config/routes";
+import { GRADE_LEVELS } from "@/constants/grade-subjects";
 
-type Grade = Database["public"]["Tables"]["profiles"]["Row"]["grade"];
 
 // Define form schema
 const signUpSchema = z
@@ -300,9 +298,9 @@ export function SignUp({ onToggleMode }: SignUpProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {grades.map((g) => (
-                        <SelectItem key={g.value} value={g.value}>
-                          {g.label}
+                      {Object?.values(GRADE_LEVELS ?? {}).map((e) => (
+                        <SelectItem key={e} value={e}>
+                          {e}
                         </SelectItem>
                       ))}
                     </SelectContent>

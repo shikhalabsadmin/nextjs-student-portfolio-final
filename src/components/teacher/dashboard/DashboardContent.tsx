@@ -50,6 +50,7 @@ const DashboardContent = ({ user }: TeacherDataProps) => {
     );
 
   const formattedDate = useMemo(() => format(new Date(), "EEE, MMMM d"), []);
+  
 
   // Update filters when teaching_subjects change
   useEffect(() => {
@@ -59,6 +60,9 @@ const DashboardContent = ({ user }: TeacherDataProps) => {
   // Fetch artifacts from the database
   const { artifacts, isLoading, error, refetch } =
     useTeacherArtifacts(safeUser);
+
+  const unApprovedArtifacts = useMemo(() => artifacts?.filter((artifact) => artifact?.status !== ASSIGNMENT_STATUS.APPROVED), [artifacts]);
+  const uniquesStudentsCount = useMemo(() => new Set(unApprovedArtifacts?.map((artifact) => artifact?.student_id)).size, [unApprovedArtifacts]);
 
   // Memoize filtered artifacts for better performance
   const filteredArtifacts = useMemo(() => {
@@ -147,7 +151,7 @@ const DashboardContent = ({ user }: TeacherDataProps) => {
           </h1>
         </div>
         <div className="bg-white px-6 py-[19px] rounded-[11px] border border-[#E5E5E5] shadow-sm z-10 relative">
-          <TeacherStatusCard artifactCount={artifacts?.length || 0} />
+          <TeacherStatusCard artifactCount={uniquesStudentsCount || 0} />
         </div>
       </div>
 

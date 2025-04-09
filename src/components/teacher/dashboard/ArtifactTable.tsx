@@ -29,6 +29,7 @@ export interface Artifact {
   status: AssignmentStatus;
   created: string;
   lastUpdated: string;
+  student_id?: string;
 }
 
 interface ArtifactTableProps {
