@@ -129,8 +129,8 @@ const DashboardContent = ({ user }: TeacherDataProps) => {
     <div className="relative flex flex-col min-h-dvh">
       {/* Grid Pattern Background */}
       <GridPatternBase
-        width={40}
-        height={40}
+        width={20}
+        height={20}
         className="absolute inset-0 opacity-40"
         squares={[
           [1, 3],

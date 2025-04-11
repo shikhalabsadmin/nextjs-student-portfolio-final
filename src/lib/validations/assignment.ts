@@ -49,7 +49,8 @@ export const baseAssignmentFormSchema = z.object({
   verified_at: z.string().optional().default(() => new Date().toISOString()),
   feedback: z.record(z.unknown()).optional().default({}),
   youtubelinks: z.array(youtubeLinkSchema).optional().default([]),
-  files: z.array(assignmentFileSchema).optional().default([])
+  files: z.array(assignmentFileSchema).optional().default([]),
+  originality_explanation: z.string().optional().default(""),
 });
 
 // Strict schema for submission
@@ -67,6 +68,7 @@ export const assignmentFormSchema = baseAssignmentFormSchema.extend({
   challenges: z.string().min(1, "This field is required").max(200, "Must be 200 characters or less"),
   improvements: z.string().min(1, "This field is required").max(200, "Must be 200 characters or less"),
   acknowledgments: z.string().min(1, "This field is required").max(200, "Must be 200 characters or less"),
+  originality_explanation: z.string().min(1, "This field is required").max(200, "Must be 200 characters or less"),
 });
 
 export type AssignmentFormValues = z.infer<typeof assignmentFormSchema>;

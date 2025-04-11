@@ -1,39 +1,45 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { DashboardHeader } from "@/components/student/dashboard/DashboardHeader";
 import { AssignmentCard } from "@/components/student/dashboard/AssignmentCard";
 import { StickyCorner } from "@/components/student/dashboard/StickyCorner";
-import StudentCard from "@/components/student/dashboard/StudentDetailCard";
 import GridPatternBase from "@/components/ui/grid-pattern";
+import { Loading } from "@/components/ui/loading";
+import { Error } from "@/components/ui/error";
 import { StudentDashboardFilters } from "@/types/student-dashboard";
-import { getSubjectsForGrade, GradeLevel } from "@/constants/grade-subjects";
+import { useStudentAssignments } from "@/hooks/useStudentAssignments";
+import { EnhancedUser } from "@/hooks/useAuthState";
+import {
+  getSubjectsForGrade,
+  GradeLevel,
+  ALL_SUBJECTS,
+} from "@/constants/grade-subjects";
 import {
   initializeStudentFilters,
   filterStudentAssignments,
 } from "@/utils/student-dashboard-utils";
-import { useStudentAssignments } from "@/hooks/useStudentAssignments";
-import { Loading } from "@/components/ui/loading";
-import { Error } from "@/components/ui/error";
-import { EnhancedUser } from "@/hooks/useAuthState";
 
-// Empty state component
-const EmptyAssignments = () => (
-  <div
-    className="col-span-full flex items-center justify-center flex-grow h-[50vh] md:h-[60vh] bg-gray-50 border border-gray-200 rounded-lg"
-    role="status"
-    aria-live="polite"
-  >
-    <p className="text-gray-500">No assignments found</p>
-  </div>
-);
-
+/**
+ * Main dashboard component for students to view and manage their assignments
+ */
 export default function StudentDashboard({ user }: { user: EnhancedUser }) {
+  // ===== State Management =====
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Default to grade 9 if no grade is provided
+  const userGrade = useMemo(() => user?.grades as GradeLevel, [user?.grades]);
+
+  // ===== Subject and Filter Management =====
   // Get available subjects for the current grade
-  const availableSubjects = useMemo(
-    () => getSubjectsForGrade(user?.grades as GradeLevel) || [],
-    [user?.grades]
-  );
+  const availableSubjects = useMemo(() => {
+    const subjects = getSubjectsForGrade(userGrade);
+
+    // If no subjects are available, provide default subjects
+    if (!subjects?.length) {
+      return Object.values(ALL_SUBJECTS).slice(0, 5);
+    }
+
+    return subjects;
+  }, [userGrade]);
 
   // Initialize filters dynamically
   const [selectedFilters, setSelectedFilters] =
@@ -41,11 +47,23 @@ export default function StudentDashboard({ user }: { user: EnhancedUser }) {
       initializeStudentFilters(availableSubjects)
     );
 
-  // Use the custom hook to fetch and manage assignments
-  const { assignments, isLoading, error, deleteAssignment, editAssignment, refetch } =
-    useStudentAssignments(user);
+  // Reset filters when subjects change
+  useEffect(() => {
+    setSelectedFilters(initializeStudentFilters(availableSubjects));
+  }, [availableSubjects]);
 
-  // Memoize the filtered assignments to prevent unnecessary recalculations
+  // ===== Assignment Data Handling =====
+  // Use the custom hook to fetch and manage assignments
+  const {
+    assignments,
+    isLoading,
+    error,
+    deleteAssignment,
+    editAssignment,
+    refetch,
+  } = useStudentAssignments(user);
+
+  // Filter assignments based on search query and filter settings
   const filteredAssignments = useMemo(
     () =>
       filterStudentAssignments(
@@ -56,8 +74,8 @@ export default function StudentDashboard({ user }: { user: EnhancedUser }) {
       ),
     [assignments, searchQuery, selectedFilters, availableSubjects]
   );
-  
-  // Memoize callback function to prevent unnecessary recreations
+
+  // ===== Event Handlers =====
   const handleDeleteAssignment = useCallback(
     (assignmentId: number) => {
       deleteAssignment(assignmentId);
@@ -72,10 +90,7 @@ export default function StudentDashboard({ user }: { user: EnhancedUser }) {
     [editAssignment]
   );
 
-  {
-    /* Loading and Error States */
-  }
-
+  // ===== Render Loading/Error States =====
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-dvh">
@@ -86,6 +101,7 @@ export default function StudentDashboard({ user }: { user: EnhancedUser }) {
       </div>
     );
   }
+
   if (error) {
     return (
       <div className="flex justify-center items-center min-h-dvh">
@@ -99,12 +115,14 @@ export default function StudentDashboard({ user }: { user: EnhancedUser }) {
       </div>
     );
   }
+
+  // ===== Main Dashboard Render =====
   return (
     <div className="relative bg-gray-50 min-h-dvh">
-      {/* Grid Pattern Background */}
+      {/* Background Pattern */}
       <GridPatternBase
-        width={40}
-        height={40}
+        width={20}
+        height={20}
         className="absolute inset-0"
         squares={[
           [1, 3],
@@ -115,53 +133,42 @@ export default function StudentDashboard({ user }: { user: EnhancedUser }) {
         ]}
       />
 
-      {/* Sticky Corner - Positioned absolutely */}
-      <StickyCorner user={user} />
-
       <div className="relative container mx-auto py-8 px-4 space-y-8 flex flex-col min-h-[calc(100vh-8rem)]">
-        {/* Student Details Card */}
-        <StudentCard
-          name={
-            (user?.full_name as string) ||
-            (user?.email?.split("@")[0] as string) ||
-            "Student"
-          }
-          className_name={user?.grade as GradeLevel || `Update your grade`}
-          school={(user?.school as string) || "Shikha"}
-          imageUrl={user?.avatar_url as string}
-          description={(user?.bio as string) || "Student at Shikha"}
+        {/* Dashboard Header with Search and Filters */}
+        <DashboardHeader
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          selectedFilters={selectedFilters}
+          onFilterChange={setSelectedFilters}
+          availableSubjects={availableSubjects}
+          currentGrade={userGrade}
         />
-        {filteredAssignments?.length === 0 ? (
-          <EmptyAssignments />
-        ) : (
-          <>
-            {/* Dashboard Header */}
-            <DashboardHeader
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              selectedFilters={selectedFilters}
-              onFilterChange={setSelectedFilters}
-              availableSubjects={availableSubjects}
-              currentGrade={user?.grades as GradeLevel}
-            />
 
-            {/* Assignments Grid */}
-            <div
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-              aria-live="polite"
-              aria-busy={isLoading}
-            >
-              {filteredAssignments?.map((assignment) => (
-                <AssignmentCard
-                  key={assignment.id}
-                  id={String(assignment?.id)}
-                  {...assignment}
-                  onDelete={() => handleDeleteAssignment(assignment.id)}
-                  onEdit={() => handleEditAssignment(assignment.id)}
-                />
-              ))}
-            </div>
-          </>
+        {/* Assignments Content */}
+        {filteredAssignments?.length === 0 ? (
+          <div
+            className="col-span-full flex items-center justify-center flex-grow h-[50vh] md:h-[60vh] bg-gray-50 border border-gray-200 rounded-lg"
+            role="status"
+            aria-live="polite"
+          >
+            <p className="text-gray-500">No assignments found</p>
+          </div>
+        ) : (
+          <div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            aria-live="polite"
+            aria-busy={isLoading}
+          >
+            {filteredAssignments.map((assignment) => (
+              <AssignmentCard
+                key={assignment.id}
+                id={String(assignment.id)}
+                {...assignment}
+                onDelete={() => handleDeleteAssignment(assignment.id)}
+                onEdit={() => handleEditAssignment(assignment.id)}
+              />
+            ))}
+          </div>
         )}
       </div>
     </div>

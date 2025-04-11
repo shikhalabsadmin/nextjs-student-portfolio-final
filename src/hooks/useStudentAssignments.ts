@@ -50,7 +50,8 @@ export function useStudentAssignments(
       const { data, error: fetchError } = await supabase
         .from("assignments")
         .select("*")
-        .eq("student_id", user.id);
+        .eq("student_id", user.id)
+        .order('updated_at', { ascending: false });
 
       console.log("fetchAssignments", { data, fetchError });
 

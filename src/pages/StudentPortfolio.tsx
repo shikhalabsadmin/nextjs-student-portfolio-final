@@ -174,8 +174,8 @@ export default function StudentPortfolio() {
     <div className="relative bg-gray-50 min-h-dvh">
       {/* Grid Pattern Background */}
       <GridPatternBase
-        width={40}
-        height={40}
+        width={20}
+        height={20}
         className="absolute inset-0"
         squares={[
           [1, 3],

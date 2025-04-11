@@ -142,7 +142,7 @@ export function useAssignmentForm({ user }: { user: User }) {
       storeInitialState(data);
       
       // Clear validation cache to ensure fresh validation after save
-      steps.invalidateCache(currentStep);
+      steps.clearCache(currentStep);
     } catch (error) {
       toast.error("Failed to auto-save changes");
       throw error; // Re-throw for caller handling
@@ -206,18 +206,17 @@ export function useAssignmentForm({ user }: { user: User }) {
           form.reset(baseAssignmentFormSchema.parse(assignmentData), { keepDirty: false });
           
           // Clear all validation caches to start fresh
-          steps.resetStepValidation();
+          steps.reset();
           
           // Mark all steps as visited (for UI purposes)
           STEPS.forEach(step => steps.markStepVisited(step.id));
           
-          // If assignment is submitted, jump to feedback step
-          if (assignmentData.status === ASSIGNMENT_STATUS.SUBMITTED) {
-            setCurrentStepState('teacher-feedback');
-          }
-          
           // Store initial state for modification detection
           storeInitialState(assignmentData);
+          
+          // Find the next incomplete step for navigation
+          const nextIncompleteStep = steps.getNextIncompleteStep(form.getValues());
+          setCurrentStepState(nextIncompleteStep);
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to load assignment";
@@ -240,7 +239,7 @@ export function useAssignmentForm({ user }: { user: User }) {
     const data = form.getValues();
     
     // Validate only this step's fields without validating previous steps
-    const isValid = steps.validateCurrentStepOnly(currentStep, data);
+    const isValid = steps.validateStep(currentStep, data);
     
     // Return validation result so we can use it
     return isValid;
@@ -252,7 +251,7 @@ export function useAssignmentForm({ user }: { user: User }) {
     
     // Define the data change handler
     const handleDataChange = (data: AssignmentFormValues) => {
-      if (!data?.id || !steps.isStepEditable(currentStep, data)) return;
+      if (!data?.id || !steps.isEditable(data.status)) return;
       
       // Check validation state to update button status, but without showing errors
       validateCurrentStepFields();
@@ -310,17 +309,15 @@ export function useAssignmentForm({ user }: { user: User }) {
    */
   const isCurrentStepComplete = useCallback((): boolean => {
     const data = form.getValues();
-    
-    // For UI state in forms, only check the current tab's fields
-    return steps.validateCurrentStepOnly(currentStep, data);
+    return steps.validateStep(currentStep, data);
   }, [currentStep, form, steps]);
 
   /**
    * Checks if the current step is editable
    */
   const isCurrentStepEditable = useCallback((): boolean => (
-    steps.isStepEditable(currentStep, form.getValues())
-  ), [currentStep, form, steps]);
+    steps.isEditable(form.getValues().status)
+  ), [form, steps]);
 
   /**
    * Validates a specific step
@@ -365,7 +362,7 @@ export function useAssignmentForm({ user }: { user: User }) {
     setCurrentStepState('teacher-feedback');
     
     // Clear all validation caches after submission
-    steps.resetStepValidation();
+    steps.reset();
     
     toast.success("Assignment submitted successfully");
   }, [form, toast, steps]);
@@ -381,7 +378,7 @@ export function useAssignmentForm({ user }: { user: User }) {
     await form.trigger();
     
     // For tab complete validation, check only the current tab fields
-    if (!steps.validateCurrentStepOnly(currentStep, data)) {
+    if (!steps.validateStep(currentStep, data)) {
       toast.error(`Please complete all required fields in the current step`);
       return;
     }
@@ -411,7 +408,7 @@ export function useAssignmentForm({ user }: { user: User }) {
             await handleAutoSave(data.id, data);
             
             // Only proceed to next step if save was successful
-            const next = steps.getNext(currentStep, data);
+            const next = steps.getNextStep(currentStep, data);
             if (next) {
               steps.markStepVisited(next);
               setCurrentStepState(next);
@@ -437,7 +434,7 @@ export function useAssignmentForm({ user }: { user: User }) {
    */
   const previousStep = useCallback((): void => {
     const data = form.getValues();
-    const prev = steps.getPrevious(currentStep, data);
+    const prev = steps.getPreviousStep(currentStep, data);
     if (prev) {
       setCurrentStepState(prev);
     } else {
@@ -470,8 +467,8 @@ export function useAssignmentForm({ user }: { user: User }) {
     
     // For button state, only validate the current tab's fields
     // Include formDataVersion in dependencies to ensure this recalculates when form data changes
-    const stepIsComplete = steps.validateCurrentStepOnly(currentStep, data);
-    const stepIsEditable = steps.isStepEditable(currentStep, data);
+    const stepIsComplete = steps.validateStep(currentStep, data);
+    const stepIsEditable = steps.isEditable(data.status);
     
     // Log for debugging only in development
     if (process.env.NODE_ENV === 'development') {
