@@ -62,7 +62,6 @@ function AssignmentForm({ user }: AssignmentFormProps) {
       } else if (
         assignmentStatus === ASSIGNMENT_STATUS.SUBMITTED
       ) {
-        setCurrentStep("basic-info");
         // For SUBMITTED, show all steps but they'll be read-only
         return STEPS;
       } else {

@@ -246,6 +246,12 @@ export class StepService {
   getNextIncompleteStep(formData: AssignmentFormValues): AssignmentStep {
     const status = this.getAssignmentStatus(formData);
     
+    // For SUBMITTED status, return the first tab
+    if (status === ASSIGNMENT_STATUS.SUBMITTED) {
+      debug.log("SUBMITTED status detected, returning basic-info");
+      return 'basic-info';
+    }
+    
     // For APPROVED status, go to teacher-feedback
     if (status === ASSIGNMENT_STATUS.APPROVED) {
       debug.log("APPROVED status detected, returning teacher-feedback");
