@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils"; // Assuming cn is available for className merging
 
 // Define field names for type safety
 type ToggleFieldName = "is_team_work" | "is_original_work";
@@ -35,7 +36,7 @@ interface ConditionalTextareaProps {
 }
 
 /**
- * Toggle switch field with label and description
+ * Custom switch field with 'Yes/No' labels below the switch and distinct color for selected option
  * Responsive layout: stacked on mobile, side-by-side on desktop
  */
 function ToggleField({ form, name, label, description }: ToggleFieldProps) {
@@ -47,16 +48,34 @@ function ToggleField({ form, name, label, description }: ToggleFieldProps) {
         <FormItem className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border p-3 sm:p-4">
           <div className="space-y-0.5 mb-2 sm:mb-0">
             <FormLabel className="text-base">{label}</FormLabel>
-            <FormDescription className="text-sm">
-              {description}
-            </FormDescription>
+            <FormDescription className="text-sm">{description}</FormDescription>
           </div>
           <FormControl>
-            <Switch
-              checked={field.value}
-              onCheckedChange={field.onChange}
-              aria-label={label}
-            />
+            <div className="flex gap-2.5">
+              {/* No Button */}
+              <button
+                type="button"
+                onClick={() => field.onChange(false)}
+                className={cn(
+                  "text-sm px-3 py-1 rounded-md transition-colors",
+                  !field.value ? "font-bold text-slate-900 bg-slate-100" : "text-slate-500 hover:text-slate-900"
+                )}
+              >
+                No
+              </button>
+
+              {/* Yes Button */}
+              <button
+                type="button"
+                onClick={() => field.onChange(true)}
+                className={cn(
+                  "text-sm px-3 py-1 rounded-md transition-colors",
+                  field.value ? "font-bold text-slate-900 bg-slate-100" : "text-slate-500 hover:text-slate-900"
+                )}
+              >
+                Yes
+              </button>
+            </div>
           </FormControl>
         </FormItem>
       )}
@@ -64,8 +83,9 @@ function ToggleField({ form, name, label, description }: ToggleFieldProps) {
   );
 }
 
+
 /**
- * Conditional textarea that only appears when the related toggle is on
+ * Conditional textarea that only appears when the toggle is 'Yes'
  * Adapts height based on viewport size
  */
 function ConditionalTextarea({ form, toggleName, textareaName, label, placeholder }: ConditionalTextareaProps) {
@@ -132,4 +152,4 @@ export function CollaborationStep({ form }: CollaborationStepProps) {
       />
     </div>
   );
-} 
+}

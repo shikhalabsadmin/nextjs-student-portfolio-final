@@ -92,11 +92,16 @@ export function AssignmentCard({
 
   const canView = (status: AssignmentStatus): boolean => {
     // Only allow viewing for APPROVED status
-    return status === ASSIGNMENT_STATUS.APPROVED;
+    return status === ASSIGNMENT_STATUS.APPROVED || status === ASSIGNMENT_STATUS.SUBMITTED;
   };
 
   const handleCardClick = () => {
-    navigate(ROUTES.withParams(ROUTES.ASSIGNMENT.DETAIL, { id: String(id) }));
+
+    if(status === ASSIGNMENT_STATUS.SUBMITTED) {
+      navigate(ROUTES.withParams(ROUTES.STUDENT.MANAGE_ASSIGNMENT, { id: String(id) }));
+    } else {
+      navigate(ROUTES.withParams(ROUTES.ASSIGNMENT.DETAIL, { id: String(id) }));
+    }
   };
 
   const getDeleteConfirmationMessage = (status: AssignmentStatus): string => {
