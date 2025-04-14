@@ -42,10 +42,6 @@ function AssignmentForm({ user }: AssignmentFormProps) {
   // Derived state
   const assignmentStatus = form.getValues().status || ASSIGNMENT_STATUS.DRAFT;
 
-  const lockedStatuses = useMemo<LockedForContinueStatus[]>(
-    () => [ASSIGNMENT_STATUS.SUBMITTED, ASSIGNMENT_STATUS.NEEDS_REVISION],
-    []
-  );
 
   const currentStepConfig = useMemo(
     () => STEPS.find((step) => step.id === currentStep),
@@ -58,17 +54,23 @@ function AssignmentForm({ user }: AssignmentFormProps) {
         // For DRAFT status, show all steps except "teacher-feedback"
         return STEPS.filter((step) => step.id !== "teacher-feedback");
       } else if (
-        lockedStatuses.includes(assignmentStatus as LockedForContinueStatus)
+        assignmentStatus === ASSIGNMENT_STATUS.NEEDS_REVISION
       ) {
-        // For SUBMITTED or NEEDS_REVISION, show only "teacher-feedback"
+        // For NEEDS_REVISION, show only "teacher-feedback"
         setCurrentStep("teacher-feedback");
         return STEPS.filter((step) => step.id === "teacher-feedback");
+      } else if (
+        assignmentStatus === ASSIGNMENT_STATUS.SUBMITTED
+      ) {
+        setCurrentStep("basic-info");
+        // For SUBMITTED, show all steps but they'll be read-only
+        return STEPS;
       } else {
         // For other statuses (e.g., APPROVED), show all steps
         return STEPS;
       }
     },
-    [assignmentStatus, lockedStatuses, setCurrentStep]
+    [assignmentStatus, setCurrentStep]
   );
 
   // Event handlers
@@ -160,7 +162,17 @@ function AssignmentForm({ user }: AssignmentFormProps) {
                   step={currentStep as AssignmentStep}
                 />
                 <section className="px-3 py-2 md:px-6 md:py-4 flex-1 overflow-y-auto">
-                  <StepContent step={currentStep} form={form} />
+                  {assignmentStatus === ASSIGNMENT_STATUS.SUBMITTED && (
+                    <div className="bg-amber-50 border border-amber-200 p-3 mb-4 rounded-md">
+                      <p className="text-amber-800 text-sm">
+                        Your assignment has been submitted. You can view all sections but cannot make any changes.
+                      </p>
+                    </div>
+                  )}
+                  <StepContent 
+                    step={currentStep} 
+                    form={form} 
+                  />
                 </section>
               </div>
             </Form>

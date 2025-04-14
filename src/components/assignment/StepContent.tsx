@@ -7,6 +7,18 @@ import { ProcessStep } from "@/components/assignment/steps/ProcessStep";
 import { ReflectionStep } from "@/components/assignment/steps/ReflectionStep";
 import { PreviewStep } from "@/components/assignment/steps/PreviewStep";
 import { TeacherFeedbackStep } from "@/components/assignment/steps/TeacherFeedbackStep";
+import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
+import { createContext, useContext } from "react";
+
+// Create a context to provide the readonly state to all form components
+type FormStateContextType = {
+  readonly: boolean;
+};
+
+const FormStateContext = createContext<FormStateContextType>({ readonly: false });
+
+// Hook to access the form state context
+export const useFormState = () => useContext(FormStateContext);
 
 type StepContentProps = {
   step: AssignmentStep;
@@ -14,6 +26,21 @@ type StepContentProps = {
 };
 
 export function StepContent({ step, form }: StepContentProps) {
+  // Check if the assignment is in SUBMITTED status and should be readonly
+  const assignmentStatus = form.getValues().status;
+  const isReadOnly = assignmentStatus === ASSIGNMENT_STATUS.SUBMITTED;
+
+  return (
+    <FormStateContext.Provider value={{ readonly: isReadOnly }}>
+      <div className={isReadOnly ? "opacity-90 pointer-events-none" : ""}>
+        {renderStepContent(step, form)}
+      </div>
+    </FormStateContext.Provider>
+  );
+}
+
+// Helper function to render the appropriate step component
+function renderStepContent(step: AssignmentStep, form: UseFormReturn<AssignmentFormValues>) {
   switch (step) {
     case "basic-info":
       return <BasicInfoStep form={form} />;
