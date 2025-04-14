@@ -27,6 +27,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { FileUploadSection, YoutubeLinksSection } from "./file-upload";
 import { GRADE_SUBJECTS, GradeLevel } from "@/constants/grade-subjects";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface BasicInfoStepProps {
   form: UseFormReturn<AssignmentFormValues>;
@@ -343,14 +344,28 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
         control={form.control}
         name="month"
         render={({ field }) => (
-          <FormItem>
+          <FormItem className="max-w-max">
             <FormLabel className="text-base font-medium text-gray-900">
               When did you complete this? <span className="text-red-500">*</span>
             </FormLabel>
             <FormDescription className="text-sm text-gray-600">
-              Select the month in which you worked on this artifact.
+              Select the date when you completed this work.
             </FormDescription>
-            <MonthSelect field={field} />
+            <DatePicker 
+              value={field.value ? 
+                (typeof field.value === 'string' && 
+                 MONTHS.some(month => month === field.value) ? 
+                  new Date(new Date().getFullYear(), MONTHS.findIndex(month => month === field.value), 1) : 
+                  new Date(field.value)
+                ) : 
+                undefined
+              } 
+              onChange={(date) => {
+                form.setValue("month", date?.toISOString(), {
+                  shouldValidate: true
+                });
+              }}
+            />
             <FormMessage />
           </FormItem>
         )}
@@ -447,32 +462,3 @@ const SubjectSelect = memo(({
 ));
 
 SubjectSelect.displayName = "SubjectSelect";
-
-// Memoized Month Select component
-const MonthSelect = memo(({ field }: { 
-  field: {
-    onChange: (value: string) => void;
-    value: string;
-  }
-}) => (
-  <Select
-    onValueChange={field.onChange}
-    value={field.value}
-    defaultValue={field.value}
-  >
-    <FormControl>
-      <SelectTrigger className="mt-2">
-        <SelectValue placeholder="Select Month" className="text-muted-foreground" />
-      </SelectTrigger>
-    </FormControl>
-    <SelectContent>
-      {MONTHS.map((month) => (
-        <SelectItem key={month} value={month}>
-          {month}
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
-));
-
-MonthSelect.displayName = "MonthSelect";

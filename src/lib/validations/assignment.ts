@@ -59,7 +59,7 @@ export const assignmentFormSchema = baseAssignmentFormSchema.extend({
   subject: z.string().min(1, "Subject is required"),
   grade: z.string().min(1, "Grade is required"),
   artifact_type: z.string().min(1, "Type of work is required"),
-  month: z.string().min(1, "Month is required").regex(/^(January|February|March|April|May|June|July|August|September|October|November|December)$/, "Must be a valid month"),
+  month: z.string().optional(),
   selected_skills: z.array(z.string()).min(1, "Select at least one skill"),
   skills_justification: z.string().min(1, "Skill justification is required").max(200, "Must be 200 characters or less"),
   pride_reason: z.string().min(1, "This field is required").max(200, "Must be 200 characters or less"),

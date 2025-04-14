@@ -7,7 +7,7 @@ export const getDefaultValues = (): Omit<AssignmentFormValues, 'files'> => ({
   grade: "",
   status: ASSIGNMENT_STATUS.DRAFT,
   artifact_type: "",
-  month: new Date().toLocaleString('default', { month: 'long' }),
+  month: new Date().toISOString(),
   is_team_work: false,
   is_original_work: true,
   is_parent: false,
