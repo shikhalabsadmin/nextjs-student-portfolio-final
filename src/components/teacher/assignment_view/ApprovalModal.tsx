@@ -17,6 +17,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
+// Define skills list as a constant for reuse
 const SKILLS = [
   "Motivation",
   "Intellect",
@@ -40,59 +41,84 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+// Separate hook for form logic to follow SRP
+const useApprovalForm = (defaultValues: FormValues) => {
+  return useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues,
+  });
+};
+
 interface ApprovalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (skillsData: FormValues) => Promise<void>;
-  defaultSkills?: string[];
-  defaultJustification?: string;
-  defaultFeedback?: string;
+  onRevision: (formData: FormValues) => Promise<void>;
+  onApprove: (formData: FormValues) => Promise<void>;
+  defaultStates: {
+    selectedSkills?: string[];
+    justification?: string;
+    feedback?: string;
+  };
+  onFormDataChange: (formData: FormValues) => void;
 }
 
 export const ApprovalModal = memo(
-  ({ isOpen, onClose, onSubmit, defaultSkills = [], defaultJustification = "", defaultFeedback = "" }: ApprovalModalProps) => {
+  ({
+    isOpen,
+    onClose,
+    onRevision,
+    onApprove,
+    defaultStates,
+    onFormDataChange,
+  }: ApprovalModalProps) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Normalize default skills with memoization to avoid recalculation
-    const normalizedDefaultSkills = useMemo(() => 
-      defaultSkills?.map(skill => {
-        // Try to find a match in SKILLS ignoring case
-        return SKILLS?.find(s => s?.toLowerCase() === skill?.toLowerCase()) || skill;
-      }) || [],
-    [defaultSkills]);
+    // Normalize default skills with memoization
+    const normalizedDefaultSkills = useMemo(
+      () =>
+        defaultStates?.selectedSkills?.map((skill) => {
+          // Try to find a match in SKILLS ignoring case
+          return (
+            SKILLS.find((s) => s.toLowerCase() === skill.toLowerCase()) || skill
+          );
+        }) || [],
+      [defaultStates?.selectedSkills]
+    );
 
     // Create form with memoized defaultValues
-    const defaultValues = useMemo(() => ({
-      selectedSkills: normalizedDefaultSkills,
-      justification: defaultJustification || "",
-      feedback: defaultFeedback || "",
-    }), [normalizedDefaultSkills, defaultJustification, defaultFeedback]);
+    const defaultFormValues = useMemo(
+      () => ({
+        selectedSkills: normalizedDefaultSkills,
+        justification: defaultStates?.justification || "",
+        feedback: defaultStates?.feedback || "",
+      }),
+      [
+        normalizedDefaultSkills,
+        defaultStates?.justification,
+        defaultStates?.feedback,
+      ]
+    );
 
-    const form = useForm<FormValues>({
-      resolver: zodResolver(formSchema),
-      defaultValues,
-    });
+    const form = useApprovalForm(defaultFormValues);
 
     // Reset form when modal is opened or closed
     useEffect(() => {
-      if (!isOpen) {
-        // Don't reset immediately to avoid visual glitches during closing animation
-        const timer = setTimeout(() => {
-          form.reset();
-        }, 300);
-        return () => clearTimeout(timer);
-      } else {
+      if (isOpen) {
         // Reset with provided defaults when modal opens
-        form.reset(defaultValues);
+        form.reset(defaultFormValues);
       }
-    }, [isOpen, form, defaultValues]);
+    }, [isOpen, form, defaultFormValues]);
 
+    // Handle submission for approval
     const handleSubmitForm = async (values: FormValues) => {
       setIsSubmitting(true);
       try {
-        await onSubmit?.(values);
-        form.reset();
-        onClose?.();
+        // Pass form data to parent component
+        onFormDataChange(values);
+
+        // Call the appropriate function based on action (approve)
+        await onApprove(values);
+        onClose();
       } catch (err) {
         form.setError("root", {
           message: "Failed to submit approval. Please try again.",
@@ -102,8 +128,66 @@ export const ApprovalModal = memo(
       }
     };
 
+    // Handle submission for revision
+    const handleRevision = async () => {
+      const values = form.getValues();
+      setIsSubmitting(true);
+      try {
+        // Pass form data to parent component
+        onFormDataChange(values);
+
+        // Call the revision function
+        await onRevision(values);
+        onClose();
+      } catch (err) {
+        form.setError("root", {
+          message: "Failed to submit revision request. Please try again.",
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    // Conditionally render checkbox component to reduce complexity
+    const renderSkillCheckbox = (
+      skill: string,
+      field: {
+        value: string[] | undefined;
+        onChange: (value: string[]) => void;
+      }
+    ) => (
+      <div key={skill} className="flex items-center space-x-2">
+        <Checkbox
+          id={`skill-${skill}`}
+          checked={field.value?.includes?.(skill) || false}
+          onCheckedChange={(checked) => {
+            if (checked) {
+              if ((field.value?.length || 0) < 3) {
+                field.onChange([...(field.value || []), skill]);
+              }
+            } else {
+              field.onChange(
+                field.value?.filter?.((value) => value !== skill) || []
+              );
+            }
+          }}
+          disabled={
+            (!field.value?.includes?.(skill) &&
+              (field.value?.length || 0) >= 3) ||
+            isSubmitting
+          }
+        />
+        <Label
+          htmlFor={`skill-${skill}`}
+          className="text-xs sm:text-sm font-medium text-slate-900"
+        >
+          {skill}
+        </Label>
+      </div>
+    );
+
     return (
-      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose?.()}>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
         <DialogPortal>
           <DialogOverlay className="fixed inset-0 z-50 bg-black/80" />
           <div className="fixed left-[50%] top-[50%] z-50 grid w-[90vw] max-w-[20rem] sm:max-w-[24rem] md:max-w-3xl translate-x-[-50%] translate-y-[-50%] bg-white px-4 py-5 sm:px-5 sm:py-7 md:px-10 md:py-[56px] shadow-lg border border-slate-200 rounded-[6px]">
@@ -135,42 +219,9 @@ export const ApprovalModal = memo(
                           (Select Top 3)
                         </FormLabel>
                         <div className="flex flex-wrap gap-3 sm:gap-4 md:gap-8">
-                          {SKILLS.map((skill) => (
-                            <div
-                              key={skill}
-                              className="flex items-center space-x-2"
-                            >
-                              <Checkbox
-                                id={`skill-${skill}`}
-                                checked={field.value?.includes?.(skill) || false}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    if ((field.value?.length || 0) < 3) {
-                                      field.onChange([...(field.value || []), skill]);
-                                    }
-                                  } else {
-                                    field.onChange(
-                                      field.value?.filter?.(
-                                        (value) => value !== skill
-                                      ) || []
-                                    );
-                                  }
-                                }}
-                                disabled={
-                                  !field.value?.includes?.(skill) &&
-                                  (field.value?.length || 0) >= 3
-                                  ||
-                                  isSubmitting
-                                }
-                              />
-                              <Label
-                                htmlFor={`skill-${skill}`}
-                                className="text-xs sm:text-sm font-medium text-slate-900"
-                              >
-                                {skill}
-                              </Label>
-                            </div>
-                          ))}
+                          {SKILLS.map((skill) =>
+                            renderSkillCheckbox(skill, field)
+                          )}
                         </div>
                         <FormMessage className="text-red-500 text-xs sm:text-sm" />
                       </FormItem>
@@ -260,20 +311,37 @@ export const ApprovalModal = memo(
                     >
                       Cancel
                     </Button>
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="w-full sm:w-auto px-3 sm:px-4 py-2 font-medium text-xs sm:text-sm rounded-[6px] bg-indigo-500 hover:bg-indigo-600 text-white"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                          Confirming...
-                        </>
-                      ) : (
-                        "Confirm"
-                      )}
-                    </Button>
+                    <div className="flex flex-1 flex-row justify-end gap-2.5">
+                      <>
+                        {isSubmitting ? (
+                          <>
+                            <div className="flex items-center justify-center bg-slate-200 rounded-md p-5">
+                              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handleRevision}
+                              disabled={isSubmitting}
+                              className="w-full sm:w-auto px-3 sm:px-4 py-2 font-medium text-xs sm:text-sm rounded-[6px] border-slate-300 text-slate-800"
+                            >
+                              Send for revision
+                            </Button>
+                            <Button
+                              type="button"
+                              disabled={isSubmitting}
+                              onClick={() => handleSubmitForm(form.getValues())}
+                              className="w-full sm:w-auto px-3 sm:px-4 py-2 font-medium text-xs sm:text-sm rounded-[6px] bg-indigo-500 hover:bg-indigo-600 text-white"
+                            >
+                              Approve
+                            </Button>
+                          </>
+                        )}
+                      </>
+                    </div>
                   </div>
                 </form>
               </Form>

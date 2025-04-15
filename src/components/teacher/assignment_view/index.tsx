@@ -12,7 +12,6 @@ import { ToastService } from "@/lib/services/toast.service";
 // Import the components directly now that we have declaration files
 import { TeacherSidebar } from "./TeacherSidebar";
 import { TeacherHeader } from "./TeacherHeader";
-import { RevisionModal } from "./RevisionModal";
 import { ApprovalModal } from "./ApprovalModal";
 
 // Import UI components
@@ -38,28 +37,34 @@ interface StudentProfile {
   avatar_url?: string;
 }
 
+type TeacherFeedback = {
+  selected_skills?: string[];
+  skills_justification?: string;
+  text?: string;
+  date?: string;
+  teacher_id?: string | null;
+};
+
 type TeacherAssignmentViewProps = {
   user: User;
 };
 
-type Tabs = "template" | "form";
+type TabType = "template" | "form";
 
-const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  // Start with loading set to true to prevent unnecessary renders
+// Custom hook to fetch and manage assignment data
+const useAssignmentData = (assignmentId: string | undefined, user: User) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [assignment, setAssignment] = useState<AssignmentFormValues | null>(
-    null
-  );
+  const [assignment, setAssignment] = useState<AssignmentFormValues | null>(null);
   const [student, setStudent] = useState<StudentProfile | null>(null);
-  const [activeTab, setActiveTab] = useState<Tabs>("template");
-  const [isRevisionModalOpen, setIsRevisionModalOpen] = useState<boolean>(false);
-  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState<boolean>(false);
-
-  // Create services only once with useMemo to prevent recreation on re-renders
+  const [feedback, setFeedback] = useState<TeacherFeedback>({
+    selected_skills: [],
+    skills_justification: "",
+    text: "",
+  });
+  
   const toast = useMemo(() => new ToastService(), []);
-
+  const navigate = useNavigate();
+  
   // Set up form with default values
   const form = useForm<AssignmentFormValues>({
     defaultValues: useMemo(
@@ -68,21 +73,172 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
       }),
       []
     ),
-    // Set mode to onSubmit to reduce validation runs
     mode: "onSubmit",
   });
 
-  // Handle revision modal
-  const handleRevisionModal = () => {
-    setIsRevisionModalOpen((pre) => !pre);
-  };
+  // Fetch assignment data
+  const fetchAssignment = useCallback(async () => {
+    if (!assignmentId) return;
 
-  // Handle approval modal
-  const handleApprovalModal = () => {
-    setIsApprovalModalOpen((pre) => !pre);
-  };
+    setIsLoading(true);
+    try {
+      // Get assignment data
+      const assignmentData = await getAssignmentWithFiles(assignmentId);
 
-  // Define accordion sections
+      // Check if assignment data is found
+      if (!assignmentData) {
+        toast.error("Error while loading student assignment");
+        return;
+      }
+
+      // Fetch student profile
+      if (assignmentData?.student_id) {
+        const { data: studentData, error: studentError } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", assignmentData.student_id)
+          .single();
+
+        if (studentError) {
+          toast.error("Error while loading student profile");
+          console.error("Student profile error:", studentError);
+        } else {
+          setStudent(studentData as StudentProfile || null);
+        }
+      }
+
+      // Store the assignment data
+      setAssignment(assignmentData);
+
+      // Set form values
+      form.reset(assignmentData, {
+        keepDefaultValues: true,
+        keepDirty: false,
+      });
+
+      // Set feedback data
+      setFeedback({
+        selected_skills: assignmentData?.feedback?.selected_skills || [],
+        skills_justification: assignmentData?.feedback?.skills_justification || "",
+        text: assignmentData?.feedback?.text || "",
+      });
+
+    } catch (error) {
+      console.error("Error fetching assignment:", error);
+      toast.error("Failed to load assignment details");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [assignmentId, form, toast]);
+
+  // Update assignment status with feedback
+  const updateAssignmentStatus = useCallback(async (
+    feedbackData: {
+      selectedSkills: string[];
+      justification: string;
+      feedback?: string;
+    },
+    assignmentStatus: keyof typeof ASSIGNMENT_STATUS
+  ) => {
+    if (!assignment?.id) return;
+
+    try {
+      const teacherFeedback = {
+        selected_skills: feedbackData?.selectedSkills || [],
+        skills_justification: feedbackData?.justification || "",
+        text: feedbackData?.feedback || "",
+        date: new Date().toISOString(),
+        teacher_id: user?.id || null,
+      };
+
+      const updatedData = {
+        status: assignmentStatus,
+        feedback: teacherFeedback,
+        verified_at: assignmentStatus === ASSIGNMENT_STATUS.APPROVED ? new Date().toISOString() : null,
+      };
+
+      const { error } = await supabase
+        .from("assignments")
+        .update(updatedData)
+        .eq("id", assignment?.id);
+        
+      if (error) {
+        console.error("Error updating assignment:", error);
+        toast.error("Failed to update assignment");
+        return;
+      }
+
+      toast.success("Assignment updated successfully");
+      navigate(ROUTES.TEACHER.DASHBOARD);
+     
+    } catch (error) {
+      console.error("Error updating assignment:", error);
+      toast.error("Failed to update assignment");
+    }
+  }, [assignment?.id, navigate, toast, user?.id]);
+
+  // Load data on component mount
+  useEffect(() => {
+    fetchAssignment();
+  }, [fetchAssignment]);
+
+  return {
+    isLoading,
+    assignment,
+    student,
+    feedback,
+    form,
+    toast,
+    fetchAssignment,
+    updateAssignmentStatus,
+    setFeedback
+  };
+};
+
+// TabSelector component to improve readability and reduce nesting
+const TabSelector = ({ activeTab, setActiveTab }: { 
+  activeTab: TabType; 
+  setActiveTab: (tab: TabType) => void;
+}) => (
+  <div className="sticky top-0 z-10 bg-white">
+    <TabsList className="bg-transparent flex w-auto h-auto p-0 gap-6 sm:gap-12 px-4 sm:px-0 justify-center">
+      <TabsTrigger
+        value="template"
+        className="px-0 py-3 sm:py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-b-2 data-[state=active]:border-black text-sm font-normal data-[state=active]:font-semibold text-slate-600 hover:text-slate-900"
+        onClick={() => setActiveTab("template")}
+      >
+        Template View
+      </TabsTrigger>
+      <TabsTrigger
+        value="form"
+        className="px-0 py-3 sm:py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-b-2 data-[state=active]:border-black text-sm font-normal data-[state=active]:font-semibold text-slate-600 hover:text-slate-900"
+        onClick={() => setActiveTab("form")}
+      >
+        Form View
+      </TabsTrigger>
+    </TabsList>
+  </div>
+);
+
+const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<TabType>("template");
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState<boolean>(false);
+  
+  // Use the custom hook for data fetching and management
+  const {
+    isLoading,
+    assignment,
+    student,
+    feedback,
+    form,
+    fetchAssignment,
+    updateAssignmentStatus,
+    setFeedback
+  } = useAssignmentData(id, user);
+
+  // Define accordion sections once
   const formSections: AccordionSection[] = useMemo(() => [
     {
       id: "basic-info",
@@ -106,170 +262,10 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
     }
   ], [form]);
 
-  // Memoize fetchAssignment to prevent unnecessary recreations
-  const fetchAssignment = useCallback(async () => {
-    if (!id) return;
-
-    setIsLoading(true);
-    try {
-      // Get assignment data
-      const assignmentData = await getAssignmentWithFiles(id);
-
-      // Check if assignment data is found
-      if (!assignmentData) {
-        toast.error("Error while loading student assignment");
-        return;
-      }
-
-      // Fetch student profile
-      if (assignmentData?.student_id) {
-        const { data: studentData, error: studentError } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", assignmentData.student_id)
-          .single();
-
-        if (studentError) {
-          toast.error("Error while loading student profile");
-          // Continue with null student data instead of returning
-          console.error("Student profile error:", studentError);
-        } else {
-          setStudent(studentData as StudentProfile || null);
-        }
-      }
-
-      // Store the assignment data in state to reduce form.getValues() calls
-      setAssignment(assignmentData);
-
-      // Set form values
-      form.reset(assignmentData, {
-        keepDefaultValues: true,
-        keepDirty: false,
-      });
-    } catch (error) {
-      console.error("Error fetching assignment:", error);
-      toast.error("Failed to load assignment details");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [id, form, toast]);
-
-  const handleApprove = useCallback(
-    async (skillsData: {
-      selectedSkills: string[];
-      justification: string;
-      feedback?: string;
-    }) => {
-      if (!assignment?.id) return;
-
-      let feedbackData = {}
-
-      if(skillsData?.feedback){
-        feedbackData = {
-          text: skillsData.feedback,
-          date: new Date().toISOString(),
-          teacher_id: user?.id || null,
-        };
-      }
-
-      const updatedData = {
-        status: ASSIGNMENT_STATUS.APPROVED,
-        verified_at: new Date().toISOString(),
-        selected_skills: skillsData?.selectedSkills || [],
-        skills_justification: skillsData?.justification || "",
-        feedback: feedbackData,
-      };
-
-      console.log("Handle Approve request","Updated Data", updatedData)
-
-      try {
-        const { error } = await supabase
-          .from("assignments")
-          .update(updatedData)
-          .eq("id", assignment.id);
-
-        if (error) {
-          console.error("Error approving assignment:", error);
-          toast.error("Failed to approve assignment");
-          return;
-        }
-
-        console.log("Handle Approve request","Updated Data", updatedData)
-
-        // Update form and assignment state
-        const updatedAssignment = {
-          ...assignment,
-          ...updatedData
-        };
-        setAssignment(updatedAssignment);
-        form.reset(updatedAssignment, { keepDefaultValues: true });
-        toast.success("Assignment approved successfully");
-        setActiveTab("template");
-        navigate(ROUTES.TEACHER.DASHBOARD);
-      } catch (error) {
-        console.error("Error approving assignment:", error);
-        toast.error("Failed to approve assignment");
-      }
-    },
-    [assignment, form, navigate, toast, user?.id]
-  );
-
-  const handleRequestRevision = useCallback(
-    async (feedbackText: string) => {
-      if (!assignment?.id) return;
-
-      try {
-        // Create the feedback object
-        const feedbackData = {
-          text: feedbackText || "",
-          date: new Date().toISOString(),
-          teacher_id: user?.id || null,
-        };
-
-        const { error } = await supabase
-          .from("assignments")
-          .update({
-            status: ASSIGNMENT_STATUS.NEEDS_REVISION,
-            feedback: feedbackData,
-          })
-          .eq("id", assignment.id);
-
-        if (error) {
-          toast.error("Failed to request revision");
-          return;
-        }
-        
-
-        // Update form and assignment state
-        const updatedAssignment = {
-          ...assignment,
-          status: ASSIGNMENT_STATUS.NEEDS_REVISION,
-          feedback: feedbackData,
-        };
-        setAssignment(updatedAssignment);
-        form.reset(updatedAssignment, { keepDefaultValues: true });
-
-        toast.success("Revision requested successfully");
-        setActiveTab("template");
-        navigate(ROUTES.TEACHER.DASHBOARD);
-      } catch (error) {
-        console.error("Error requesting revision:", error);
-        toast.error("Failed to request revision");
-      }
-    },
-    [assignment, form, navigate, toast, user?.id]
-  );
-
-  // Fetch assignment data only once when component mounts or id changes
-  useEffect(() => {
-    fetchAssignment();
-
-    // Return cleanup function to cancel any pending requests
-    return () => {
-      // Cancel any pending operations
-      setIsLoading(false);
-    };
-  }, [id, fetchAssignment]);
+  // Toggle feedback modal visibility
+  const toggleFeedbackModal = useCallback(() => {
+    setIsFeedbackModalOpen(prevState => !prevState);
+  }, []);
 
   if (isLoading) {
     return (
@@ -296,67 +292,49 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
     );
   }
 
-  console.log("Assignment", assignment)
-
   return (
     <div className="px-8 py-5 md:px-16 md:py-10">
       <div className="flex flex-col gap-4 md:gap-8 md:flex-row">
-        {/* Sidebar - styled to match student side */}
+        {/* Sidebar */}
         <TeacherSidebar />
 
         {/* Main content area */}
         <div className="flex-1">
           <Form {...form}>
             <div className="rounded border border-slate-200 flex flex-col h-[calc(100vh-8rem)] overflow-hidden shadow-sm bg-white">
-              {/* Custom header for teacher view */}
+              {/* Header */}
               <div className="sticky top-0 z-10 bg-white border-b border-slate-200">
                 <TeacherHeader
                   studentName={student?.full_name || "Student"}
                   subject={assignment.subject || "Unknown Subject"}
                   grade={assignment.grade || "Unknown Grade"}
                   isApproved={assignment?.status === ASSIGNMENT_STATUS.APPROVED}
-                  onApprove={handleApprovalModal}
-                  openRevisionModal={handleRevisionModal}
+                  sendFeedback={toggleFeedbackModal}
                 />
               </div>
 
-              {/* Main tabs - Template View and Form View */}
+              {/* Main content tabs */}
               <div className="flex-1 overflow-auto">
                 <Tabs
                   value={activeTab}
-                  onValueChange={(value) => setActiveTab(value as Tabs)}
+                  onValueChange={(value) => setActiveTab(value as TabType)}
                   className="w-full"
                 >
-                  <div className="sticky top-0 z-10 bg-white">
-                    <TabsList className="bg-transparent flex w-auto h-auto p-0 gap-6 sm:gap-12 px-4 sm:px-0 justify-center">
-                      <TabsTrigger
-                        value="template"
-                        className="px-0 py-3 sm:py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-b-2 data-[state=active]:border-black text-sm font-normal data-[state=active]:font-semibold text-slate-600 hover:text-slate-900"
-                      >
-                        Template View
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="form"
-                        className="px-0 py-3 sm:py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-b-2 data-[state=active]:border-black text-sm font-normal data-[state=active]:font-semibold text-slate-600 hover:text-slate-900"
-                      >
-                        Form View
-                      </TabsTrigger>
-                    </TabsList>
-                  </div>
+                  <TabSelector activeTab={activeTab} setActiveTab={setActiveTab} />
 
                   <div className="p-0">
                     <TabsContent value="template" className="mt-0 p-6">
-                      {/* Template View - Display the PreviewStep component */}
+                      {/* Template View */}
                       <PreviewStep form={form} />
                     </TabsContent>
 
                     <TabsContent value="form" className="mt-0 p-6">
-                      {/* Form View - Use the FormViewAccordion with sections as props */}
+                      {/* Form View */}
                       <FormViewAccordion 
                         sections={formSections}
                         defaultValue="basic-info"
                         customClassName={{
-                          content:"pointer-events-none "
+                          content: "pointer-events-none"
                         }}
                       />
                     </TabsContent>
@@ -368,22 +346,36 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
         </div>
       </div>
 
-      {/* Revision Modal at the parent level */}
-      <RevisionModal
-        isOpen={isRevisionModalOpen}
-        onClose={handleRevisionModal}
-        onSubmit={handleRequestRevision}
-        currentFeedback={typeof assignment?.feedback?.text === 'string' ? assignment.feedback.text : ""}
-      />
-
-      {/* Approval Modal at the parent level */}
+      {/* Approval Modal */}
       <ApprovalModal
-        isOpen={isApprovalModalOpen}
-        onClose={handleApprovalModal}
-        onSubmit={handleApprove}
-        defaultSkills={Array.isArray(assignment?.selected_skills) ? assignment.selected_skills : []}
-        defaultJustification={typeof assignment?.skills_justification === 'string' ? assignment.skills_justification : ""}
-        defaultFeedback={typeof assignment?.feedback?.text === 'string' ? assignment.feedback.text : ""}
+        isOpen={isFeedbackModalOpen}
+        onClose={toggleFeedbackModal}
+        onRevision={async (formData) => {
+          await updateAssignmentStatus({
+            selectedSkills: formData?.selectedSkills || [], 
+            justification: formData?.justification || "",
+            feedback: formData?.feedback || "",
+          }, ASSIGNMENT_STATUS.NEEDS_REVISION);
+        }}
+        onApprove={async (formData) => {
+          await updateAssignmentStatus({
+            selectedSkills: formData?.selectedSkills || [],
+            justification: formData?.justification || "",
+            feedback: formData?.feedback || "",
+          }, ASSIGNMENT_STATUS.APPROVED);
+        }}
+        defaultStates={{
+          selectedSkills: feedback?.selected_skills || [],
+          justification: feedback?.skills_justification || "",
+          feedback: feedback?.text || ""
+        }}
+        onFormDataChange={formData => {
+          setFeedback({
+            selected_skills: formData?.selectedSkills || [],
+            skills_justification: formData?.justification || "",
+            text: formData?.feedback || ""
+          });
+        }}
       />
     </div>
   );

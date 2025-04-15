@@ -5,8 +5,7 @@ interface TeacherHeaderProps {
   subject?: string;
   grade?: string;
   isApproved: boolean;
-  onApprove: () => void;
-  openRevisionModal: () => void;
+  sendFeedback: () => void;
 }
 
 export const TeacherHeader = ({
@@ -14,8 +13,7 @@ export const TeacherHeader = ({
   subject,
   grade,
   isApproved,
-  onApprove,
-  openRevisionModal,
+  sendFeedback,
 }: TeacherHeaderProps) => {
   return (
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 sm:p-4 md:p-6 border-b border-slate-200 bg-white">
@@ -30,22 +28,12 @@ export const TeacherHeader = ({
 
       <div className="flex flex-col sm:flex-row flex-wrap w-full sm:w-auto gap-2 sm:gap-3 md:gap-6">
         {!isApproved && (
-          <>
-            <Button
-              variant="outline"
-              className="w-full sm:w-auto border-slate-200 text-slate-800 hover:bg-slate-50 shadow-sm text-xs sm:text-sm font-medium px-3 sm:px-4 py-2 rounded-[6px]"
-              onClick={openRevisionModal}
-            >
-              Send for revision
-            </Button>
-
-            <Button
-              className="w-full sm:w-auto bg-indigo-500 hover:bg-indigo-600 text-white shadow-sm text-xs sm:text-sm font-medium px-3 sm:px-4 py-2 rounded-[6px]"
-              onClick={onApprove}
-            >
-              Approve Artefact
-            </Button>
-          </>
+          <Button
+          className="w-full sm:w-auto bg-indigo-500 hover:bg-indigo-600 text-white shadow-sm text-xs sm:text-sm font-medium px-3 sm:px-4 py-2 rounded-[6px]"
+          onClick={sendFeedback}
+        >
+          Send Feedback
+        </Button>
         )}
       </div>
     </div>
