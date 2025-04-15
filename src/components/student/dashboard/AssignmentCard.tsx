@@ -176,7 +176,7 @@ export function AssignmentCard({
       onClick={ canView(status) ? handleCardClick : undefined}
     >
       {/* Image Section */}
-      <div className="relative h-[180px] overflow-hidden border-b border-[#EAECF0]">
+      <div className="relative aspect-[16/9] overflow-hidden border-b border-[#EAECF0] bg-gray-100">
         <img
           src={imageUrl}
           alt={title}
