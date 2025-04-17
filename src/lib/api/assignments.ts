@@ -140,11 +140,13 @@ export const createFileRecord = async (fileData: FileRecordData) => {
 export const uploadAssignmentFile = async (
   file: File,
   assignment_id?: string,
-  student_id?: string
+  student_id?: string,
+  metadata?: { is_process_documentation?: boolean }
 ) => {
   debug.log("Uploading assignment file", {
     fileName: file.name,
     assignment_id,
+    metadata
   });
 
   // Generate unique filename
@@ -163,6 +165,7 @@ export const uploadAssignmentFile = async (
     file_type: getFileTypeCategory(file.type),
     file_size: file.size,
     student_id,
+    ...metadata // Spread any additional metadata fields
   });
 
   return fileData;

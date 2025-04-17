@@ -17,7 +17,8 @@ export const assignmentFileSchema = z.object({
   file_size: z.number().optional().default(0),
   created_at: z.string().optional().default(() => new Date().toISOString()),
   updated_at: z.string().optional().default(() => new Date().toISOString()),
-  student_id: z.string().optional()
+  student_id: z.string().optional(),
+  is_process_documentation: z.boolean().optional()
 }).strict();
 
 // Base schema for loading (permissive)

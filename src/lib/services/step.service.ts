@@ -26,8 +26,11 @@ const STEP_VALIDATION_CONFIG: Record<AssignmentStep, {
   'basic-info': {
     requiredFields: ['title', 'artifact_type', 'subject', 'month'],
     validate: (formData) => {
-      const hasYoutubeLinks = Boolean(formData.youtubelinks?.length);
-      const hasFiles = Boolean(formData.files?.length);
+      const hasYoutubeLinks = Array.isArray(formData.youtubelinks) && 
+        formData.youtubelinks.some(link => link?.url && link.url.trim().length > 0);
+      
+      const hasFiles = Array.isArray(formData.files) && formData.files.length > 0;
+      
       return hasYoutubeLinks || hasFiles;
     },
   },

@@ -2,6 +2,7 @@ import type { UseFormReturn } from "react-hook-form";
 import type { AssignmentFormValues } from "@/lib/validations/assignment";
 import { useState, useEffect } from "react";
 import { CreationProcess } from "./reflection-sections/CreationProcess";
+import { CreationProcessImages } from "./reflection-sections/CreationProcessImages";
 import { Learnings } from "./reflection-sections/Learnings";
 import { Challenges } from "./reflection-sections/Challenges";
 import { Improvements } from "./reflection-sections/Improvements";
@@ -39,6 +40,7 @@ export function ReflectionStep({ form }: ReflectionStepProps) {
   return (
     <div className="space-y-6 px-4 sm:px-0">
       <CreationProcess form={form} currentLength={charCounts.creation_process} />
+      <CreationProcessImages form={form} />
       <Learnings form={form} currentLength={charCounts.learnings} />
       <Challenges form={form} currentLength={charCounts.challenges} />
       <Improvements form={form} currentLength={charCounts.improvements} />

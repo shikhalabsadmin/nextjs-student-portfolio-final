@@ -70,7 +70,8 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
       file_url: URL.createObjectURL(file),
       assignment_id: assignmentId || null,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      is_process_documentation: false // Explicitly mark as not process documentation
     }));
 
     // Update UI immediately (optimistic)
@@ -85,7 +86,9 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
     try {
       // Make API calls in background
       const studentId = form.getValues("student_id");
-      const uploadPromises = filesArray.map(file => uploadAssignmentFile(file, assignmentId, studentId));
+      const uploadPromises = filesArray.map(file => 
+        uploadAssignmentFile(file, assignmentId, studentId, { is_process_documentation: false })
+      );
       const uploadedFiles = await Promise.all(uploadPromises);
       
       // Replace temp file entries with server responses

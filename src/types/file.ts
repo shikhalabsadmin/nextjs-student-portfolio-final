@@ -16,6 +16,7 @@ export type FileUploadResponse = {
 export type FileRecordData = BaseFileData & {
   assignment_id?: string;
   student_id?: string;
+  is_process_documentation?: boolean;
 };
 
 // Simple file reference (used in StorageFile)
@@ -30,6 +31,7 @@ export interface AssignmentFile extends BaseFileData {
   created_at?: string;
   updated_at?: string;
   student_id?: string;
+  is_process_documentation?: boolean;
 }
 
 // Union type for file inputs

@@ -4,6 +4,7 @@ import type { AssignmentFile } from "@/types/file";
 import type { UseFormReturn } from "react-hook-form";
 import type { AssignmentFormValues } from "@/lib/validations/assignment";
 import { formatFileSize } from "@/lib/utils/file-type.utils";
+import { useMemo } from "react";
 
 interface YoutubeLinksProps {
   files: AssignmentFile[];
@@ -22,60 +23,78 @@ export function YoutubeLinksSection({
   FileIcon,
   isMobile
 }: YoutubeLinksProps) {
+  // Filter out any files marked as process documentation
+  const nonProcessFiles = useMemo(() => 
+    files?.filter(file => file && file.is_process_documentation !== true) || [], 
+    [files]
+  );
+
   return (
     <>
       {/* Display Files */}
-      {files.length > 0 && (
+      {nonProcessFiles.length > 0 && (
         <div className="mt-4 space-y-2">
           <div className={`space-y-2 ${isMobile ? 'max-h-60 overflow-y-auto pr-1' : ''}`}>
-            {files.map((file, index) => (
-              <div 
-                key={file.id || index} 
-                className="flex items-center justify-between px-4 py-2.5 bg-white border border-gray-200 rounded-lg"
-              >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <FileIcon type={file.file_type} />
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <div className="flex items-center gap-2 min-w-0">
-                      {file.file_url ? (
-                        <a
-                          href={file.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm font-medium text-gray-900 hover:text-gray-600 truncate"
-                          title={file.file_name}
-                        >
-                          {file.file_name}
-                        </a>
-                      ) : (
-                        <span className="text-sm font-medium text-gray-900 truncate">{file.file_name}</span>
-                      )}
-                      <span className="text-sm text-gray-500 shrink-0">
-                        {formatFileSize(file.file_size)}
-                      </span>
+            {nonProcessFiles.map((file, index) => {
+              if (!file) return null;
+              
+              // Find the original index in the full files array
+              const originalIndex = files.findIndex(f => 
+                f && f.id === file.id && 
+                f.file_url === file.file_url
+              );
+              
+              return (
+                <div 
+                  key={file.id || index} 
+                  className="flex items-center justify-between px-4 py-2.5 bg-white border border-gray-200 rounded-lg"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <FileIcon type={file.file_type || ''} />
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {file.file_url ? (
+                          <a
+                            href={file.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-medium text-gray-900 hover:text-gray-600 truncate"
+                            title={file.file_name || ''}
+                          >
+                            {file.file_name || 'Unnamed file'}
+                          </a>
+                        ) : (
+                          <span className="text-sm font-medium text-gray-900 truncate">
+                            {file.file_name || 'Unnamed file'}
+                          </span>
+                        )}
+                        <span className="text-sm text-gray-500 shrink-0">
+                          {formatFileSize(file.file_size || 0)}
+                        </span>
+                      </div>
                     </div>
                   </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 ml-2 shrink-0"
+                    onClick={() => handleDeleteFile(file, originalIndex !== -1 ? originalIndex : index)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 ml-2 shrink-0"
-                  onClick={() => handleDeleteFile(file, index)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
 
       {/* Display YouTube Links */}
-      {youtubeLinks.some(link => link.url) && (
+      {Array.isArray(youtubeLinks) && youtubeLinks.some(link => link?.url) && (
         <div className="mt-4 space-y-2">
           {youtubeLinks.map((link, index) => {
-            if (!link.url) return null;
+            if (!link?.url) return null;
             return (
               <div 
                 key={index} 
@@ -90,9 +109,9 @@ export function YoutubeLinksSection({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-sm font-medium text-gray-900 hover:text-gray-600 truncate"
-                        title={link.title}
+                        title={link.title || link.url}
                       >
-                        {link.title || 'Loading...'}
+                        {link.title || link.url || 'Loading...'}
                       </a>
                     </div>
                   </div>
@@ -103,7 +122,7 @@ export function YoutubeLinksSection({
                   size="sm"
                   className="h-8 w-8 p-0 ml-2 shrink-0"
                   onClick={() => {
-                    const newLinks = [...youtubeLinks];
+                    const newLinks = [...(youtubeLinks || [])];
                     newLinks.splice(index, 1);
                     if (newLinks.length === 0) {
                       newLinks.push({ url: "", title: "" });
