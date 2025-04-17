@@ -28,6 +28,7 @@ export interface FileItem {
   assignment_id?: string;
   file_type?: string;
   file_size?: number;
+  is_process_documentation?: boolean;
 }
 
 export interface YoutubeLink {

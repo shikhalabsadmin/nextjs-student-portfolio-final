@@ -6,6 +6,7 @@ import { YoutubeLinksPreview } from "./YoutubeLinksPreview";
 import { AssignmentFormValues } from "@/lib/validations/assignment";
 import { useEffect, useMemo, useCallback, useState, memo } from "react";
 import { cn } from "@/lib/utils";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 // Format date from ISO string to "12 Jan 2024" format
 const formatDate = (dateString: string | undefined): string => {
@@ -50,6 +51,14 @@ const AssignmentPreview = memo(({
     values?.youtubelinks?.some((link) => link?.url), 
     [values?.youtubelinks]
   );
+
+  // Get process documentation images
+  const processImages = useMemo(() =>
+    values?.files?.filter(file => file && file.is_process_documentation === true) || [],
+    [values?.files]
+  );
+
+  const hasProcessImages = useMemo(() => processImages.length > 0, [processImages]);
 
   // Memoize conditional rendering checks
   const hasTeamContribution = useMemo(() => 
@@ -177,7 +186,7 @@ const AssignmentPreview = memo(({
               Attached article
             </h2>
             <div className="space-y-4">
-              {hasFiles ? <ArtifactPreview files={values?.files || []} /> : null}
+              {hasFiles ? <ArtifactPreview files={values?.files?.filter(file => file && file.is_process_documentation !== true) || []} /> : null}
               {hasYoutubeLinks ? (
                 <YoutubeLinksPreview links={values?.youtubelinks || []} />
               ) : null}
@@ -227,6 +236,48 @@ const AssignmentPreview = memo(({
           label="Describe the process you used to create it"
           value={values?.creation_process || ""}
         />
+
+        {/* Process Documentation Images Carousel */}
+        {hasProcessImages && (
+          <div className="mt-4 mb-6">
+            <h3 className="text-base font-medium text-slate-800 mb-3">Process Documentation</h3>
+            <Carousel className="w-full" opts={{ loop: processImages.length > 1 }}>
+              <CarouselContent>
+                {processImages.map((image, index) => (
+                  <CarouselItem key={image.id || index}>
+                    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md border border-gray-200">
+                      {image.file_url ? (
+                        <img
+                          src={image.file_url}
+                          alt={image.file_name || 'Process image'}
+                          className="object-cover w-full h-full"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiNmM2Y0ZjYiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTZweCIgZmlsbD0iIzZiNzI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+SW1hZ2UgbWlzc2luZzwvdGV4dD48L3N2Zz4=';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                          <span className="text-gray-400">Image missing</span>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs mt-2 truncate text-center text-gray-600">
+                      {image.file_name || 'Unnamed image'}
+                    </p>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              {processImages.length > 1 && (
+                <>
+                  <CarouselPrevious className="left-1 sm:left-2" />
+                  <CarouselNext className="right-1 sm:right-2" />
+                </>
+              )}
+            </Carousel>
+          </div>
+        )}
+
         <PreviewField
           label="Your learnings and future applications"
           value={values?.learnings || ""}

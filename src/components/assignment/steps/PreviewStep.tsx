@@ -17,15 +17,21 @@ export function PreviewStep({ form }: PreviewStepProps) {
     [values?.selected_skills]
   );
 
-  // Get the latest image file to use as banner
+  // Get the latest image file where is_process_documentation is false to use as banner
   const mainImage = useMemo(() => {
     if (!values?.files?.length) return null;
 
-    // Find the latest image file
-    const imageFile = [...(values.files || [])].reverse().find((file) => {
-      const fileUrl = typeof file === "string" ? file : file?.file_url;
-      return fileUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(fileUrl);
-    });
+    // Find the latest non-process image file
+    const imageFile = [...(values.files || [])]
+      .reverse()
+      .find((file) => {
+        if (!file) return false;
+        // Filter for non-process documentation images
+        if (file.is_process_documentation === true) return false;
+        // Check if it's an image file
+        const fileUrl = typeof file === "string" ? file : file?.file_url;
+        return fileUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(fileUrl);
+      });
 
     return typeof imageFile === "string"
       ? imageFile
