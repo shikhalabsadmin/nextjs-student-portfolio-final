@@ -8,15 +8,11 @@ import {
   isValidUserRole,
 } from "@/types/auth";
 import { ROUTES } from "@/config/routes";
+import { logger } from "@/lib/logger";
+import { useQuery, useQueryClient, QueryClient } from "@tanstack/react-query";
 
-// Debug utility enabled in development
-const DEBUG = {
-  enabled: process.env.NODE_ENV === "development",
-  log: (message: string, data?: unknown) =>
-    DEBUG.enabled && console.log(`[Auth] ${message}`, data ?? ""),
-  error: (message: string, error?: unknown) =>
-    DEBUG.enabled && console.error(`[Auth Error] ${message}`, error ?? ""),
-};
+// Create module-specific logger
+const authLogger = logger.forModule("Auth");
 
 // Enhanced User type with profile data
 export interface EnhancedUser extends User {
@@ -31,81 +27,22 @@ interface EnhancedAuthState extends Omit<AuthState, 'user' | 'profile'> {
   cleanup: () => void;
 }
 
-// Profile fetch result type
-interface ProfileFetchResult {
-  profile: { role: AuthenticatedRole; [key: string]: unknown } | null;
-  error?: Error;
-}
-
 // Authentication store
 export const useAuthState = create<EnhancedAuthState>((set) => {
   let subscription: Subscription | null = null;
-
-  // Fetch user profile with retry mechanism
-  const fetchProfile = async (
-    userId: string,
-    role: string,
-    retries = 3
-  ): Promise<ProfileFetchResult> => {
-    DEBUG.log("Starting profile fetch", { userId, role, retries });
-    try {
-      DEBUG.log("Querying Supabase for profile", { userId });
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
-
-      if (error) {
-        DEBUG.error("Supabase query failed", error);
-        console.error(`[Auth Error] Profile fetch query failed: ${error.message}`, { userId });
-        throw error;
-      }
-      if (!data) {
-        DEBUG.log("No profile data found", { userId });
-        console.warn(`[Auth Warning] No profile data found for user: ${userId}`);
-        return { profile: null };
-      }
-
-      DEBUG.log("Profile data retrieved", { userId, role: data.role });
-      const dbRole = data.role.toUpperCase();
-      if (!isValidUserRole(dbRole)) {
-        DEBUG.error("Invalid role detected", { dbRole, userId });
-        console.error(`[Auth Error] Invalid role detected: ${dbRole} for user: ${userId}`);
-        throw new Error(`Invalid role: ${dbRole}`);
-      }
-
-      const profile = { ...data, role: dbRole as AuthenticatedRole };
-      DEBUG.log("Profile fetch successful", { userId, role: profile.role });
-      return { profile };
-    } catch (error) {
-      DEBUG.error("Profile fetch attempt failed", { userId, retries, error });
-      console.error(`[Auth Error] Profile fetch attempt failed for user: ${userId}, retries left: ${retries}`, error);
-      if (retries > 0) {
-        DEBUG.log("Retrying profile fetch", {
-          userId,
-          retriesLeft: retries - 1,
-        });
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        return fetchProfile(userId, role, retries - 1);
-      }
-      DEBUG.log("Profile fetch exhausted retries", { userId });
-      return { profile: null, error: error as Error };
-    }
-  };
 
   // Update authentication state
   const updateState = (
     user: EnhancedUser | null,
     role: AuthenticatedRole | null
   ) => {
-    DEBUG.log("Updating state", {
+    authLogger.debug("Updating state", {
       userId: user?.id,
       role,
       hasAdditionalData: user ? Object.keys(user).length > Object.keys({} as User).length : false,
     });
     set({ user, userRole: role, isLoading: false });
-    DEBUG.log("State update complete", { userId: user?.id, role });
+    authLogger.debug("State update complete", { userId: user?.id, role });
   };
 
   return {
@@ -114,206 +51,319 @@ export const useAuthState = create<EnhancedAuthState>((set) => {
     isLoading: true,
     // Sign out user and clear state
     signOut: async () => {
-      DEBUG.log("Starting sign out process");
+      authLogger.info("Starting sign out process");
       try {
-        DEBUG.log("Calling Supabase signOut");
+        logger.time("Auth:SignOut");
+        authLogger.debug("Calling Supabase signOut");
         await supabase.auth.signOut();
-        DEBUG.log("Supabase signOut successful");
+        logger.timeEnd("Auth:SignOut");
+        authLogger.debug("Supabase signOut successful");
 
-        DEBUG.log("Clearing localStorage");
+        authLogger.debug("Clearing localStorage");
         localStorage.clear();
 
-        DEBUG.log("Updating state to signed out");
+        authLogger.debug("Updating state to signed out");
         updateState(null, null);
 
-        DEBUG.log("Redirecting to home", { path: ROUTES.COMMON.HOME });
+        // If we're in a browser environment, access the queryClient
+        if (typeof window !== 'undefined') {
+          // Get the queryClient from the global window object
+          // This is a lightweight way to access the queryClient without a hook
+          const queryClientInstance = (window as { __REACT_QUERY_GLOBAL_CLIENT__?: QueryClient }).__REACT_QUERY_GLOBAL_CLIENT__;
+          if (queryClientInstance) {
+            authLogger.debug("Invalidating all queries on sign out");
+            queryClientInstance.invalidateQueries();
+          }
+        }
+
+        authLogger.info("Redirecting to home", { path: ROUTES.COMMON.HOME });
         window.location.href = ROUTES.COMMON.HOME;
       } catch (error) {
-        DEBUG.error("Sign out failed", error);
-        DEBUG.log("Forcing state cleanup due to error");
+        authLogger.error("Sign out failed", error);
+        authLogger.debug("Forcing state cleanup due to error");
         updateState(null, null);
-        DEBUG.log("Forcing redirect to home", { path: ROUTES.COMMON.HOME });
+        authLogger.debug("Forcing redirect to home", { path: ROUTES.COMMON.HOME });
         window.location.href = ROUTES.COMMON.HOME;
       }
     },
     // Initialize authentication state
     initialize: async () => {
-      DEBUG.log("Starting initialization");
+      authLogger.info("Starting initialization");
+      logger.time("Auth:Initialize");
       try {
-        DEBUG.log("Fetching current session");
+        logger.time("Auth:GetSession");
+        authLogger.debug("Fetching current session");
         const {
           data: { session },
         } = await supabase.auth.getSession();
-        DEBUG.log("Session fetch complete", {
+        logger.timeEnd("Auth:GetSession");
+        
+        authLogger.debug("Session fetch complete", {
           hasSession: !!session,
           userId: session?.user?.id,
         });
 
         if (!session?.user) {
-          DEBUG.log("No active session found");
+          authLogger.info("No active session found");
           updateState(null, null);
+          logger.timeEnd("Auth:Initialize");
           return () => {};
         }
 
         const metadataRole = session.user.user_metadata?.role?.toUpperCase() as AuthenticatedRole;
-        DEBUG.log("Checking metadata role", {
+        authLogger.debug("Checking metadata role", {
           metadataRole,
           userId: session.user.id,
         });
 
         if (!isValidUserRole(metadataRole)) {
-          DEBUG.error("Invalid metadata role", { metadataRole });
+          authLogger.error("Invalid metadata role", { metadataRole, userId: session.user.id });
           updateState(null, null);
+          logger.timeEnd("Auth:Initialize");
           return () => {};
         }
 
-        DEBUG.log("Fetching profile for user", {
-          userId: session.user.id,
-          metadataRole,
-        });
-        const { profile } = await fetchProfile(session.user.id, metadataRole);
+        // Initial update with session user data
+        updateState({ ...session.user, role: metadataRole }, metadataRole);
 
-        // Merge profile data into user object
-        const enhancedUser: EnhancedUser = {
-          ...session.user,
-          ...profile,
-        };
-
-        DEBUG.log("Updating state with session data", {
-          userId: session.user.id,
-          metadataRole,
-        });
-        updateState(enhancedUser, metadataRole);
-
-        DEBUG.log("Setting up auth state change listener");
+        logger.time("Auth:SetupAuthListener");
+        authLogger.debug("Setting up auth state change listener");
         const { data: subscriptionData } = supabase.auth.onAuthStateChange(
           async (event, newSession) => {
-            DEBUG.log("Auth state change detected", {
+            logger.time(`Auth:StateChange:${event}`);
+            authLogger.debug("Auth state change detected", {
               event,
               userId: newSession?.user?.id,
             });
 
+            // If we're in a browser environment, access the queryClient
+            const queryClientInstance = typeof window !== 'undefined' 
+              ? (window as { __REACT_QUERY_GLOBAL_CLIENT__?: QueryClient }).__REACT_QUERY_GLOBAL_CLIENT__ 
+              : null;
+
             if (event === "SIGNED_IN" && newSession?.user) {
               const newRole = newSession.user.user_metadata?.role?.toUpperCase() as AuthenticatedRole;
-              DEBUG.log("Processing SIGNED_IN event", {
+              authLogger.info("Processing SIGNED_IN event", {
                 userId: newSession.user.id,
                 newRole,
               });
 
               if (!isValidUserRole(newRole)) {
-                DEBUG.error("Invalid role in SIGNED_IN event", { newRole });
+                authLogger.error("Invalid role in SIGNED_IN event", { newRole, userId: newSession.user.id });
                 updateState(null, null);
+                logger.timeEnd(`Auth:StateChange:${event}`);
                 return;
               }
 
-              DEBUG.log("Fetching profile for signed in user", {
-                userId: newSession.user.id,
-              });
-              const { profile } = await fetchProfile(newSession.user.id, newRole);
-
-              // Merge profile data into user object
-              const enhancedUser: EnhancedUser = {
-                ...newSession.user,
-                ...profile,
-              };
-
-              DEBUG.log("Updating state after sign in", {
-                userId: newSession.user.id,
-                newRole,
-              });
-              updateState(enhancedUser, newRole);
+              // Update with basic user info immediately
+              updateState({ ...newSession.user, role: newRole }, newRole);
+              
+              // Invalidate profile query so React Query will refetch
+              if (queryClientInstance) {
+                authLogger.debug("Invalidating profile query on sign in", { userId: newSession.user.id });
+                queryClientInstance.invalidateQueries({ queryKey: ['profile', newSession.user.id] });
+              }
             } else if (event === "SIGNED_OUT") {
-              DEBUG.log("Processing SIGNED_OUT event");
+              authLogger.info("Processing SIGNED_OUT event");
               updateState(null, null);
+              
+              // Clear all queries on sign out
+              if (queryClientInstance) {
+                authLogger.debug("Invalidating all queries on sign out");
+                queryClientInstance.invalidateQueries();
+              }
+            } else if (event === "USER_UPDATED") {
+              authLogger.info("User updated", { userId: newSession?.user?.id });
+              
+              // Invalidate profile query when user is updated
+              if (queryClientInstance && newSession?.user?.id) {
+                authLogger.debug("Invalidating profile query on user update", { userId: newSession.user.id });
+                queryClientInstance.invalidateQueries({ queryKey: ['profile', newSession.user.id] });
+              }
+            } else if (event === "TOKEN_REFRESHED") {
+              authLogger.debug("Token refreshed", { userId: newSession?.user?.id });
+            } else if (event === "PASSWORD_RECOVERY") {
+              authLogger.info("Password recovery initiated", { userId: newSession?.user?.id });
             }
+            logger.timeEnd(`Auth:StateChange:${event}`);
           }
         );
+        logger.timeEnd("Auth:SetupAuthListener");
 
         subscription = subscriptionData.subscription;
-        DEBUG.log("Subscription established", {
+        authLogger.debug("Subscription established", {
           hasSubscription: !!subscription,
         });
 
+        logger.timeEnd("Auth:Initialize");
         return () => {
-          DEBUG.log("Cleaning up subscription");
+          authLogger.debug("Cleaning up subscription");
           subscription?.unsubscribe();
           subscription = null;
-          DEBUG.log("Subscription cleanup complete");
+          authLogger.debug("Subscription cleanup complete");
         };
       } catch (error) {
-        DEBUG.error("Initialization failed", error);
+        authLogger.error("Initialization failed", error);
         updateState(null, null);
+        logger.timeEnd("Auth:Initialize");
         return () => {};
       }
     },
     // Cleanup subscription and reset loading state
     cleanup: () => {
-      DEBUG.log("Starting cleanup");
+      authLogger.debug("Starting cleanup");
       if (subscription) {
-        DEBUG.log("Unsubscribing from auth state changes");
+        authLogger.debug("Unsubscribing from auth state changes");
         subscription.unsubscribe();
         subscription = null;
       }
-      DEBUG.log("Resetting loading state");
+      authLogger.debug("Resetting loading state");
       set({ isLoading: false });
-      DEBUG.log("Cleanup complete");
+      authLogger.debug("Cleanup complete");
     },
   };
 });
 
-// Singleton auth initializer
-let isInitialized = false;
-export const initAuth = async () => {
-  DEBUG.log("Checking initialization status", { isInitialized });
-  if (isInitialized) {
-    DEBUG.log("Auth already initialized, skipping");
-    return;
-  }
-
-  DEBUG.log("Starting auth initialization");
-  isInitialized = true;
-  const { initialize, cleanup } = useAuthState.getState();
-
+// Fetch profile function for React Query
+export const fetchUserProfile = async (userId: string): Promise<{ role: AuthenticatedRole; [key: string]: unknown } | null> => {
+  if (!userId) return null;
+  
+  authLogger.debug("Fetching profile with React Query", { userId });
   try {
-    DEBUG.log("Calling initialize function");
-    const unsubscribe = await initialize();
-    DEBUG.log("Initialization completed successfully");
+    logger.time(`Auth:ProfileQuery:${userId}`);
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .single();
+    logger.timeEnd(`Auth:ProfileQuery:${userId}`);
 
-    const cleanupHandler = () => {
-      DEBUG.log("Window unload detected, starting cleanup");
-      unsubscribe();
-      cleanup();
-      isInitialized = false;
-      DEBUG.log("Window unload cleanup complete");
-    };
+    if (error) {
+      authLogger.error("Profile query failed", { userId, error });
+      throw error;
+    }
 
-    DEBUG.log("Adding window unload event listener");
-    window.addEventListener("unload", cleanupHandler);
+    if (!data) {
+      authLogger.warn("No profile data found", { userId });
+      return null;
+    }
 
-    return () => {
-      DEBUG.log("Manual cleanup requested");
-      window.removeEventListener("unload", cleanupHandler);
-      cleanupHandler();
-      DEBUG.log("Manual cleanup completed");
-    };
+    const dbRole = data.role.toUpperCase();
+    if (!isValidUserRole(dbRole)) {
+      authLogger.error("Invalid role detected", { dbRole, userId });
+      throw new Error(`Invalid role: ${dbRole}`);
+    }
+
+    return { ...data, role: dbRole as AuthenticatedRole };
   } catch (error) {
-    DEBUG.error("Init auth failed", error);
-    isInitialized = false;
+    authLogger.error("Profile fetch failed", { userId, error });
     throw error;
   }
 };
 
+// Singleton auth initializer
+let isInitialized = false;
+export const initAuth = async () => {
+  authLogger.debug("Checking initialization status", { isInitialized });
+  if (isInitialized) {
+    authLogger.debug("Auth already initialized, skipping");
+    return;
+  }
+
+  logger.time("Auth:InitAuth");
+  authLogger.info("Starting auth initialization");
+  isInitialized = true;
+  const { initialize, cleanup } = useAuthState.getState();
+
+  try {
+    authLogger.debug("Calling initialize function");
+    const unsubscribe = await initialize();
+    authLogger.info("Initialization completed successfully");
+    logger.timeEnd("Auth:InitAuth");
+
+    const cleanupHandler = () => {
+      authLogger.debug("Window unload detected, starting cleanup");
+      logger.time("Auth:Cleanup");
+      unsubscribe();
+      cleanup();
+      isInitialized = false;
+      logger.timeEnd("Auth:Cleanup");
+      authLogger.debug("Window unload cleanup complete");
+    };
+
+    authLogger.debug("Adding window unload event listener");
+    window.addEventListener("unload", cleanupHandler);
+
+    return () => {
+      authLogger.debug("Manual cleanup requested");
+      logger.time("Auth:ManualCleanup");
+      window.removeEventListener("unload", cleanupHandler);
+      cleanupHandler();
+      logger.timeEnd("Auth:ManualCleanup");
+      authLogger.debug("Manual cleanup complete");
+    };
+  } catch (error) {
+    authLogger.error("Init auth failed", error);
+    isInitialized = false;
+    logger.timeEnd("Auth:InitAuth");
+    throw error;
+  }
+};
+
+// Hook to fetch user profile with React Query
+export const useUserProfile = (userId: string | undefined) => {
+  return useQuery({
+    queryKey: ['profile', userId],
+    queryFn: () => fetchUserProfile(userId || ''),
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 3,
+  });
+};
+
 // Authentication utility hook
 export const useAuth = () => {
-  DEBUG.log("useAuth hook called");
+  logger.time("Auth:UseAuthHook");
+  authLogger.debug("useAuth hook called");
   const authState = useAuthState();
+  const userId = authState.user?.id;
+  const queryClient = useQueryClient();
+  
+  // Use React Query to fetch profile data
+  const { data: profile, isLoading: isProfileLoading } = useUserProfile(userId);
+  
+  // Merge profile data with user if available
+  let enhancedUser = authState.user;
+  if (profile && authState.user) {
+    enhancedUser = {
+      ...authState.user,
+      ...profile,
+    };
+  }
+  
+  const userRole = enhancedUser?.role || authState.userRole;
+  
   const derivedState = {
-    isAuthenticated: !!authState.user && !!authState.userRole,
-    isAdmin: authState.userRole === UserRole.ADMIN,
+    user: enhancedUser,
+    userRole,
+    isLoading: authState.isLoading || isProfileLoading,
+    isAuthenticated: !!enhancedUser && !!userRole,
+    isAdmin: userRole === UserRole.ADMIN,
+    isStudent: userRole === UserRole.STUDENT,
+    isTeacher: userRole === UserRole.TEACHER,
+    refreshProfile: () => {
+      if (userId) {
+        authLogger.debug("Manually refreshing profile", { userId });
+        return queryClient.invalidateQueries({ queryKey: ['profile', userId] });
+      }
+    }
   };
-  DEBUG.log("Returning auth state", {
+  
+  authLogger.debug("Returning enhanced auth state", {
     ...derivedState,
-    userId: authState.user?.id,
+    userId: enhancedUser?.id,
+    hasProfile: !!profile,
   });
+  logger.timeEnd("Auth:UseAuthHook");
   return { ...authState, ...derivedState };
 };
