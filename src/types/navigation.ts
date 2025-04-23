@@ -10,6 +10,7 @@ export interface NavbarProps {
   variant?: NavVariant;
   title?: string;
   logo?: React.ReactNode;
+  signOut?: () => Promise<void>;
   steps?: Array<{
     title: string;
     icon: LucideIcon;
