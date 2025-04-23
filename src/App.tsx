@@ -8,7 +8,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { Loading } from "@/components/ui/loading";
 import { AppRouter } from "@/router";
 import { logger } from "@/lib/logger";
-import { Error } from "./components/ui/error";
+import { Error } from "@/components/ui/error";
 
 // Create module-specific logger
 const appLogger = logger.forModule("App");
