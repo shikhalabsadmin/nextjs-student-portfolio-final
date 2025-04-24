@@ -1,6 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { StudentAssignment } from "@/types/student-dashboard";
-import { AssignmentStatus } from "@/constants/assignment-status";
+import { ASSIGNMENT_STATUS, AssignmentStatus } from "@/constants/assignment-status";
 import { Subject, GradeLevel } from "@/constants/grade-subjects";
 
 
@@ -119,6 +118,26 @@ export const getAssignmentsByStatus = async (userId: string, status: AssignmentS
     return data;
   } catch (error: unknown) {
     console.error(`Error fetching assignments with status ${status}:`, error);
+    return error;
+  }
+};
+
+export const getApprovedAssignments = async (userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from("assignments")
+      .select("*")
+      .eq("student_id", userId)
+      .eq("status", ASSIGNMENT_STATUS.APPROVED)
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      return error;
+    }
+
+    return data;
+  } catch (error: unknown) {
+    console.error("Error fetching approved assignments:", error);
     return error;
   }
 };

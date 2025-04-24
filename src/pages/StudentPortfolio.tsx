@@ -1,20 +1,26 @@
-import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
-import { ROUTES } from "@/config/routes";
 import { Loading } from "@/components/ui/loading";
 import { Error } from "@/components/ui/error";
-import { Subject } from "@/constants/grade-subjects";
-import { GradeLevel } from "@/constants/grade-subjects";
+import { GradeLevel, Subject } from "@/constants/grade-subjects";
 import { useQuery } from "@tanstack/react-query";
 import { AssignmentCard } from "@/components/student/dashboard/AssignmentCard";
-import { AssignmentStatus } from "@/constants/assignment-status";
 import { logger } from "@/lib/logger";
 import GridPatternBase from "@/components/ui/grid-pattern";
 import StudentCard from "@/components/student/dashboard/StudentDetailCard";
+import { getProfileInfo } from "@/api/profiles";
+import { getApprovedAssignments } from "@/api/assignment";
+import { useMemo } from "react";
+import { AssignmentStatus } from "@/constants/assignment-status";
 
-interface PortfolioAssignment {
+// Define types for our data
+interface ProfileData {
+  full_name?: string;
+  grade?: string;
+  school?: string;
+  [key: string]: unknown;
+}
+
+interface AssignmentData {
   id: number;
   title: string;
   subject: Subject;
@@ -22,60 +28,17 @@ interface PortfolioAssignment {
   due_date: string;
   status: AssignmentStatus;
   image_url?: string;
-  created_at: string;
+  [key: string]: unknown;
 }
 
-interface StudentInfo {
-  name: string;
-  school: string;
-  grade: string;
+// Type guard to check if data is valid
+function isValidProfile(data: unknown): data is ProfileData {
+  return data !== null && typeof data === 'object' && !('error' in data);
 }
 
-async function fetchStudentInfo(studentId: string): Promise<StudentInfo> {
-  logger.info(`Fetching student info for studentId: ${studentId}`);
-
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("full_name, grade")
-    .eq("id", studentId)
-    .single();
-
-  if (error) {
-    logger.error(`Error fetching student info`, { studentId, error });
-    throw error;
-  }
-
-  logger.debug(`Student info fetched successfully`, { studentId });
-  return {
-    name: data.full_name || "Student",
-    school: "Shikha",
-    grade: data.grade || "Unknown Grade",
-  };
-}
-
-async function fetchApprovedAssignments(
-  studentId: string
-): Promise<PortfolioAssignment[]> {
-  logger.info(`Fetching approved assignments for studentId: ${studentId}`);
-
-  const { data, error } = await supabase
-    .from("assignments")
-    .select("*")
-    .eq("student_id", studentId)
-    .eq("status", ASSIGNMENT_STATUS.APPROVED)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    logger.error(`Error fetching approved assignments`, { studentId, error });
-    throw error;
-  }
-
-  logger.debug(`Approved assignments fetched successfully`, {
-    studentId,
-    count: data?.length || 0,
-  });
-
-  return data as PortfolioAssignment[];
+function isValidAssignmentArray(data: unknown): data is AssignmentData[] {
+  return Array.isArray(data) && data.every(item => 
+    typeof item === 'object' && item !== null && 'id' in item);
 }
 
 export default function StudentPortfolio() {
@@ -85,43 +48,47 @@ export default function StudentPortfolio() {
 
   // Fetch student info
   const {
-    data: studentInfo,
+    data: rawStudentInfo,
     isLoading: isLoadingStudentInfo,
     error: studentInfoError,
   } = useQuery({
     queryKey: ["studentInfo", student_id],
-    queryFn: () => {
-      try {
-        return fetchStudentInfo(student_id!);
-      } catch (error) {
-        logger.error(`Error in studentInfo query`, { student_id, error });
-        throw error;
-      }
-    },
+    queryFn: () => getProfileInfo(student_id!),
     enabled: !!student_id,
   });
 
   // Fetch approved assignments
   const {
-    data: assignments = [],
+    data: rawAssignments,
     isLoading: isLoadingAssignments,
     error: assignmentsError,
     refetch: refetchAssignments,
   } = useQuery({
     queryKey: ["assignments", student_id, "approved"],
-    queryFn: () => {
-      try {
-        return fetchApprovedAssignments(student_id!);
-      } catch (error) {
-        logger.error(`Error in assignments query`, { student_id, error });
-        throw error;
-      }
-    },
+    queryFn: () => getApprovedAssignments(student_id!),
     enabled: !!student_id,
   });
 
-  const isLoading = isLoadingStudentInfo || isLoadingAssignments;
-  const error = studentInfoError || assignmentsError;
+  // Process data with type guards
+  const studentInfo = useMemo(() => {
+    return isValidProfile(rawStudentInfo) ? rawStudentInfo : { 
+      full_name: "Student",
+      grade: "Unknown Grade",
+      school: "Shikha" 
+    };
+  }, [rawStudentInfo]);
+
+  const assignments = useMemo(() => {
+    return isValidAssignmentArray(rawAssignments) ? rawAssignments : [];
+  }, [rawAssignments]);
+
+  const isLoading = useMemo(() => {
+    return isLoadingStudentInfo || isLoadingAssignments;
+  }, [isLoadingStudentInfo, isLoadingAssignments]);
+
+  const error = useMemo(() => {
+    return studentInfoError || assignmentsError;
+  }, [studentInfoError, assignmentsError]);
 
   if (isLoading) {
     logger.info(`StudentPortfolio is in loading state`, { student_id });
@@ -154,7 +121,7 @@ export default function StudentPortfolio() {
       <div className="container mx-auto py-12 px-4">
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-4">
-            {studentInfo?.name}'s Portfolio
+            {studentInfo.full_name || "Student"}'s Portfolio
           </h1>
           <p className="text-gray-500 mb-8">
             No approved assignments found for this student.
@@ -166,7 +133,7 @@ export default function StudentPortfolio() {
 
   logger.info(`Rendering portfolio with assignments`, {
     student_id,
-    studentName: studentInfo?.name,
+    studentName: studentInfo.full_name,
     assignmentCount: assignments.length,
   });
 
@@ -189,11 +156,11 @@ export default function StudentPortfolio() {
       <div className="relative container mx-auto py-8 px-4 space-y-8 flex flex-col min-h-[calc(100vh-8rem)]">
         {/* Student Details Card */}
         <StudentCard
-          name={(studentInfo?.name as string) || "Student"}
+          name={studentInfo.full_name || "Student"}
           className_name={
-            (studentInfo?.grade as GradeLevel) || `Update your grade`
+            studentInfo.grade as GradeLevel || `Update your grade`
           }
-          school={(studentInfo?.school as string) || "Shikha"}
+          school={studentInfo.school || "Shikha"}
           imageUrl=""
           description={"Student at Shikha"}
         />
