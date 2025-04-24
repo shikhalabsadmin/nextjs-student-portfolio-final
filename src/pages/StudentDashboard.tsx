@@ -18,6 +18,15 @@ import {
   filterStudentAssignments,
 } from "@/utils/student-dashboard-utils";
 
+// Helper to extract error message from different error types
+const getErrorMessage = (error: unknown): string => {
+  if (error && typeof error === 'object') {
+    if ('message' in error) return error.message as string;
+    if ('type' in error && 'message' in error) return error.message as string;
+  }
+  return String(error);
+};
+
 /**
  * Main dashboard component for students to view and manage their assignments
  */
@@ -57,6 +66,8 @@ export default function StudentDashboard({ user }: { user: EnhancedUser }) {
   const {
     assignments,
     isLoading,
+    isRefetching,
+    isFetching,
     error,
     deleteAssignment,
     editAssignment,
@@ -91,7 +102,7 @@ export default function StudentDashboard({ user }: { user: EnhancedUser }) {
   );
 
   // ===== Render Loading/Error States =====
-  if (isLoading) {
+  if (isLoading || isRefetching || isFetching) {
     return (
       <div className="flex justify-center items-center min-h-dvh">
         <Loading
@@ -106,7 +117,7 @@ export default function StudentDashboard({ user }: { user: EnhancedUser }) {
     return (
       <div className="flex justify-center items-center min-h-dvh">
         <Error
-          message={error}
+          message={getErrorMessage(error)}
           title="Failed to load assignments"
           retry={refetch}
           retryButtonText="Retry"
@@ -157,7 +168,7 @@ export default function StudentDashboard({ user }: { user: EnhancedUser }) {
           <div
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
             aria-live="polite"
-            aria-busy={isLoading}
+            aria-busy={isLoading || isRefetching || isFetching}
           >
             {filteredAssignments.map((assignment) => (
               <AssignmentCard
