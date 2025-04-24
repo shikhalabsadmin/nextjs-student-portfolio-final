@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,9 +13,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { AuthLayout } from "./AuthLayout";
+import { AuthLayout } from "@/components/auth/AuthLayout";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/config/routes";
+import { useMutation } from "@tanstack/react-query";
 
 // Define form schema
 const updatePasswordSchema = z.object({
@@ -34,7 +34,6 @@ const updatePasswordSchema = z.object({
 type UpdatePasswordFormValues = z.infer<typeof updatePasswordSchema>;
 
 export function UpdatePassword() {
-  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -46,32 +45,36 @@ export function UpdatePassword() {
     },
   });
 
-  const handleUpdatePassword = async (values: UpdatePasswordFormValues) => {
-    setLoading(true);
-    try {
+  const updatePasswordMutation = useMutation({
+    mutationFn: async (values: UpdatePasswordFormValues) => {
       const { error } = await supabase.auth.updateUser({
         password: values.password
       });
 
       if (error) throw error;
-
+      return true;
+    },
+    onSuccess: () => {
       toast({
         title: "Password updated successfully",
         description: "You can now sign in with your new password",
       });
 
       // Redirect to sign in
-      navigate(ROUTES.PUBLIC.HOME);
-    } catch (error) {
+      navigate(ROUTES.COMMON.HOME);
+    },
+    onError: (error) => {
       console.error("[UpdatePassword] Error:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to update password",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
+  });
+
+  const handleUpdatePassword = (values: UpdatePasswordFormValues) => {
+    updatePasswordMutation.mutate(values);
   };
 
   return (
@@ -117,8 +120,8 @@ export function UpdatePassword() {
             )}
           />
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Updating..." : "Update Password"}
+          <Button type="submit" className="w-full" disabled={updatePasswordMutation.isPending}>
+            {updatePasswordMutation.isPending ? "Updating..." : "Update Password"}
           </Button>
         </form>
       </Form>
