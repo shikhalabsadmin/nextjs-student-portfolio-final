@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const uploadAssignmentFile = async (
   file: File,
-  assignmentId: number,
+  assignmentId: string,
   userId: string
 ) => {
   try {
@@ -60,7 +60,7 @@ export const uploadAssignmentFile = async (
 
 export const uploadMultipleFiles = async (
   files: File[], 
-  assignmentId: number, 
+  assignmentId: string, 
   userId: string
 ) => {
   const uploadResults = [];
@@ -78,7 +78,7 @@ export const uploadMultipleFiles = async (
   return uploadResults;
 };
 
-export const getAssignmentFiles = async (assignmentId: number, userId: string) => {
+export const getAssignmentFiles = async (assignmentId: string, userId: string) => {
     try {
       const { data, error } = await supabase
         .from("assignment_files")
@@ -98,7 +98,7 @@ export const getAssignmentFiles = async (assignmentId: number, userId: string) =
     }
   };
   
-  export const getAssignmentImageFiles = async (assignmentId: number, userId: string) => {
+  export const getAssignmentImageFiles = async (assignmentId: string, userId: string) => {
     try {
       const { data, error } = await supabase
         .from("assignment_files")
@@ -119,7 +119,7 @@ export const getAssignmentFiles = async (assignmentId: number, userId: string) =
     }
   };
   
-  export const getFilesForMultipleAssignments = async (assignmentIds: number[], userId: string) => {
+  export const getFilesForMultipleAssignments = async (assignmentIds: string[], userId: string) => {
     try {
       const { data, error } = await supabase
         .from("assignment_files")
@@ -174,7 +174,7 @@ export const deleteAssignmentFile = async (fileUrl: string, userId: string) => {
   }
 };
 
-export const deleteAllAssignmentFiles = async (assignmentId: number, userId: string) => {
+export const deleteAllAssignmentFiles = async (assignmentId: string, userId: string) => {
   try {
     // First get all files for this assignment
     const result = await getAssignmentFiles(assignmentId, userId);

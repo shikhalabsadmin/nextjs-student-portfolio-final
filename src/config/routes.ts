@@ -13,7 +13,7 @@ export const ROUTES = {
   STUDENT: {
     DASHBOARD: "/student",
     PROFILE: "/student/profile",
-    MANAGE_ASSIGNMENT: "/student/assignment/:id?",
+    MANAGE_ASSIGNMENT: "/student/assignment/:id",
     FEEDBACK_ASSIGNMENT: "/student/assignment/:id/feedback",
     VERIFIED_ASSIGNMENT: "/student/assignment/:id/verified",
   },

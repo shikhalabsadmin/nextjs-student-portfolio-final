@@ -104,7 +104,7 @@ export function DashboardHeader({
    * Navigates to assignment creation page
    */
   const handleAddAssignment = () => {
-    navigate(ROUTES.STUDENT.MANAGE_ASSIGNMENT.replace(':id?', ''));
+    navigate(ROUTES.STUDENT.MANAGE_ASSIGNMENT);
   };
 
   return (

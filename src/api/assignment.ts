@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { ASSIGNMENT_STATUS, AssignmentStatus } from "@/constants/assignment-status";
 import { Subject, GradeLevel } from "@/constants/grade-subjects";
+import { getAssignmentFiles } from "./assignment-files";
+import { Assignment } from "@/types/assignment";
 
 
 
@@ -42,7 +44,7 @@ export const getAssignments = async (userId: string) => {
   }
 };
 
-export const getAssignmentById = async (assignmentId: number, userId: string) => {
+export const getAssignmentById = async (assignmentId: string, userId: string) => {
   try {
     const { data, error } = await supabase
       .from("assignments")
@@ -61,6 +63,22 @@ export const getAssignmentById = async (assignmentId: number, userId: string) =>
     return error;
   }
 };
+
+export const getAssignmentWithFiles = async (assignmentId: string, userId: string) => {
+  try {
+    const assignments = await getAssignmentById(assignmentId, userId);
+    const assignmentFiles = await getAssignmentFiles(assignmentId, userId);
+
+    return {
+      ...assignments as Assignment,
+      files: assignmentFiles,
+    };
+  } catch (error: unknown) {
+    console.error(`Error fetching assignment with files ${assignmentId}:`, error);
+    return error;
+  }
+};
+
 
 export const getAssignmentsByGrade = async (userId: string, grade: GradeLevel) => {
   try {
@@ -143,7 +161,7 @@ export const getApprovedAssignments = async (userId: string) => {
 };
 
 export const updateAssignment = async (
-  assignmentId: number, 
+  assignmentId: string, 
   userId: string, 
   updateData: Record<string, unknown>
 ) => {
@@ -167,7 +185,7 @@ export const updateAssignment = async (
   }
 };
 
-export const deleteAssignment = async (assignmentId: number, userId: string) => {
+export const deleteAssignment = async (assignmentId: string, userId: string) => {
   try {
     // Try to use the RPC function first
     const { error: rpcError } = await supabase.rpc('delete_assignment_with_files', {

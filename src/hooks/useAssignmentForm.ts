@@ -3,7 +3,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
-import { type AssignmentFormValues, assignmentFormSchema, baseAssignmentFormSchema } from "@/lib/validations/assignment";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { assignmentFormSchema, baseAssignmentFormSchema, type AssignmentFormValues } from "@/lib/validations/assignment";
 import { type AssignmentStep } from "@/types/assignment";
 import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
 import { STEPS } from "@/lib/config/steps";
@@ -11,479 +12,295 @@ import { ToastService } from "@/lib/services/toast.service";
 import { StepService } from "@/lib/services/step.service";
 import { getDefaultValues } from "@/lib/services/assignment-defaults.service";
 import { ROUTES } from "@/config/routes";
-import { 
-  createAssignment, 
-  updateAssignment, 
-  getAssignmentWithFiles,
-  deleteAssignment 
-} from "@/lib/api/assignments";
+import { logger } from "@/lib/logger";
+import { createAssignment, updateAssignment, deleteAssignment, getAssignmentWithFiles } from "@/api/assignment";
 
-/**
- * Constants for the hook configuration
- */
-const AUTO_SAVE_DELAY = 1000; // Delay in milliseconds for auto-save debounce
+const AUTO_SAVE_DELAY = 5000;
+const toast = new ToastService();
+const steps = new StepService(STEPS);
+const formLogger = logger.forModule("useAssignmentForm");
 
-/**
- * Custom hook for managing assignment form state and operations
- * @param {Object} params - Hook parameters
- * @param {User} params.user - The authenticated user object from Supabase
- * @returns {Object} - Form utilities and state management functions
- */
-export function useAssignmentForm({ user }: { user: User }) {
-  // Hooks and services initialization
-  const { id: assignmentId } = useParams<{ id?: string }>();
+function useAssignmentForm({ user }: { user: User }) {
+  const { id: assignmentId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const toast = useMemo(() => new ToastService(), []);
-  
-  // Initialize step service with caching and optimized validation
-  const steps = useMemo(() => new StepService(STEPS), []);
+  const queryClient = useQueryClient();
 
-  // Form state management using react-hook-form
+  // Form setup
   const form = useForm<AssignmentFormValues>({
     resolver: zodResolver(assignmentFormSchema),
     defaultValues: getDefaultValues(),
-    mode: "onBlur",
-    criteriaMode: "firstError",
-    shouldFocusError: true,
+    mode:"onBlur"
   });
 
-  // Local state variables
-  const [currentStep, setCurrentStepState] = useState<AssignmentStep>("basic-info");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [initialFormState, setInitialFormState] = useState<string | null>(null);
+  // State
+  const [currentStep, setCurrentStep] = useState<AssignmentStep>("basic-info");
   const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [autoSaveInProgress, setAutoSaveInProgress] = useState<boolean>(false);
-  const [formDataVersion, setFormDataVersion] = useState(0);
 
-  // Derived state
-  const isEditing = !!assignmentId && assignmentId !== ":id";
+  // Data operations
+  const createMutation = useMutation({
+    mutationFn: (data: Omit<AssignmentFormValues, "id">) => {
+      formLogger.info("Creating new assignment", { studentId: user.id });
+      return createAssignment(data);
+    },
+    onSuccess: (response) => {
+      if (response?.id) {
+        formLogger.info("Assignment created successfully", { assignmentId: response.id });
+        form.reset(baseAssignmentFormSchema.parse({ ...getDefaultValues(), ...response, id: response.id }), { keepDirty: true });
+        queryClient.setQueryData(["assignment", response.id], response);
+        navigate(ROUTES.STUDENT.MANAGE_ASSIGNMENT.replace(":id", response.id), { replace: true });
+      }
+    },
+    onError: (error) => {
+      formLogger.error("Failed to create assignment", { error });
+      toast.error(`Failed to create assignment: ${error.message}`);
+    },
+  });
 
-  /* ==================== Utility Functions ==================== */
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<AssignmentFormValues> }) => {
+      formLogger.debug("Updating assignment", { id, fields: Object.keys(data) });
+      return updateAssignment(id, user.id, data);
+    },
+    onSuccess: (_, { id, data }) => {
+      formLogger.debug("Assignment updated successfully", { id });
+      queryClient.setQueryData(["assignment", id], (old:AssignmentFormValues) => ({
+        ...old as AssignmentFormValues,
+        ...data,
+        updated_at: new Date().toISOString(),
+      }));
+    },
+    onError: (error) => {
+      formLogger.error("Failed to update assignment", { error });
+      toast.error(`Failed to update assignment: ${error.message}`);
+    },
+  });
 
-  /**
-   * Checks if the form data has been modified since initial load
-   * @param {AssignmentFormValues} currentData - Current form values
-   * @returns {boolean} - True if form has been modified
-   */
-  const isFormModified = useCallback((currentData: AssignmentFormValues): boolean => {
-    return Boolean(initialFormState && initialFormState !== JSON.stringify(currentData));
-  }, [initialFormState]);
-
-  /**
-   * Stores the initial form state for comparison
-   * @param {AssignmentFormValues} data - Form values to store
-   */
-  const storeInitialState = useCallback((data: AssignmentFormValues): void => {
-    setInitialFormState(JSON.stringify(data));
-  }, []);
-
-  /* ==================== Assignment CRUD Operations ==================== */
-
-  /**
-   * Creates a new assignment in the database
-   * @returns {Promise<AssignmentFormValues>} - The created assignment data
-   * @throws {Error} - If creation fails
-   */
-  const handleCreateAssignment = useCallback(async (): Promise<AssignmentFormValues> => {
-    const initialData: AssignmentFormValues = {
-      grade: user.user_metadata.grade,
-      ...getDefaultValues(),
-      student_id: user.id,
-      status: ASSIGNMENT_STATUS.DRAFT,
-    };
-    
-    // Remove ID for creation (will be generated by Supabase)
-    const { id, ...dataWithoutId } = initialData;
-    const newAssignment = await createAssignment(dataWithoutId);
-    
-    if (!newAssignment?.id) {
-      throw new Error("Failed to create assignment - no ID returned");
-    }
-    
-    // Update URL with new assignment ID
-    const newPath = ROUTES.STUDENT.MANAGE_ASSIGNMENT.replace(":id?", newAssignment.id);
-    navigate(newPath, { replace: true });
-    return { ...initialData, id: newAssignment.id };
-  }, [user.user_metadata.grade, user.id, navigate]);
-
-  /**
-   * Loads an existing assignment from the database
-   * @param {string} id - Assignment ID to load
-   * @returns {Promise<AssignmentFormValues | null>} - The loaded assignment data or null if not found
-   */
-  const handleLoadAssignment = useCallback(async (id: string): Promise<AssignmentFormValues | null> => {
-    const assignment = await getAssignmentWithFiles(id);
-    
-    if (!assignment) {
-      toast.error("Assignment not found");
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => {
+      formLogger.info("Deleting assignment", { id });
+      return deleteAssignment(id, user.id);
+    },
+    onSuccess: () => {
+      formLogger.info("Assignment deleted successfully", { id: assignmentId });
+      queryClient.removeQueries({ queryKey: ["assignment", assignmentId] });
       navigate(ROUTES.STUDENT.DASHBOARD);
-      return null;
-    }
-    
-    return assignment;
-  }, [toast, navigate]);
+      toast.success("Assignment deleted successfully");
+    },
+    onError: (error) => {
+      formLogger.error("Failed to delete assignment", { id: assignmentId, error });
+      toast.error(`Failed to delete assignment: ${error.message}`);
+    },
+  });
 
-  /**
-   * Performs an immediate save of assignment data
-   * @param {string} id - Assignment ID to update
-   * @param {AssignmentFormValues} data - Updated assignment data
-   */
-  const handleAutoSave = useCallback(async (id: string, data: AssignmentFormValues): Promise<void> => {
-    if (autoSaveInProgress || !isFormModified(data)) return;
+  // Fetch or create assignment
+  const { isLoading: isDataLoading } = useQuery({
+    queryKey: ["assignment", assignmentId],
+    queryFn: async () => {
 
-    setAutoSaveInProgress(true);
-    try {
-      // Exclude files from the update data
-      const { files, ...dataWithoutFiles } = data;
-      await updateAssignment(id, { 
-        ...dataWithoutFiles, 
-        updated_at: new Date().toISOString() 
-      });
-      storeInitialState(data);
+      // Need to create a new assignment if we don't have an assignment ID
+      if (assignmentId === ":id") {
+        formLogger.info("Initializing new assignment", { userId: user.id });
+        const initialData = { ...getDefaultValues(), student_id: user.id, status: ASSIGNMENT_STATUS.DRAFT };
+        createMutation.mutate(initialData);
+        return null;
+      }
       
-      // Clear validation cache to ensure fresh validation after save
-      steps.clearCache(currentStep);
-    } catch (error) {
-      toast.error("Failed to auto-save changes");
-      throw error; // Re-throw for caller handling
-    } finally {
-      setAutoSaveInProgress(false);
-    }
-  }, [autoSaveInProgress, isFormModified, storeInitialState, toast, steps, currentStep]);
-
-  /**
-   * Debounced version of auto-save to prevent rapid successive saves
-   * @param {string} id - Assignment ID to update
-   * @param {AssignmentFormValues} data - Updated assignment data
-   */
-  const debouncedAutoSave = useCallback(async (id: string, data: AssignmentFormValues): Promise<void> => {
-    if (!isFormModified(data)) return;
-
-    // Clear any pending auto-save
-    if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
-    
-    // Set new timeout for auto-save
-    const timeout = setTimeout(async () => {
-      try {
-        // Get fresh data at time of execution for latest changes
-        const currentData = form.getValues();
-        await handleAutoSave(id, currentData);
-      } catch (error) {
-        console.error("Auto-save error:", error);
-      } finally {
-        setAutoSaveTimeout(null);
+      // Skip fetching if we already have a form ID (prevents loading on navigation)
+      if (form.getValues().id) {
+        formLogger.debug("Skipping fetch - already have form ID", { formId: form.getValues().id });
+        return null;
       }
-    }, AUTO_SAVE_DELAY);
-    
-    setAutoSaveTimeout(timeout);
-  }, [autoSaveTimeout, isFormModified, handleAutoSave, form]);
-
-  /* ==================== Effects ==================== */
-
-  // Initial data loading effect
-  useEffect(() => {
-    const loadData = async () => {
-      if (!user.id) {
-        toast.error("User not authenticated");
-        navigate("/login");
-        return;
-      }
-
-      setIsLoading(true);
-      const loadingId = toast.loading(isEditing ? "Loading assignment..." : "Creating assignment...");
+      
+      formLogger.debug("Fetching assignment data", { assignmentId });
 
       try {
-        let assignmentData: AssignmentFormValues | null = null;
-        
-        if (isEditing) {
-          assignmentData = await handleLoadAssignment(assignmentId);
+
+        const response = await getAssignmentWithFiles(assignmentId, user.id);
+
+        if (response) {
+          // Need to type check that response has id property
+          if (typeof response === 'object' && response !== null && 'id' in response) {
+            formLogger.debug("Assignment fetched successfully", { id: response.id, response });
+            form.reset(baseAssignmentFormSchema.parse(response as AssignmentFormValues), { keepDirty: true });
+            setCurrentStep(steps.getNextIncompleteStep(response as AssignmentFormValues));
+          } else {
+            formLogger.warn("Response missing ID field", { response });
+          }
+          return null;
         } else {
-          assignmentData = await handleCreateAssignment();
-        }
-
-        if (assignmentData) {
-          // Reset form with loaded/created data
-          form.reset(baseAssignmentFormSchema.parse(assignmentData), { keepDirty: false });
-          
-          // Clear all validation caches to start fresh
-          steps.reset();
-          
-          // Mark all steps as visited (for UI purposes)
-          STEPS.forEach(step => steps.markStepVisited(step.id));
-          
-          // Store initial state for modification detection
-          storeInitialState(assignmentData);
-          
-          // Find the next incomplete step for navigation
-          const nextIncompleteStep = steps.getNextIncompleteStep(form.getValues());
-          setCurrentStepState(nextIncompleteStep);
+          formLogger.warn("Invalid assignment response", { assignmentId });
+          throw new Error("Invalid assignment response");
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Failed to load assignment";
-        toast.error(message);
-      } finally {
-        setIsLoading(false);
-        toast.dismiss(loadingId);
+        formLogger.error("Error fetching assignment", { assignmentId, error });
+        toast.error(`Error loading assignment: ${error.message}`);
+        throw error;
       }
-    };
+    },
+    // Disable fetching if we already have the data in the form
+    enabled: !(form.getValues().id && form.getValues().id !== ":id"),
+  });
 
-    loadData();
-  }, [assignmentId, form, isEditing, steps, toast, user.id, handleCreateAssignment, handleLoadAssignment, storeInitialState, navigate]);
+  // Auto-save logic
+  const saveData = useCallback(
+    async (id: string, data: AssignmentFormValues) => {
+      if (updateMutation.isPending) return;
+      formLogger.debug("Performing auto-save", { id });
+      const { files, ...dataWithoutFiles } = data;
+      await updateMutation.mutateAsync({ id, data: dataWithoutFiles });
+    },
+    [updateMutation],
+  );
 
-  // Function to validate only the current step fields
-  const validateCurrentStepFields = useCallback(() => {
-    const stepConfig = STEPS.find(step => step.id === currentStep);
-    if (!stepConfig) return;
-    
-    // Get validation config for current step
-    const data = form.getValues();
-    
-    // Validate only this step's fields without validating previous steps
-    const isValid = steps.validateStep(currentStep, data);
-    
-    // Return validation result so we can use it
-    return isValid;
-  }, [currentStep, form, steps]);
+  const debouncedAutoSave = useCallback(
+    (id: string, data: AssignmentFormValues) => {
+      if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+      const timeout = setTimeout(() => {
+        formLogger.debug("Executing debounced auto-save", { id });
+        saveData(id, form.getValues());
+        setAutoSaveTimeout(null);
+      }, AUTO_SAVE_DELAY);
+      setAutoSaveTimeout(timeout);
+    },
+    [autoSaveTimeout, saveData, form],
+  );
 
-  // Auto-save effect (watches form changes)
   useEffect(() => {
-    if (!assignmentId || isLoading) return;
-    
-    // Define the data change handler
-    const handleDataChange = (data: AssignmentFormValues) => {
-      if (!data?.id || !steps.isEditable(data.status)) return;
-      
-      // Check validation state to update button status, but without showing errors
-      validateCurrentStepFields();
-      
-      // Force a state update to re-evaluate the button state
-      // This is needed because form changes don't automatically trigger button state updates
-      setFormDataVersion(prev => prev + 1);
-      
-      debouncedAutoSave(data.id, data).catch(error => 
-        toast.error("Auto-save failed: " + (error instanceof Error ? error.message : "Unknown error"))
-      );
-    };
-    
-    // Subscribe to form changes with our handler
-    const subscription = form.watch(handleDataChange);
-    
-    // Clean up function
+    formLogger.debug("Setting up form change subscription", { assignmentId });
+    const subscription = form.watch((data) => {
+      if (data?.id && steps.isEditable(data.status) && Object.keys(form.formState.dirtyFields).length > 0) {
+        formLogger.debug("Form data changed, triggering auto-save", {
+          id: data.id,
+          status: data.status,
+        });
+        debouncedAutoSave(data.id, data);
+      }
+    });
     return () => {
+      formLogger.debug("Cleaning up form watch subscription");
       subscription.unsubscribe();
       if (autoSaveTimeout) {
+        formLogger.debug("Performing final save on unmount");
         clearTimeout(autoSaveTimeout);
-        // Perform one final save if there's a pending auto-save when unmounting
-        const currentData = form.getValues();
-        if (currentData?.id && isFormModified(currentData)) {
-          handleAutoSave(currentData.id, currentData).catch(console.error);
-        }
+        saveData(form.getValues().id, form.getValues()).catch((error) => {
+          formLogger.error("Final save failed", { error });
+          toast.error("Final save failed");
+        });
       }
     };
-  }, [
-    form, 
-    toast, 
-    isLoading, 
-    currentStep, 
-    steps, 
-    debouncedAutoSave, 
-    autoSaveTimeout, 
-    assignmentId, 
-    isFormModified, 
-    handleAutoSave,
-    validateCurrentStepFields
-  ]);
+  }, [form, debouncedAutoSave, autoSaveTimeout, saveData, assignmentId]);
 
-  // Update validation when step changes
+  // Effect to reset query cache when we get a form ID
   useEffect(() => {
-    // When the current step changes, reset form errors and validate fields
-    form.clearErrors();
-    validateCurrentStepFields();
-  }, [currentStep, validateCurrentStepFields, form]);
-
-  /* ==================== Step Navigation Functions ==================== */
-
-  /**
-   * Checks if current step is complete and valid
-   * For UI purposes, only validates the current tab's fields
-   */
-  const isCurrentStepComplete = useCallback((): boolean => {
-    const data = form.getValues();
-    return steps.validateStep(currentStep, data);
-  }, [currentStep, form, steps]);
-
-  /**
-   * Checks if the current step is editable
-   */
-  const isCurrentStepEditable = useCallback((): boolean => (
-    steps.isEditable(form.getValues().status)
-  ), [form, steps]);
-
-  /**
-   * Validates a specific step
-   * For progression/navigation, we validate with dependencies
-   */
-  const validateStep = useCallback((stepId: AssignmentStep): boolean => (
-    steps.validateStep(stepId, form.getValues())
-  ), [form, steps]);
-
-  /**
-   * Navigates to a specific step if allowed
-   * Uses the optimized canNavigateToStep which avoids recursive validation
-   */
-  const setCurrentStep = useCallback((step: AssignmentStep): void => {
-    const data = form.getValues();
-    if (steps.canNavigateToStep(step, currentStep, data)) {
-      setCurrentStepState(step);
-      steps.markStepVisited(step);
-    } else {
-      toast.error(`Cannot navigate to '${step}' until all previous steps are complete`);
-    }
-  }, [currentStep, form, steps, toast]);
-
-  /* ==================== Form Submission Handlers ==================== */
-
-  /**
-   * Handles final assignment submission
-   */
-  const handleSubmitAssignment = useCallback(async (data: AssignmentFormValues): Promise<void> => {
-    if (!data.id) throw new Error("Assignment ID required for submission");
-    const {files, ...dataWithoutFiles} = data;
+    const formId = form.getValues().id;
     
-    // Update form state to "submitted"
-    form.setValue("status", ASSIGNMENT_STATUS.SUBMITTED, { shouldValidate: true });
-    const submissionData = { 
-      ...dataWithoutFiles, 
-      status: ASSIGNMENT_STATUS.SUBMITTED,
-      submitted_at: new Date().toISOString()
-    };
-    
-    await updateAssignment(data.id, submissionData);
-    setCurrentStepState('teacher-feedback');
-    
-    // Clear all validation caches after submission
-    steps.reset();
-    
-    toast.success("Assignment submitted successfully");
-  }, [form, toast, steps]);
-
-  /**
-   * Primary save handler - saves current progress and moves to next step
-   * Uses optimized step service to avoid redundant validations
-   */
-  const handleSaveAndContinue = useCallback(async (): Promise<void> => {
-    const data = form.getValues();
-    
-    // Force validation with UI errors when trying to continue
-    await form.trigger();
-    
-    // For tab complete validation, check only the current tab fields
-    if (!steps.validateStep(currentStep, data)) {
-      toast.error(`Please complete all required fields in the current step`);
-      return;
-    }
-    
-    // When trying to proceed, we need to make sure all previous steps are also valid
-    if (currentStep !== 'basic-info' && !steps.validateStep(currentStep, data)) {
-      toast.error(`Cannot continue - please complete all previous steps`);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      if (currentStep === "review-submit") {
-        // Handle submission case
-        await handleSubmitAssignment(data);
-      } else {
-        // Regular step progression
-        if (data.id) {
-          // Clear any pending auto-saves
-          if (autoSaveTimeout) {
-            clearTimeout(autoSaveTimeout);
-            setAutoSaveTimeout(null);
-          }
-          
-          try {
-            // Save immediately and wait for result
-            await handleAutoSave(data.id, data);
-            
-            // Only proceed to next step if save was successful
-            const next = steps.getNextStep(currentStep, data);
-            if (next) {
-              steps.markStepVisited(next);
-              setCurrentStepState(next);
-              toast.success("Saved and continued");
-            }
-          } catch (error) {
-            // If save fails, show error but don't advance
-            toast.error("Failed to save: " + (error instanceof Error ? error.message : "Unknown error"));
-            return;
-          }
-        }
+    // If we have a valid form ID but queries are still loading,
+    // cancel any ongoing queries to stop loading state
+    if (formId && isDataLoading) {
+      formLogger.debug("Form has ID but still loading, canceling queries", { formId });
+      queryClient.cancelQueries({ queryKey: ["assignment", assignmentId] });
+      
+      // If we navigate to a new ID, we should invalidate the current query
+      if (assignmentId && assignmentId !== ":id" && assignmentId !== formId) {
+        formLogger.debug("Assignment ID changed, invalidating queries", { 
+          formId, 
+          assignmentId 
+        });
+        queryClient.invalidateQueries({ queryKey: ["assignment", assignmentId] });
       }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save and continue");
-    } finally {
-      setIsLoading(false);
     }
-  }, [currentStep, form, steps, autoSaveTimeout, handleAutoSave, toast, handleSubmitAssignment]);
+  }, [form, assignmentId, isDataLoading, queryClient]);
 
-  /**
-   * Navigates to the previous step if allowed
-   * Uses optimized step service navigation
-   */
-  const previousStep = useCallback((): void => {
+  useEffect(() => {
+    formLogger.debug("Revalidating all queries", { assignmentId });
+    queryClient.invalidateQueries({
+      queryKey: ["assignment", assignmentId],
+      refetchType: 'all'
+    });
+  }, []);
+
+  // Step navigation and validation
+  const validateStep = useCallback(
+    (stepId: AssignmentStep) => {
+      const isValid = steps.validateStep(stepId, form.getValues());
+      formLogger.debug("Validating step", { step: stepId, isValid });
+      return isValid;
+    },
+    [form],
+  );
+
+  const isCurrentStepComplete = useCallback(() => {
+    const isComplete = validateStep(currentStep);
+    formLogger.debug("Checking step completion", { step: currentStep, isComplete });
+    return isComplete;
+  }, [currentStep, validateStep]);
+
+  const handleSaveAndContinue = useCallback(async () => {
+    formLogger.info("Save and continue initiated", { currentStep });
+    await form.trigger();
+    if (!isCurrentStepComplete()) {
+      formLogger.warn("Save and continue blocked - current step incomplete", { step: currentStep });
+      toast.error("Please complete all required fields");
+      return;
+    }
     const data = form.getValues();
-    const prev = steps.getPreviousStep(currentStep, data);
-    if (prev) {
-      setCurrentStepState(prev);
-    } else {
-      toast.error("Cannot navigate back from this step");
+    if (!data.id) {
+      formLogger.error("Save and continue attempted without assignment ID");
+      return;
     }
-  }, [currentStep, steps, toast, form]);
 
-  /**
-   * Deletes the current assignment
-   */
-  const handleDeleteAssignment = useCallback(async (): Promise<void> => {
-    if (!assignmentId) return;
-
-    setIsLoading(true);
-    try {
-      await deleteAssignment(assignmentId);
-      toast.success("Assignment deleted successfully");
-      navigate(ROUTES.STUDENT.DASHBOARD);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete assignment");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [assignmentId, navigate, toast]);
-
-  // Calculate if continue button should be disabled - using tab-only validation
-  const isContinueDisabled = useMemo(() => {
-    // Get current form data
-    const data = form.getValues();
-    
-    // For button state, only validate the current tab's fields
-    // Include formDataVersion in dependencies to ensure this recalculates when form data changes
-    const stepIsComplete = steps.validateStep(currentStep, data);
-    const stepIsEditable = steps.isEditable(data.status);
-    
-    // Log for debugging only in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Button state check:', { 
-        isLoading, 
-        stepComplete: stepIsComplete, 
-        stepEditable: stepIsEditable,
-        dataVersion: formDataVersion
+    if (currentStep === "review-submit") {
+      formLogger.info("Submitting assignment", { id: data.id });
+      await updateMutation.mutateAsync({
+        id: data.id,
+        data: { status: ASSIGNMENT_STATUS.SUBMITTED, submitted_at: new Date().toISOString() },
       });
+      setCurrentStep("teacher-feedback");
+      toast.success("Assignment submitted successfully");
+    } else {
+      formLogger.debug("Saving and advancing to next step", { currentStep });
+      await saveData(data.id, data);
+      const next = steps.getNextStep(currentStep, data);
+      if (next) {
+        formLogger.info("Advancing to next step", { from: currentStep, to: next });
+        setCurrentStep(next);
+        toast.success("Saved and continued");
+      }
     }
-    
-    return isLoading || !stepIsComplete || !stepIsEditable;
-  }, [isLoading, currentStep, form, steps, formDataVersion]);
+  }, [form, currentStep, saveData, updateMutation, isCurrentStepComplete]);
 
-  // Return all necessary values and functions for component consumption
+  const previousStep = useCallback(() => {
+    const prev = steps.getPreviousStep(currentStep, form.getValues());
+    if (prev) {
+      formLogger.info("Navigating to previous step", { from: currentStep, to: prev });
+      setCurrentStep(prev);
+    } else {
+      formLogger.warn("Cannot navigate to previous step", { currentStep });
+    }
+  }, [currentStep, form]);
+
+  const handleDeleteAssignment = useCallback(() => {
+    const id = form.getValues("id");
+    if (id) {
+      formLogger.info("Initiating assignment deletion", { id });
+      deleteMutation.mutate(id);
+    } else {
+      formLogger.warn("Delete attempted without assignment ID");
+    }
+  }, [form, deleteMutation]);
+
+  // Derived states
+  const isLoading = Boolean(
+    // If we have a valid ID in the form, don't show loading
+    !form.getValues().id ? 
+    // Otherwise, check all loading states
+    (isDataLoading || createMutation.isPending || updateMutation.isPending || deleteMutation.isPending)
+    : false
+  );
+  const isContinueDisabled = useMemo(() => {
+    return isLoading || !isCurrentStepComplete() || !steps.isEditable(form.getValues().status);
+  }, [isLoading, isCurrentStepComplete, form.formState, form]);
+
   return {
     form,
     currentStep,
@@ -491,11 +308,12 @@ export function useAssignmentForm({ user }: { user: User }) {
     handleSaveAndContinue,
     previousStep,
     isCurrentStepComplete,
-    isCurrentStepEditable,
     validateStep,
     isLoading,
-    isEditing,
+    isEditing: !!assignmentId && assignmentId !== ":id",
     handleDeleteAssignment,
     isContinueDisabled,
   };
 }
+
+export { useAssignmentForm };

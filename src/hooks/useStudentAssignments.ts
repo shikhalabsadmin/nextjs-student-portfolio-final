@@ -269,7 +269,7 @@ export function useStudentAssignments(
       return;
     }
     
-    navigate(ROUTES.STUDENT.MANAGE_ASSIGNMENT.replace(':id?', String(assignmentId)));
+    navigate(ROUTES.STUDENT.MANAGE_ASSIGNMENT.replace(':id', String(assignmentId)));
   };
 
   // Return everything the component needs
