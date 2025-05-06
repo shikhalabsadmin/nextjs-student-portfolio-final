@@ -1,5 +1,6 @@
 import { LucideIcon } from "lucide-react";
 import { NavVariant } from "@/enums/navigation.enum";
+import { UserRole } from "@/enums";
 
 export interface NavLink {
   to: string;
@@ -11,6 +12,7 @@ export interface NavbarProps {
   title?: string;
   logo?: React.ReactNode;
   signOut?: () => Promise<void>;
+  role?: UserRole;
   steps?: Array<{
     title: string;
     icon: LucideIcon;

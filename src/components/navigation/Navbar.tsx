@@ -1,6 +1,5 @@
 import { useState, useEffect, FC } from "react";
 import { useAuthState } from "@/hooks/useAuthState";
-import { NotificationBell } from "@/components/ui/notifications/NotificationBell";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   DropdownMenu,
@@ -35,6 +34,8 @@ import { ROUTES, getNavLinks } from "@/config/routes";
 import { NavVariant } from "@/enums/navigation.enum";
 import { NavbarProps } from "@/types/navigation";
 import { toast } from "@/components/ui/use-toast";
+import { UserRole } from "@/enums/user.enum";
+import { Button } from "@/components/ui/button";
 
 // Navigation icons mapping
 const NAV_ICONS = {
@@ -57,21 +58,10 @@ const navItemClass = `
   hover:bg-background hover:scale-105 focus:bg-background focus:outline-none
 `;
 
-const verticalNavItemClass = `
-  flex flex-col items-center gap-1 p-3 rounded-lg cursor-pointer
-  transition-all duration-200 ease-in-out
-  hover:bg-background hover:scale-105 focus:bg-background focus:outline-none
-`;
-
 const activeNavItemClass = "text-primary";
 const inactiveNavItemClass = "text-secondary hover:text-primary";
 
-export const Navbar: FC<NavbarProps> = ({
-  variant = NavVariant.DEFAULT,
-  title,
-  logo,
-  steps,
-}) => {
+export const Navbar: FC<NavbarProps> = ({ logo }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, userRole, profile, signOut } = useAuthState();
@@ -87,7 +77,7 @@ export const Navbar: FC<NavbarProps> = ({
     try {
       // Close any open menus
       setIsOpen(false);
-      
+
       // Attempt to sign out
       await signOut();
 
@@ -102,12 +92,12 @@ export const Navbar: FC<NavbarProps> = ({
       setTimeout(() => {
         window.location.href = ROUTES.COMMON.HOME;
       }, 100);
-
     } catch (error) {
       console.error("[Navbar] Sign out error:", error);
       toast({
         title: "Failed to log out",
-        description: "Please try again. If the problem persists, refresh the page.",
+        description:
+          "Please try again. If the problem persists, refresh the page.",
         variant: "destructive",
       });
     }
@@ -140,59 +130,7 @@ export const Navbar: FC<NavbarProps> = ({
       />
     );
   };
-
-  // Render profile icon with consistent styling
-  const renderProfileIcon = () => (
-    <UserCircle
-      className="h-6 w-6 text-secondary hover:text-primary transition-colors"
-      aria-label="User profile"
-    />
-  );
-
-  // Default logo component
-  const DefaultLogo = () => (
-    <Link to={ROUTES.COMMON.HOME} aria-label="Home">
-      <img
-        src="/shikha_labs.png"
-        alt="Shikha Labs Logo"
-        className="w-[32px] h-[42px] lg:w-[42px] lg:h-[56px] object-contain transition-transform hover:scale-105"
-      />
-    </Link>
-  );
-
-  // Desktop navigation component
-  const DesktopNav = () => {
-    if (variant !== NavVariant.DEFAULT) return null;
-    const links = user ? getNavLinks(userRole) : [];
-
-    if (links?.length === 0) {
-      return null;
-    }
-
-    return (
-      <div className="hidden lg:flex items-center gap-4">
-        {links.map((link) => (
-          <Link
-            key={link.to}
-            to={link.to}
-            className={`${verticalNavItemClass} ${
-              location.pathname === link.to
-                ? activeNavItemClass
-                : inactiveNavItemClass
-            }`}
-          >
-            {renderNavIcon(
-              link.label as keyof typeof NAV_ICONS,
-              undefined,
-              location.pathname === link.to
-            )}
-            <span className="text-xs font-medium">{link.label}</span>
-          </Link>
-        ))}
-      </div>
-    );
-  };
-
+  
   // User dropdown component for desktop
   const UserDropdown = () => {
     const links = user ? getNavLinks(userRole) : [];
@@ -209,7 +147,10 @@ export const Navbar: FC<NavbarProps> = ({
             aria-label="User menu"
             tabIndex={0}
           >
-            {renderProfileIcon()}
+            <UserCircle
+              className="h-6 w-6 text-secondary hover:text-primary transition-colors"
+              aria-label="User profile"
+            />
           </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -260,7 +201,6 @@ export const Navbar: FC<NavbarProps> = ({
       return null;
     }
 
-  
     return (
       <div className="block lg:hidden">
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -345,15 +285,35 @@ export const Navbar: FC<NavbarProps> = ({
   return (
     <header className="sticky top-0 left-0 right-0 border-b bg-background backdrop-blur-sm shadow-sm z-50">
       <div className="flex items-center justify-between px-5 lg:px-16 py-4">
-        <div>{logo || <DefaultLogo />}</div>
+        <div>
+          {logo || (
+            <Link to={ROUTES.COMMON.HOME} aria-label="Home">
+              <img
+                src="/shikha_labs.png"
+                alt="Shikha Labs Logo"
+                className="w-[32px] h-[42px] lg:w-[42px] lg:h-[56px] object-contain transition-transform hover:scale-105"
+              />
+            </Link>
+          )}
+        </div>
         <div className="flex items-center gap-4">
-          <DesktopNav />
           {user && (
             <>
-              <NotificationBell />
-              <div className="hidden lg:block">
+              <div className="block">
                 <UserDropdown />
               </div>
+              {userRole === UserRole.STUDENT && profile && (
+                <Button variant="outline" size="sm" className="flex" asChild>
+                  <Link
+                    to={ROUTES.PORTFOLIO.STUDENT.replace(
+                      ":student_id",
+                      profile.id || ""
+                    )}
+                  >
+                    Portfolio Preview
+                  </Link>
+                </Button>
+              )}
             </>
           )}
           <MobileNav />

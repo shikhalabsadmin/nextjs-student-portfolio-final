@@ -90,6 +90,18 @@ export function AssignmentCard({
     return editableStatuses.includes(status);
   };
 
+  const handleCardClick = () => {
+    // Navigate based on assignment status
+    if (status === ASSIGNMENT_STATUS.DRAFT || status === ASSIGNMENT_STATUS.NEEDS_REVISION || status === ASSIGNMENT_STATUS.SUBMITTED) {
+      navigate(ROUTES.STUDENT.MANAGE_ASSIGNMENT.replace(":id", String(id)));
+    } else if (status === ASSIGNMENT_STATUS.APPROVED) {
+      navigate(ROUTES.ASSIGNMENT.DETAIL.replace(":id", String(id)));
+    } else {
+      // For other statuses, also navigate to detail page
+      console.log("Other statuses");
+    }
+  };
+
   const handleCopyLink = async (e: React.MouseEvent) => {
     e.stopPropagation();
 
@@ -146,7 +158,10 @@ export function AssignmentCard({
       }
 
       items.push(
-        <DropdownMenuItem key="edit" onClick={onEdit}>
+        <DropdownMenuItem key="edit" onClick={(e) => {
+          e.stopPropagation();
+          onEdit?.();
+        }}>
           <Edit className="mr-2 h-4 w-4" />
           Edit Assignment
         </DropdownMenuItem>
@@ -165,13 +180,16 @@ export function AssignmentCard({
             <DropdownMenuItem
               key="delete"
               className="text-destructive"
-              onSelect={(e) => e.preventDefault()}
+              onSelect={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete Assignment
             </DropdownMenuItem>
           </AlertDialogTrigger>
-          <AlertDialogContent>
+          <AlertDialogContent onClick={(e) => e.stopPropagation()}>
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Assignment</AlertDialogTitle>
               <AlertDialogDescription>
@@ -181,7 +199,10 @@ export function AssignmentCard({
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                onClick={onDelete}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete?.();
+                }}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 Delete
@@ -196,7 +217,10 @@ export function AssignmentCard({
   };
 
   return (
-    <Card className="group overflow-hidden rounded-xl border border-[#EAECF0] hover:border-[#D0D5DD] hover:shadow-[0px_4px_8px_-2px_rgba(16,24,40,0.1),0px_2px_4px_-2px_rgba(16,24,40,0.06)] transition-all duration-200 cursor-pointer">
+    <Card 
+      className="group overflow-hidden rounded-xl border border-[#EAECF0] hover:border-[#D0D5DD] hover:shadow-[0px_4px_8px_-2px_rgba(16,24,40,0.1),0px_2px_4px_-2px_rgba(16,24,40,0.06)] transition-all duration-200 cursor-pointer"
+      onClick={handleCardClick}
+    >
       {/* Image Section */}
       <div className="relative aspect-[16/9] overflow-hidden border-b border-[#EAECF0] bg-gray-100">
         <img
@@ -218,12 +242,13 @@ export function AssignmentCard({
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full shadow-sm"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <MoreHorizontal className="h-4 w-4" />
                   <span className="sr-only">More options</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 p-1">
+              <DropdownMenuContent align="end" className="w-56 p-1" onClick={(e) => e.stopPropagation()}>
                 {getStatusActions()}
               </DropdownMenuContent>
             </DropdownMenu>

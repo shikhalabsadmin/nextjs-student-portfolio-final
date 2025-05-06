@@ -119,7 +119,7 @@ const AppContent = () => {
     // Student routes
     {
       path: ROUTES.STUDENT.DASHBOARD,
-      element: <MainLayout variant={NavVariant.AUTH} signOut={signOut} />,
+      element: <MainLayout variant={NavVariant.AUTH} signOut={signOut} role={user ? UserRole.STUDENT : undefined} />,
       errorElement: <Error message="An error occurred loading the student dashboard" fullScreen />,
       children: [
         {
