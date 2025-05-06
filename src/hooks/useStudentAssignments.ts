@@ -93,7 +93,7 @@ export function useStudentAssignments(
       grade: item.grade as GradeLevel,
       dueDate: item.due_date,
       status: item.status,
-      imageUrl: imageMap.get(item.id) || "/broken-image.png",
+      imageUrl: imageMap.get(item.id) || "/studemt-assignment-default-image.png",
     }));
   }
   
