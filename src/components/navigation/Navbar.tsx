@@ -130,7 +130,7 @@ export const Navbar: FC<NavbarProps> = ({ logo }) => {
       />
     );
   };
-  
+
   // User dropdown component for desktop
   const UserDropdown = () => {
     const links = user ? getNavLinks(userRole) : [];
@@ -282,6 +282,28 @@ export const Navbar: FC<NavbarProps> = ({ logo }) => {
     );
   };
 
+  // Student navigation options based on current route
+  const StudentNavOptions = () => {
+    if (!user || userRole !== UserRole.STUDENT || !profile) return null;
+
+    return (
+      <>
+        {location.pathname === ROUTES.STUDENT.DASHBOARD && (
+          <Button variant="outline" size="sm" className="flex" asChild>
+            <Link
+              to={ROUTES.PORTFOLIO.STUDENT.replace(
+                ":student_id",
+                profile.id || ""
+              )}
+            >
+              Portfolio Preview
+            </Link>
+          </Button>
+        )}
+      </>
+    );
+  };
+
   return (
     <header className="sticky top-0 left-0 right-0 border-b bg-background backdrop-blur-sm shadow-sm z-50">
       <div className="flex items-center justify-between px-5 lg:px-16 py-4">
@@ -302,18 +324,7 @@ export const Navbar: FC<NavbarProps> = ({ logo }) => {
               <div className="block">
                 <UserDropdown />
               </div>
-              {userRole === UserRole.STUDENT && profile && (
-                <Button variant="outline" size="sm" className="flex" asChild>
-                  <Link
-                    to={ROUTES.PORTFOLIO.STUDENT.replace(
-                      ":student_id",
-                      profile.id || ""
-                    )}
-                  >
-                    Portfolio Preview
-                  </Link>
-                </Button>
-              )}
+              <StudentNavOptions />
             </>
           )}
           <MobileNav />
