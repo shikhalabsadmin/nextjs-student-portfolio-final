@@ -3,7 +3,7 @@ import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom"
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { Loading } from "@/components/ui/loading";
 import { logger } from "@/lib/logger";
@@ -14,6 +14,7 @@ import { NavVariant } from "@/enums/navigation.enum";
 import { UserRole } from "@/enums/user.enum";
 import { ROUTES } from "@/config/routes";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { queryClient } from "@/query-key/client";
 
 // Create module-specific logger
 const appLogger = logger.forModule("App");
@@ -34,19 +35,6 @@ const StudentPortfolio = lazy(() => import("@/pages/StudentPortfolio"));
 
 // Loading component for suspense fallback
 const SuspenseFallback = () => <Loading fullScreen={true} />;
-
-// QueryClient initialization
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-      refetchOnReconnect: false,
-      staleTime: Infinity,
-    },
-  },
-});
 
 appLogger.info("QueryClient initialized");
 

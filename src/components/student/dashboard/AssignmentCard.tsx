@@ -9,7 +9,7 @@ import {
   ASSIGNMENT_STATUS,
 } from "@/constants/assignment-status";
 import { Subject, GradeLevel } from "@/constants/grade-subjects";
-import { Trash2, MoreHorizontal, Edit, ExternalLink } from "lucide-react";
+import { Trash2, MoreHorizontal, Edit, ExternalLink, Copy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/config/routes";
 import {
@@ -30,6 +30,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/components/ui/use-toast";
 
 interface AssignmentCardProps {
   id: string | number;
@@ -72,12 +73,11 @@ export function AssignmentCard({
   onEdit,
 }: AssignmentCardProps) {
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const canDelete = (status: AssignmentStatus): boolean => {
     // Only allow deletion for these statuses
-    const deletableStatuses: AssignmentStatus[] = [
-      ASSIGNMENT_STATUS.DRAFT
-    ];
+    const deletableStatuses: AssignmentStatus[] = [ASSIGNMENT_STATUS.DRAFT];
     return deletableStatuses.includes(status);
   };
 
@@ -90,17 +90,28 @@ export function AssignmentCard({
     return editableStatuses.includes(status);
   };
 
-  const canView = (status: AssignmentStatus): boolean => {
-    // Only allow viewing for APPROVED status
-    return status === ASSIGNMENT_STATUS.APPROVED || status === ASSIGNMENT_STATUS.SUBMITTED;
-  };
+  const handleCopyLink = async (e: React.MouseEvent) => {
+    e.stopPropagation();
 
-  const handleCardClick = () => {
+    // Create the assignment detail URL using the routes configuration
+    const assignmentUrl = `${
+      window.location.origin
+    }${ROUTES.ASSIGNMENT.DETAIL.replace(":id", String(id))}`;
 
-    if(status === ASSIGNMENT_STATUS.SUBMITTED) {
-      navigate(ROUTES.withParams(ROUTES.STUDENT.MANAGE_ASSIGNMENT, { id: String(id) }));
-    } else {
-      navigate(ROUTES.withParams(ROUTES.ASSIGNMENT.DETAIL, { id: String(id) }));
+    try {
+      await navigator.clipboard.writeText(assignmentUrl);
+      toast({
+        title: "Link copied!",
+        description: "Assignment link copied to clipboard",
+        duration: 3000,
+      });
+    } catch (err) {
+      toast({
+        title: "Copy failed",
+        description: "Could not copy to clipboard",
+        variant: "destructive",
+        duration: 3000,
+      });
     }
   };
 
@@ -118,8 +129,22 @@ export function AssignmentCard({
   const getStatusActions = () => {
     const items = [];
 
+    // Add Copy Link option for approved assignments
+    if (status === ASSIGNMENT_STATUS.APPROVED) {
+      items.push(
+        <DropdownMenuItem key="copy" onClick={(e) => handleCopyLink(e)}>
+          <Copy className="mr-2 h-4 w-4" />
+          Copy Link
+        </DropdownMenuItem>
+      );
+    }
+
     // Add Edit Assignment option for applicable statuses
     if (canEdit(status)) {
+      if (items.length > 0) {
+        items.push(<DropdownMenuSeparator key="separator-edit" />);
+      }
+
       items.push(
         <DropdownMenuItem key="edit" onClick={onEdit}>
           <Edit className="mr-2 h-4 w-4" />
@@ -171,10 +196,7 @@ export function AssignmentCard({
   };
 
   return (
-    <Card 
-      className="group overflow-hidden rounded-xl border border-[#EAECF0] hover:border-[#D0D5DD] hover:shadow-[0px_4px_8px_-2px_rgba(16,24,40,0.1),0px_2px_4px_-2px_rgba(16,24,40,0.06)] transition-all duration-200 cursor-pointer"
-      onClick={ canView(status) ? handleCardClick : undefined}
-    >
+    <Card className="group overflow-hidden rounded-xl border border-[#EAECF0] hover:border-[#D0D5DD] hover:shadow-[0px_4px_8px_-2px_rgba(16,24,40,0.1),0px_2px_4px_-2px_rgba(16,24,40,0.06)] transition-all duration-200 cursor-pointer">
       {/* Image Section */}
       <div className="relative aspect-[16/9] overflow-hidden border-b border-[#EAECF0] bg-gray-100">
         <img
@@ -186,6 +208,27 @@ export function AssignmentCard({
           }}
         />
         <StatusBadge status={status} />
+
+        {/* Three Dots Menu - Moved to top right */}
+        {getStatusActions()?.length > 0 && (
+          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full shadow-sm"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                  <span className="sr-only">More options</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 p-1">
+                {getStatusActions()}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
       </div>
 
       {/* Content Section */}
@@ -203,31 +246,6 @@ export function AssignmentCard({
             {grade && <span>Grade {grade}</span>}
           </div>
         </div>
-
-        {getStatusActions()?.length ? (
-          <>
-            {/* Three Dots Menu - visible on hover */}
-            <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-5 w-5 !bg-transparent"
-                  >
-                    <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">More options</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 p-1">
-                  {getStatusActions()}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </>
-        ) : (
-          <></>
-        )}
       </div>
     </Card>
   );

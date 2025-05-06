@@ -3,8 +3,8 @@ import { X } from "lucide-react";
 import type { AssignmentFile } from "@/types/file";
 import type { UseFormReturn } from "react-hook-form";
 import type { AssignmentFormValues } from "@/lib/validations/assignment";
-import { formatFileSize } from "@/lib/utils/file-type.utils";
 import { useMemo } from "react";
+import { FilePreview } from "@/components/ui/file-preview";
 
 interface YoutubeLinksProps {
   files: AssignmentFile[];
@@ -29,12 +29,21 @@ export function YoutubeLinksSection({
     [files]
   );
 
+  // Check if there are any valid YouTube links
+  const validYoutubeLinks = useMemo(() => 
+    youtubeLinks?.filter(link => link && link.url) || [],
+    [youtubeLinks]
+  );
+
+  // Calculate if we have any content to display
+  const hasContent = nonProcessFiles.length > 0 || validYoutubeLinks.length > 0;
+
+  if (!hasContent) return null;
+
   return (
-    <>
+    <div className="mt-4">
+      <div className={isMobile ? 'space-y-3' : 'grid grid-cols-2 gap-3'}>
       {/* Display Files */}
-      {nonProcessFiles.length > 0 && (
-        <div className="mt-4 space-y-2">
-          <div className={`space-y-2 ${isMobile ? 'max-h-60 overflow-y-auto pr-1' : ''}`}>
             {nonProcessFiles.map((file, index) => {
               if (!file) return null;
               
@@ -45,82 +54,30 @@ export function YoutubeLinksSection({
               );
               
               return (
-                <div 
-                  key={file.id || index} 
-                  className="flex items-center justify-between px-4 py-2.5 bg-white border border-gray-200 rounded-lg"
-                >
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <FileIcon type={file.file_type || ''} />
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <div className="flex items-center gap-2 min-w-0">
-                        {file.file_url ? (
-                          <a
-                            href={file.file_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm font-medium text-gray-900 hover:text-gray-600 truncate"
-                            title={file.file_name || ''}
-                          >
-                            {file.file_name || 'Unnamed file'}
-                          </a>
-                        ) : (
-                          <span className="text-sm font-medium text-gray-900 truncate">
-                            {file.file_name || 'Unnamed file'}
-                          </span>
-                        )}
-                        <span className="text-sm text-gray-500 shrink-0">
-                          {formatFileSize(file.file_size || 0)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+            <div key={`file-${file.id || index}`} className="relative">
+              <FilePreview file={file} />
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 ml-2 shrink-0"
+                variant="destructive"
+                size="icon"
+                className="absolute top-2 right-2 h-6 w-6 rounded-full"
                     onClick={() => handleDeleteFile(file, originalIndex !== -1 ? originalIndex : index)}
                   >
-                    <X className="h-4 w-4" />
+                <X className="h-3 w-3" />
                   </Button>
                 </div>
               );
             })}
-          </div>
-        </div>
-      )}
 
       {/* Display YouTube Links */}
-      {Array.isArray(youtubeLinks) && youtubeLinks.some(link => link?.url) && (
-        <div className="mt-4 space-y-2">
-          {youtubeLinks.map((link, index) => {
-            if (!link?.url) return null;
-            return (
-              <div 
-                key={index} 
-                className="flex items-center justify-between px-4 py-2.5 bg-white border border-gray-200 rounded-lg"
-              >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <FileIcon type="youtube" />
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <a 
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm font-medium text-gray-900 hover:text-gray-600 truncate"
-                        title={link.title || link.url}
-                      >
-                        {link.title || link.url || 'Loading...'}
-                      </a>
-                    </div>
-                  </div>
-                </div>
+        {validYoutubeLinks.map((link, index) => (
+          <div key={`youtube-${index}`} className="relative">
+            <FilePreview file={{...link, type: 'youtube'}} />
                 <Button
                   type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 ml-2 shrink-0"
+              variant="destructive"
+              size="icon"
+              className="absolute top-2 right-2 h-6 w-6 rounded-full"
                   onClick={() => {
                     const newLinks = [...(youtubeLinks || [])];
                     newLinks.splice(index, 1);
@@ -130,13 +87,11 @@ export function YoutubeLinksSection({
                     form.setValue("youtubelinks", newLinks);
                   }}
                 >
-                  <X className="h-4 w-4" />
+              <X className="h-3 w-3" />
                 </Button>
               </div>
-            );
-          })}
+        ))}
+      </div>
         </div>
-      )}
-    </>
   );
 }

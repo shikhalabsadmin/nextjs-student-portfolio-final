@@ -69,7 +69,24 @@ export const assignmentFormSchema = baseAssignmentFormSchema.extend({
   challenges: z.string().min(1, "This field is required").max(200, "Must be 200 characters or less"),
   improvements: z.string().min(1, "This field is required").max(200, "Must be 200 characters or less"),
   acknowledgments: z.string().min(1, "This field is required").max(200, "Must be 200 characters or less"),
-  originality_explanation: z.string().min(1, "This field is required").max(200, "Must be 200 characters or less"),
+}).superRefine((data, ctx) => {
+  // Validate team contribution is provided if team work is selected
+  if (data.is_team_work && (!data.team_contribution || data.team_contribution.trim() === "")) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Team contribution is required for team work",
+      path: ["team_contribution"],
+    });
+  }
+  
+  // Validate originality explanation is provided if original work is selected
+  if (data.is_original_work && (!data.originality_explanation || data.originality_explanation.trim() === "")) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Please explain what makes your work original",
+      path: ["originality_explanation"],
+    });
+  }
 });
 
 export type AssignmentFormValues = z.infer<typeof assignmentFormSchema>;

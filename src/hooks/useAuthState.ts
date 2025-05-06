@@ -4,7 +4,10 @@ import { User } from "@supabase/supabase-js";
 import { useCallback } from "react";
 import { UserRole } from "@/enums/user.enum";
 import { logger } from "@/lib/logger";
-
+import { PROFILE_KEYS } from "@/query-key/profile";
+import { ROUTES } from "@/config/routes";
+import { queryClient } from "@/query-key/client";
+import { redirect } from "react-router-dom";
 // Create module-specific logger
 const authLogger = logger.forModule("Auth:Hook");
 
@@ -41,7 +44,7 @@ export const useAuthState = (): AuthState => {
     isLoading: isSessionLoading,
     error: sessionError
   } = useQuery({
-    queryKey: ['auth-session'],
+    queryKey: PROFILE_KEYS.authSession,
     queryFn: async () => {
       authLogger.debug("Fetching auth session");
       const result = await supabase.auth.getSession();
@@ -60,7 +63,7 @@ export const useAuthState = (): AuthState => {
     isLoading: isProfileLoading,
     error: profileError
   } = useQuery({
-    queryKey: ['profile', userId],
+    queryKey: PROFILE_KEYS.profile(userId),
     queryFn: async () => {
       if (!userId) return null;
       authLogger.debug("Fetching user profile", { userId });
@@ -111,8 +114,10 @@ export const useAuthState = (): AuthState => {
   const signOut = useCallback(async () => {
     authLogger.info("Signing out user", { userId: user?.id });
     await supabase.auth.signOut();
+    queryClient.invalidateQueries({ queryKey: PROFILE_KEYS.authSession });
+    queryClient.invalidateQueries({ queryKey: PROFILE_KEYS.profile(user?.id) });
     authLogger.info("Sign out successful");
-    window.location.href = "/";
+    redirect(ROUTES.COMMON.HOME);
   }, [user?.id]);
 
   authLogger.debug("Auth state", { 

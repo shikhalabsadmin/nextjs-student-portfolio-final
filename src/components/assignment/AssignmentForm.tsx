@@ -13,7 +13,6 @@ import { STEPS } from "@/lib/config/steps";
 import { type AssignmentStep } from "@/types/assignment";
 import {
   ASSIGNMENT_STATUS,
-  type LockedForContinueStatus,
   type AssignmentStatus,
 } from "@/constants/assignment-status";
 import { GenericBreadcrumb } from "./AssignmentBreadcrumb";
@@ -33,15 +32,14 @@ function AssignmentForm({ user }: AssignmentFormProps) {
     currentStep,
     setCurrentStep,
     handleSaveAndContinue,
-    isCurrentStepComplete,
     validateStep,
     isLoading,
     isContinueDisabled,
+    handleSubmitAssignment
   } = useAssignmentForm({ user });
 
   // Derived state
   const assignmentStatus = form.getValues().status || ASSIGNMENT_STATUS.DRAFT;
-
 
   const currentStepConfig = useMemo(
     () => STEPS.find((step) => step.id === currentStep),
@@ -83,17 +81,18 @@ function AssignmentForm({ user }: AssignmentFormProps) {
   );
 
   const handleSaveAndContinueClick = useCallback(() => {
-    if (currentStep === "review-submit" && isCurrentStepComplete()) {
+    if (currentStep === "review-submit") {
+      // Only keep the modal check for final submission, no need to check step completion
       setShowConfirmationModal(true);
       return;
     }
     handleSaveAndContinue();
-  }, [currentStep, isCurrentStepComplete, handleSaveAndContinue]);
+  }, [currentStep, handleSaveAndContinue]);
 
   const handleConfirmSubmit = useCallback(() => {
-    handleSaveAndContinue();
+    handleSubmitAssignment(form.getValues());
     setShowConfirmationModal(false);
-  }, [handleSaveAndContinue]);
+  }, [handleSubmitAssignment, form]);
 
   // Shared props
   const stepProgressProps = {

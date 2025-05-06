@@ -1,345 +1,345 @@
 import { type AssignmentStep, type StepConfig } from "@/types/assignment";
 import { type AssignmentFormValues } from "@/lib/validations/assignment";
 import { STEPS } from "@/lib/config/steps";
-import { debug } from "@/lib/utils/debug.service";
 import { ASSIGNMENT_STATUS, type AssignmentStatus } from "@/constants/assignment-status";
+import { logger } from "@/lib/logger";
 
-// Restricted statuses limiting editing only
+// Constants and types
 const RESTRICTED_STATUSES = [
   ASSIGNMENT_STATUS.SUBMITTED,
   ASSIGNMENT_STATUS.APPROVED,
 ] as const;
 
-// Type alias for restricted status values
-type RestrictedStatus = typeof RESTRICTED_STATUSES[number];
-
-// Type guard function to check if a status is restricted for editing
-function isRestrictedStatus(status: AssignmentStatus): status is RestrictedStatus {
-  return RESTRICTED_STATUSES.includes(status as RestrictedStatus);
+// Type definitions for step validation
+interface StepRequirement {
+  fields: (keyof AssignmentFormValues)[];
+  customCheck?: (data: AssignmentFormValues) => boolean;
+  dependsOnPrevious?: boolean;
+  alwaysValid?: boolean;
 }
 
-// Step validation rules with required fields and custom logic
-const STEP_VALIDATION_CONFIG: Record<AssignmentStep, {
-  requiredFields: (keyof AssignmentFormValues)[];
-  validate?: (formData: AssignmentFormValues, service: StepService) => boolean;
-}> = {
-  'basic-info': {
-    requiredFields: ['title', 'artifact_type', 'subject', 'month'],
-    validate: (formData) => {
-      const hasYoutubeLinks = Array.isArray(formData.youtubelinks) && 
-        formData.youtubelinks.some(link => link?.url && link.url.trim().length > 0);
-      
-      const hasFiles = Array.isArray(formData.files) && formData.files.length > 0;
-      
-      return hasYoutubeLinks || hasFiles;
-    },
-  },
-  'role-originality': {
-    requiredFields: ['is_team_work', 'is_original_work'],
-    validate: (formData) => {
-      const teamWorkValid = !formData.is_team_work || Boolean(formData.team_contribution?.trim());
-      const originalityValid = !formData.is_original_work || Boolean(formData.originality_explanation?.trim());
-      return teamWorkValid && originalityValid;
-    },
-  },
-  'skills-reflection': {
-    requiredFields: ['selected_skills', 'skills_justification', 'pride_reason'],
-  },
-  'process-challenges': {
-    requiredFields: ['creation_process', 'learnings', 'challenges', 'improvements', 'acknowledgments'],
-  },
-  'review-submit': {
-    requiredFields: [],
-    validate: (formData, service) => {
-      return service.validateUpToStep('process-challenges', formData);
-    },
-  },
-  'teacher-feedback': {
-    requiredFields: [],
-    validate: (formData, service) => {
-      return service.validateUpToStep('process-challenges', formData);
-    },
-  },
+// Helper functions
+const isRestrictedStatus = (status: AssignmentStatus): boolean => {
+  return RESTRICTED_STATUSES.includes(status as (typeof RESTRICTED_STATUSES)[number]);
 };
 
-// Cached validation result structure
-interface ValidationCache {
-  formDataHash: string;
-  isValid: boolean;
-  timestamp: number;
-}
+// Logger instance
+const stepLogger = logger.forModule("StepService");
 
-// Manages validation and navigation for a multi-step assignment form
+/**
+ * Validation requirements for each step in the assignment form
+ */
+const STEP_REQUIREMENTS: Record<AssignmentStep, StepRequirement> = {
+  'basic-info': {
+    fields: ['title', 'artifact_type', 'subject', 'month'],
+    customCheck: (data: AssignmentFormValues) => {
+      // At least one of files or youtubelinks is required
+      const hasYoutubeLinks = Array.isArray(data.youtubelinks) && 
+        data.youtubelinks.some(link => link?.url && link.url.trim().length > 0);
+      const hasFiles = Array.isArray(data.files) && data.files.length > 0;
+      return hasYoutubeLinks || hasFiles;
+    }
+  },
+  'role-originality': {
+    fields: ['is_team_work', 'is_original_work'],
+    customCheck: (data: AssignmentFormValues) => {
+      // If team work is selected, require team contribution details
+      const teamWorkValid = data.is_team_work ? Boolean(data.team_contribution?.trim()) : true;
+      // If original work is selected, require explanation
+      const originalityValid = data.is_original_work ? Boolean(data.originality_explanation?.trim()) : true;
+      return teamWorkValid && originalityValid;
+    }
+  },
+  'skills-reflection': {
+    fields: ['selected_skills', 'skills_justification', 'pride_reason']
+  },
+  'process-challenges': {
+    fields: ['creation_process', 'learnings', 'challenges', 'improvements', 'acknowledgments']
+  },
+  'review-submit': {
+    fields: [],
+    // This step is valid only if all previous steps are valid
+    dependsOnPrevious: true
+  },
+  'teacher-feedback': {
+    fields: [],
+    // Teacher feedback is always valid as it's completed by the teacher
+    alwaysValid: true
+  }
+};
+
+/**
+ * Service for managing multi-step form navigation and validation
+ * Handles step validation, navigation between steps, and identifying form errors
+ */
 export class StepService {
   private readonly steps: ReadonlyArray<StepConfig>;
-  private readonly validationStatus: Map<AssignmentStep, boolean>;
-  private readonly visitedSteps: Set<AssignmentStep>;
-  private readonly validationCache: Map<AssignmentStep, ValidationCache>;
-  private readonly cacheTimeoutMs = 5 * 60 * 1000; // 5 minutes
-
+  
+  /**
+   * Create a new StepService instance
+   * @param steps Configuration for form steps
+   */
   constructor(steps: ReadonlyArray<StepConfig> = STEPS) {
     this.steps = steps;
-    this.validationStatus = new Map(
-      Object.keys(STEP_VALIDATION_CONFIG).map(stepId => [stepId as AssignmentStep, false])
-    );
-    this.visitedSteps = new Set();
-    this.validationCache = new Map();
-    debug.info("StepService initialized with steps:", this.steps.map(s => s.id));
+    stepLogger.info("StepService initialized with steps:", this.steps.map(s => s.id));
   }
 
-  // Resets all validation caches and state
-  reset(): void {
-    this.validationStatus.forEach((_, key) => {
-      this.validationStatus.set(key, false);
-    });
-    this.visitedSteps.clear();
-    this.validationCache.clear();
-    debug.info("StepService state reset");
+  /**
+   * Get all step IDs in the form
+   * @returns Array of step IDs
+   */
+  getStepIds(): AssignmentStep[] {
+    return this.steps.map(s => s.id);
   }
-
-  // Marks a step as visited for UI tracking
-  markStepVisited(stepId: AssignmentStep): void {
-    if (this.visitedSteps.has(stepId)) return;
-    this.visitedSteps.add(stepId);
-    debug.log(`Marked step ${stepId} as visited`);
+  
+  /**
+   * Find a step by its ID
+   * @param stepId Step identifier
+   * @returns Step configuration or undefined if not found
+   */
+  getStepById(stepId: AssignmentStep): StepConfig | undefined {
+    return this.steps.find(s => s.id === stepId);
   }
-
-  // Clears validation cache for a specific step
-  clearCache(stepId: AssignmentStep): void {
-    this.validationCache.delete(stepId);
-    debug.log(`Cleared validation cache for step: ${stepId}`);
+  
+  /**
+   * Get the index of a step in the sequence
+   * @param stepId Step identifier
+   * @returns Zero-based index or -1 if not found
+   */
+  getStepIndex(stepId: AssignmentStep): number {
+    return this.steps.findIndex(s => s.id === stepId);
   }
-
-  // Validates a step's data, using cache if enabled
-  validateStep(stepId: AssignmentStep, formData: AssignmentFormValues, useCache = true): boolean {
+  
+  /**
+   * Check if assignment status allows editing
+   * @param status Current assignment status
+   * @returns Boolean indicating if editing is allowed
+   */
+  isEditable(status: AssignmentStatus): boolean {
+    return !isRestrictedStatus(status);
+  }
+  
+  /**
+   * Check if a step is valid based on its requirements
+   * @param stepId Step identifier
+   * @param formData Current form data
+   * @returns Boolean indicating if step is valid
+   */
+  validateStep(stepId: AssignmentStep, formData: AssignmentFormValues): boolean {
+    // Validate step ID
     if (!this.isValidStep(stepId)) {
-      debug.error(`Unknown step: ${stepId}`);
+      stepLogger.error(`Unknown step ID: ${stepId}`);
       return false;
     }
     
-    // First validate all previous steps
-    const stepIndex = this.getStepIndex(stepId);
-    if (stepIndex > 0) {
-      // For any step beyond the first, validate all previous steps first
-      for (let i = 0; i < stepIndex; i++) {
-        const prevStepId = this.steps[i].id;
-        if (!this.validateStep(prevStepId, formData, useCache)) {
-          debug.log(`Step ${stepId} cannot be valid because previous step ${prevStepId} is invalid`);
-          return false;
-        }
-      }
+    const requirements = STEP_REQUIREMENTS[stepId];
+    
+    // Skip validation for steps marked as always valid
+    if (requirements.alwaysValid) {
+      return true;
     }
     
-    // Then check cache for current step
-    if (useCache) {
-      const cachedResult = this.getCachedValidation(stepId, formData);
-      if (cachedResult !== null) {
-        debug.log(`Using cached validation for ${stepId}: ${cachedResult}`);
-        this.validationStatus.set(stepId, cachedResult);
-        return cachedResult;
-      }
+    // Handle steps that depend on previous steps
+    if (requirements.dependsOnPrevious) {
+      return this.validatePreviousSteps(stepId, formData);
     }
     
-    // Validate current step
-    const config = STEP_VALIDATION_CONFIG[stepId];
-    const isValid = this.isStepDataValid(config, formData);
-    this.validationStatus.set(stepId, isValid);
-    this.cacheValidation(stepId, formData, isValid);
-    debug.log(`Validated step ${stepId}: ${isValid}`);
+    // Validate required fields
+    const fieldsValid = this.validateFields(requirements.fields, formData);
+    
+    // Run custom validation if provided
+    const customValid = requirements.customCheck ? requirements.customCheck(formData) : true;
+    
+    const isValid = fieldsValid && customValid;
+    stepLogger.debug(`Step ${stepId} validation result: ${isValid}`);
+    
     return isValid;
   }
-
-  // Validates all steps up to the target step
+  
+  /**
+   * Validate all previous steps before the given step
+   * @param stepId Current step ID
+   * @param formData Form data
+   * @returns Boolean indicating if all previous steps are valid
+   */
+  private validatePreviousSteps(stepId: AssignmentStep, formData: AssignmentFormValues): boolean {
+    const currentIndex = this.getStepIndex(stepId);
+    
+    for (let i = 0; i < currentIndex; i++) {
+      const prevStepId = this.steps[i].id;
+      if (!this.validateStep(prevStepId, formData)) {
+        stepLogger.debug(`Step ${stepId} is invalid because previous step ${prevStepId} is invalid`);
+        return false;
+      }
+    }
+    
+    return true;
+  }
+  
+  /**
+   * Validate required fields in form data
+   * @param fields Array of required field names
+   * @param formData Form data
+   * @returns Boolean indicating if all required fields are valid
+   */
+  private validateFields(fields: (keyof AssignmentFormValues)[], formData: AssignmentFormValues): boolean {
+    return fields.every(field => {
+      const value = formData[field];
+      
+      if (Array.isArray(value)) {
+        return value.length > 0;
+      }
+      
+      if (typeof value === 'boolean') {
+        return value !== undefined && value !== null;
+      }
+      
+      return value != null && value !== '';
+    });
+  }
+  
+  /**
+   * Get the next step in the sequence
+   * @param currentStep Current step ID
+   * @param formData Form data (used for conditional navigation)
+   * @returns Next step ID or null if at the end
+   */
+  getNextStep(currentStep: AssignmentStep, formData: AssignmentFormValues): AssignmentStep | null {
+    const currentIndex = this.getStepIndex(currentStep);
+    
+    // Check if we're at the end or have an invalid step
+    if (currentIndex === -1 || currentIndex === this.steps.length - 1) {
+      return null;
+    }
+    
+    const nextStep = this.steps[currentIndex + 1].id;
+    stepLogger.debug(`Next step after ${currentStep} is ${nextStep}`);
+    return nextStep;
+  }
+  
+  /**
+   * Get the previous step in the sequence
+   * @param currentStep Current step ID
+   * @param formData Form data (used for conditional navigation)
+   * @returns Previous step ID or null if at the beginning
+   */
+  getPreviousStep(currentStep: AssignmentStep, formData: AssignmentFormValues): AssignmentStep | null {
+    const currentIndex = this.getStepIndex(currentStep);
+    
+    // Check if we're at the beginning
+    if (currentIndex <= 0) {
+      return null;
+    }
+    
+    const prevStep = this.steps[currentIndex - 1].id;
+    stepLogger.debug(`Previous step before ${currentStep} is ${prevStep}`);
+    return prevStep;
+  }
+  
+  /**
+   * Find the next incomplete step in the form
+   * Useful for guiding users to sections that need attention
+   * @param formData Current form data
+   * @returns Step ID of the first incomplete step, or review step if all complete
+   */
+  getNextIncompleteStep(formData: AssignmentFormValues): AssignmentStep {
+    // If status is not editable, go to feedback
+    if (!this.isEditable(formData.status)) {
+      return 'teacher-feedback';
+    }
+    
+    // Find the first incomplete step
+    for (const step of this.steps) {
+      const stepId = step.id;
+      
+      // Skip teacher feedback as it's completed by someone else
+      if (stepId === 'teacher-feedback') continue;
+      
+      if (!this.validateStep(stepId, formData)) {
+        stepLogger.debug(`Found incomplete step: ${stepId}`);
+        return stepId;
+      }
+    }
+    
+    // If all steps are complete, go to review
+    return 'review-submit';
+  }
+  
+  /**
+   * Validate all steps up to and including the target step
+   * @param targetStep Target step ID
+   * @param formData Form data
+   * @returns Boolean indicating if all steps up to target are valid
+   */
   validateUpToStep(targetStep: AssignmentStep, formData: AssignmentFormValues): boolean {
     const targetIndex = this.getStepIndex(targetStep);
     if (targetIndex === -1) return false;
+    
     for (let i = 0; i <= targetIndex; i++) {
       if (!this.validateStep(this.steps[i].id, formData)) {
         return false;
       }
     }
+    
     return true;
   }
-
-  // Checks if navigation to a target step is allowed
-  canNavigateToStep(targetStep: AssignmentStep, currentStep: AssignmentStep, formData: AssignmentFormValues): boolean {
-    if (!this.isValidStep(targetStep) || !this.isValidStep(currentStep)) {
-      debug.warn(`Invalid navigation from ${currentStep} to ${targetStep}`);
-      return false;
-    }
-    
-    if (targetStep === currentStep) return true;
-    
-    const status = this.getAssignmentStatus(formData);
-    
-    // For SUBMITTED status, allow navigation to any tab
-    if (status === ASSIGNMENT_STATUS.SUBMITTED) {
-      return true;
-    }
-    
-    // For APPROVED status, only allow teacher-feedback
-    if (status === ASSIGNMENT_STATUS.APPROVED) {
-      return targetStep === 'teacher-feedback';
-    }
-    
-    // For non-restricted statuses, allow backward navigation or if all previous steps are valid
-    const targetIndex = this.getStepIndex(targetStep);
-    const currentIndex = this.getStepIndex(currentStep);
-    
-    // Always allow going backward
-    if (targetIndex < currentIndex) return true;
-    
-    // For forward navigation, validate all steps up to the target
-    return this.validateUpToStep(targetStep, formData);
-  }
-
-  // Returns the next step ID if the current step is valid
-  getNextStep(currentStep: AssignmentStep, formData: AssignmentFormValues): AssignmentStep | null {
-    if (!this.isValidStep(currentStep)) {
-      debug.warn(`Invalid step: ${currentStep}`);
+  
+  /**
+   * Find which step contains specific error fields
+   * @param errors Form validation errors object
+   * @returns Step ID containing errors, or null if none found
+   */
+  findStepWithErrors(errors: Record<string, unknown>): AssignmentStep | null {
+    if (!errors || Object.keys(errors).length === 0) {
       return null;
     }
     
-    const status = this.getAssignmentStatus(formData);
+    const errorFields = Object.keys(errors);
+    stepLogger.debug(`Finding step with error fields: ${errorFields.join(', ')}`);
     
-    // For APPROVED status, always go to teacher-feedback
-    if (status === ASSIGNMENT_STATUS.APPROVED) {
-      return 'teacher-feedback';
-    }
-    
-    const currentIndex = this.getStepIndex(currentStep);
-    if (currentIndex === -1 || currentIndex === this.steps.length - 1) return null;
-    if (!this.validateStep(currentStep, formData)) {
-      debug.log(`Cannot proceed from ${currentStep}: step is invalid`);
-      return null;
-    }
-    return this.steps[currentIndex + 1].id;
-  }
-
-  // Returns the previous step ID if available
-  getPreviousStep(currentStep: AssignmentStep, formData: AssignmentFormValues): AssignmentStep | null {
-    if (!this.isValidStep(currentStep)) {
-      debug.warn(`Invalid step: ${currentStep}`);
-      return null;
-    }
-    
-    const status = this.getAssignmentStatus(formData);
-    
-    // For APPROVED status, prevent backward navigation
-    if (status === ASSIGNMENT_STATUS.APPROVED) {
-      return null;
-    }
-    
-    const currentIndex = this.getStepIndex(currentStep);
-    if (currentIndex <= 0) return null;
-    return this.steps[currentIndex - 1].id;
-  }
-
-  // Looks up a step config by its ID
-  getStepById(stepId: AssignmentStep): StepConfig | undefined {
-    return this.steps.find(s => s.id === stepId);
-  }
-
-  // Gets the index of a step in the sequence
-  getStepIndex(stepId: AssignmentStep): number {
-    return this.steps.findIndex(s => s.id === stepId);
-  }
-
-  // Returns the next incomplete step ID after validating form data
-  getNextIncompleteStep(formData: AssignmentFormValues): AssignmentStep {
-    const status = this.getAssignmentStatus(formData);
-    
-    // For SUBMITTED status, return the first tab
-    if (status === ASSIGNMENT_STATUS.SUBMITTED) {
-      debug.log("SUBMITTED status detected, returning basic-info");
-      return 'basic-info';
-    }
-    
-    // For APPROVED status, go to teacher-feedback
-    if (status === ASSIGNMENT_STATUS.APPROVED) {
-      debug.log("APPROVED status detected, returning teacher-feedback");
-      return 'teacher-feedback';
-    }
-    
+    // Check each step to find which one contains the errors
     for (const step of this.steps) {
-      if (!this.validateStep(step.id, formData)) {
-        debug.log(`Next incomplete step: ${step.id}`);
-        return step.id;
+      const stepId = step.id;
+      
+      // Skip special steps that don't have direct field requirements
+      if (stepId === 'review-submit' || stepId === 'teacher-feedback') {
+        continue;
+      }
+      
+      if (this.stepContainsErrorFields(stepId, errorFields)) {
+        stepLogger.debug(`Found errors in step: ${stepId}`);
+        return stepId;
       }
     }
     
-    // All steps are complete, go to review step
-    debug.log("All steps complete, going to review step");
-    return 'review-submit';
+    stepLogger.warn(`Could not determine specific step for errors: ${errorFields.join(', ')}`);
+    return 'basic-info'; // Default to first step if we can't determine
   }
-
-  // Checks if a step ID is valid
+  
+  /**
+   * Check if a step contains any of the error fields
+   * @param stepId Step ID to check
+   * @param errorFields Array of field names with errors
+   * @returns Boolean indicating if step contains any error fields
+   */
+  private stepContainsErrorFields(stepId: AssignmentStep, errorFields: string[]): boolean {
+    const requirements = STEP_REQUIREMENTS[stepId];
+    
+    return errorFields.some(field => 
+      // Check if field is in step's required fields
+      requirements.fields.includes(field as keyof AssignmentFormValues) ||
+      // Special handling for conditional fields
+      (stepId === 'role-originality' && 
+       (field === 'team_contribution' || field === 'originality_explanation'))
+    );
+  }
+  
+  /**
+   * Check if a step ID is valid
+   * @param stepId Step ID to check
+   * @returns Type predicate indicating if ID is valid
+   */
   private isValidStep(stepId: string): stepId is AssignmentStep {
     return this.steps.some(s => s.id === stepId);
-  }
-
-  // Extracts assignment status from form data with fallback to DRAFT
-  private getAssignmentStatus(formData: AssignmentFormValues): AssignmentStatus {
-    return formData?.status || ASSIGNMENT_STATUS.DRAFT;
-  }
-
-  // Creates a simple hash of form data for caching
-  private hashFormData(formData: AssignmentFormValues, stepId: AssignmentStep): string {
-    const config = STEP_VALIDATION_CONFIG[stepId];
-    const relevantData: Record<string, unknown> = {};
-    config.requiredFields.forEach(field => {
-      relevantData[field] = formData[field];
-    });
-    return JSON.stringify(relevantData);
-  }
-
-  // Gets a cached validation result if available and not expired
-  private getCachedValidation(stepId: AssignmentStep, formData: AssignmentFormValues): boolean | null {
-    const cache = this.validationCache.get(stepId);
-    if (!cache) return null;
-    
-    const now = Date.now();
-    const isExpired = now - cache.timestamp > this.cacheTimeoutMs;
-    if (isExpired) {
-      this.validationCache.delete(stepId);
-      return null;
-    }
-    
-    const currentHash = this.hashFormData(formData, stepId);
-    if (currentHash !== cache.formDataHash) return null;
-    
-    return cache.isValid;
-  }
-
-  // Stores a validation result in the cache
-  private cacheValidation(stepId: AssignmentStep, formData: AssignmentFormValues, isValid: boolean): void {
-    const hash = this.hashFormData(formData, stepId);
-    this.validationCache.set(stepId, {
-      formDataHash: hash,
-      isValid,
-      timestamp: Date.now()
-    });
-  }
-
-  // Validates step data against its configuration
-  private isStepDataValid(config: typeof STEP_VALIDATION_CONFIG[AssignmentStep], formData: AssignmentFormValues): boolean {
-    const fieldsValid = config.requiredFields.every(field => {
-      const value = formData[field];
-      if (Array.isArray(value)) return value.length > 0;
-      if (typeof value === 'boolean') return value !== undefined && value !== null;
-      return value != null && value !== '';
-    });
-    const customValid = config.validate ? config.validate(formData, this) : true;
-    return fieldsValid && customValid;
-  }
-
-  // Gets all step IDs
-  getStepIds(): AssignmentStep[] {
-    return this.steps.map(s => s.id as AssignmentStep);
-  }
-
-  // Checks if the form is editable based on status
-  isEditable(status: AssignmentStatus): boolean {
-    return !isRestrictedStatus(status);
   }
 }

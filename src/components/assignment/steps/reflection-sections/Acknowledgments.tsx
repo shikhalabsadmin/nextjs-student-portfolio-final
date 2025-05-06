@@ -12,7 +12,7 @@ export function Acknowledgments({ form, currentLength }: AcknowledgmentsProps) {
     <ReflectionField
       form={form}
       name="acknowledgments"
-      label="Your thanks"
+      label="Your gratitude"
       description="Who helped you with this work? How would you like to thank them?"
       placeholder="Share your acknowledgments"
       currentLength={currentLength}

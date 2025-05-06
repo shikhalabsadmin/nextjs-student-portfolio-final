@@ -30,11 +30,11 @@ export function FileUploadSection({
       '.ppt,.pptx',
       '.txt'
     ].join(',');
-    input.onchange = (e) => {
-      const files = (e.target as HTMLInputElement).files;
-      if (files) {
-        handleFiles(files);
-      }
+    
+    input.onchange = async (e) => {
+      const fileList = (e.target as HTMLInputElement).files;
+      if (!fileList || fileList.length === 0) return;
+      await handleFiles(fileList);
     };
     input.click();
   };
@@ -47,38 +47,41 @@ export function FileUploadSection({
   };
 
   return (
-    <div className={`mt-2 ${isMobile ? 'flex flex-col space-y-3' : 'flex items-center gap-2'}`}>
-      <Button
-        type="button"
-        variant="outline"
-        className={`flex items-center gap-2 text-gray-600 ${isMobile ? 'w-full justify-center' : ''}`}
-        onClick={handleFileSelect}
-      >
-        <Upload className="h-4 w-4" />
-        Upload Files
-      </Button>
-      <div className={`${isMobile ? 'w-full' : 'flex-1'} flex items-center gap-2`}>
-        <Input
-          placeholder="Add YouTube URL"
-          className="flex-1"
-          onKeyDown={async (e) => {
-            if (e.key === 'Enter') {
-              const input = e.target as HTMLInputElement;
-              if (await handleYoutubeUrl(input.value)) {
-                input.value = '';
-              }
-            }
-          }}
-        />
+    <div className="space-y-4">
+      {/* Upload controls */}
+      <div className={`mt-2 ${isMobile ? 'flex flex-col space-y-3' : 'flex items-center gap-2'}`}>
         <Button
           type="button"
-          size="icon"
           variant="outline"
-          className="text-gray-600 w-10 h-10 flex-shrink-0"
-          onClick={handleYoutubeSubmit}
+          className={`flex items-center gap-2 text-gray-600 ${isMobile ? 'w-full justify-center' : ''}`}
+          onClick={handleFileSelect}
         >
-          +
+          <Upload className="h-4 w-4" />
+          Upload Files
         </Button>
+        <div className={`${isMobile ? 'w-full' : 'flex-1'} flex items-center gap-2`}>
+          <Input
+            placeholder="Add YouTube URL"
+            className="flex-1"
+            onKeyDown={async (e) => {
+              if (e.key === 'Enter') {
+                const input = e.target as HTMLInputElement;
+                if (await handleYoutubeUrl(input.value)) {
+                  input.value = '';
+                }
+              }
+            }}
+          />
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className="text-gray-600 w-10 h-10 flex-shrink-0"
+            onClick={handleYoutubeSubmit}
+          >
+            +
+          </Button>
+        </div>
       </div>
     </div>
   );

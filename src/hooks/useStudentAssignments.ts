@@ -132,7 +132,7 @@ export function useStudentAssignments(
       let filesData = null;
 
       try {
-        const filesResult = await getFilesForMultipleAssignments(assignmentIds, user.id);
+        const filesResult = await getFilesForMultipleAssignments(assignmentIds as unknown as string[], user.id);
         
         if (!isError(filesResult)) {
           filesData = filesResult;
@@ -172,6 +172,8 @@ export function useStudentAssignments(
     queryKey: [ASSIGNMENTS_QUERY_KEY, user?.id],
     queryFn: fetchAssignments,
     enabled: !!user?.id,
+    refetchOnMount: true,
+    staleTime: 0,
     retry: (failureCount, error: unknown) => {
       // Don't retry auth errors
       if (error && 
@@ -192,7 +194,7 @@ export function useStudentAssignments(
         throw new Error("User not authenticated");
       }
       
-      const result = await apiDeleteAssignment(assignmentId, user.id);
+      const result = await apiDeleteAssignment(String(assignmentId), user.id);
       
       if (isError(result)) {
         throw new Error("Failed to delete assignment");

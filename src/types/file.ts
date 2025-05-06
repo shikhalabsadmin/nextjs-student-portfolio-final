@@ -32,6 +32,7 @@ export interface AssignmentFile extends BaseFileData {
   updated_at?: string;
   student_id?: string;
   is_process_documentation?: boolean;
+  uploadProgress?: number; // For tracking upload progress in UI
 }
 
 // Union type for file inputs

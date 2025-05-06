@@ -4,9 +4,9 @@ import type { AssignmentFile } from "@/types/file";
 import { MONTHS } from "@/constants/months";
 import { useMemo, memo, useCallback } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import { uploadAssignmentFile, deleteFile } from "@/lib/api/assignments";
-import { validateFileType, validateFileSize } from "@/lib/utils/file-validation.utils";
-import { isYouTubeUrl, getVideoId, fetchYouTubeVideoTitle } from "@/lib/utils/youtube";
+import { useFileUpload } from "@/hooks/useFileUpload";
+import { useYoutubeLinks } from "@/hooks/useYoutubeLinks";
+import { useFileManagement } from "@/hooks/useFileManagement";
 import { FileIcon } from "@/components/ui/file-icon";
 import {
   FormField,
@@ -17,17 +17,12 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectItem } from "@/components/ui/select";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { FileUploadSection, YoutubeLinksSection } from "./file-upload";
 import { GRADE_SUBJECTS, GradeLevel } from "@/constants/grade-subjects";
 import { DatePicker } from "@/components/ui/date-picker";
+import { ValidatedSelect } from "@/components/ui/validated-select";
 
 interface BasicInfoStepProps {
   form: UseFormReturn<AssignmentFormValues>;
@@ -35,7 +30,6 @@ interface BasicInfoStepProps {
 
 export function BasicInfoStep({ form }: BasicInfoStepProps) {
   const { toast } = useToast();
-  
   const isMobile = useIsMobile();
   const assignmentId = form.getValues("id") ?? "";
   const grade = form.watch("grade") ?? "";
@@ -44,235 +38,65 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
     grade ? GRADE_SUBJECTS[grade as GradeLevel] || [] : []
   , [grade]);
 
-  const handleFiles = useCallback(async (fileList: FileList) => {
-    // Validate files first
-    const filesArray = Array.from(fileList);
-    const invalidFiles = filesArray.filter(
-      file => !validateFileType(file) || !validateFileSize(file)
-    );
+  // Convert subjects to the format needed by ValidatedSelect
+  const subjectOptions = useMemo(() => 
+    gradeSubjects.map(subject => ({
+      value: subject,
+      label: subject
+    }))
+  , [gradeSubjects]);
 
-    if (invalidFiles.length > 0) {
-      toast({
-        title: "Invalid files",
-        description: "Files must be under 50MB and in a supported format.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Create temp files with object URLs for immediate display
-    const currentFiles = form.getValues("files") ?? [];
-    const tempFiles = filesArray.map(file => ({
-      id: null,
-      file_name: file.name,
-      file_type: file.type,
-      file_size: file.size,
-      file_url: URL.createObjectURL(file),
-      assignment_id: assignmentId || null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      is_process_documentation: false // Explicitly mark as not process documentation
-    }));
-
-    // Update UI immediately (optimistic)
-    const newFiles = [...currentFiles, ...tempFiles];
-    form.setValue("files", newFiles, { 
-      shouldValidate: true,
+  // Adapter functions to make form-specific logic compatible with our generic hooks
+  const getFiles = useCallback(() => {
+    const files = form.getValues("files") ?? [];
+    // Add type assertion to ensure file required properties are met
+    return files.map(file => ({
+      ...file,
+      file_url: file.file_url || "",
+      file_name: file.file_name || "",
+      file_type: file.file_type || "",
+      file_size: file.file_size || 0
+    })) as AssignmentFile[];
+  }, [form]);
+  
+  const getYoutubeLinks = useCallback(() => form.getValues("youtubelinks") ?? [], [form]);
+  
+  const setFiles = useCallback(async (files: AssignmentFile[], isTemporary?: boolean) => {
+    form.setValue("files", files, { 
+      shouldValidate: !isTemporary,
       shouldDirty: true,
-      shouldTouch: true 
+      shouldTouch: !isTemporary
     });
-    await form.trigger("files");
-    
-    try {
-      // Make API calls in background
-      const studentId = form.getValues("student_id");
-      const uploadPromises = filesArray.map(file => 
-        uploadAssignmentFile(file, assignmentId, studentId, { is_process_documentation: false })
-      );
-      const uploadedFiles = await Promise.all(uploadPromises);
-      
-      // Replace temp file entries with server responses
-      const finalFiles = [...currentFiles];
-      uploadedFiles.forEach((uploadedFile, index) => {
-        if (uploadedFile) {
-          finalFiles.push(uploadedFile);
-        }
-      });
-      
-      // Clean up object URLs to prevent memory leaks
-      tempFiles.forEach(file => {
-        if (typeof file.file_url === 'string' && file.file_url.startsWith('blob:')) {
-          URL.revokeObjectURL(file.file_url);
-        }
-      });
-      
-      form.setValue("files", finalFiles, { 
-        shouldValidate: true,
-        shouldDirty: true,
-        shouldTouch: true 
-      });
+    if (!isTemporary) {
       await form.trigger("files");
-      
-      toast({
-        title: "Success",
-        description: "Files uploaded successfully",
-      });
-    } catch (error) {
-      console.error("Error uploading files:", error);
-      
-      // Clean up object URLs on error too
-      tempFiles.forEach(file => {
-        if (typeof file.file_url === 'string' && file.file_url.startsWith('blob:')) {
-          URL.revokeObjectURL(file.file_url);
-        }
-      });
-      
-      // Revert to previous state
-      form.setValue("files", currentFiles, { 
-        shouldValidate: true,
-        shouldDirty: true,
-        shouldTouch: true 
-      });
-      await form.trigger("files");
-      
-      toast({
-        title: "Upload failed",
-        description: "There was an error uploading your files. Please try again.",
-        variant: "destructive",
-      });
     }
-  }, [form, assignmentId, toast]);
+  }, [form]);
 
-  const handleDeleteFile = useCallback(async (file: AssignmentFile, index: number) => {
-    // Only attempt API delete if file has an ID
-    const hasFileId = Boolean(file.id);
-    
-    // Store current state for potential rollback
-    const currentFiles = form.getValues("files") ?? [];
-    const fileToDelete = {...currentFiles[index]};
-    
-    // Update UI immediately
-    const newFiles = [...currentFiles];
-    newFiles.splice(index, 1);
-    form.setValue("files", newFiles, { 
-      shouldValidate: true,
-      shouldDirty: true 
-    });
-    await form.trigger("files");
-    
-    // If no file ID, no need for server operation
-    if (!hasFileId) return;
-    
-    try {
-      await deleteFile(file.id!);
-      toast({
-        title: "Success",
-        description: "File deleted successfully",
-      });
-    } catch (error) {
-      console.error("Error deleting file:", error);
-      
-      // Restore file to UI on error
-      const revertFiles = [...newFiles];
-      revertFiles.splice(index, 0, fileToDelete);
-      form.setValue("files", revertFiles, {
-        shouldValidate: true,
-        shouldDirty: true
-      });
-      await form.trigger("files");
-      
-      toast({
-        title: "Error",
-        description: "Failed to delete file. Please try again.",
-        variant: "destructive",
-      });
-    }
-  }, [form, toast]);
-
-  const handleYoutubeUrl = useCallback(async (url: string) => {
-    // Trim the URL to prevent common issues
-    const trimmedUrl = url.trim();
-    
-    // Client-side validation
-    if (!isYouTubeUrl(trimmedUrl)) {
-      toast({
-        title: "Invalid URL",
-        description: "Please enter a valid YouTube URL.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    const videoId = getVideoId(trimmedUrl);
-    if (!videoId) {
-      toast({
-        title: "Invalid URL",
-        description: "Could not extract YouTube video ID.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
-    // Set up temporary placeholder and position tracking
-    const currentLinks = form.getValues("youtubelinks") ?? [];
-    const newLinks = [...currentLinks];
-    const emptyIndex = newLinks.findIndex(link => !link.url);
-    const position = emptyIndex !== -1 ? emptyIndex : newLinks.length;
-    
-    // Add placeholder for immediate UI update
-    if (emptyIndex !== -1) {
-      newLinks[position] = { url: trimmedUrl, title: "Loading video title..." };
-    } else {
-      newLinks.push({ url: trimmedUrl, title: "Loading video title..." });
-    }
-    
-    // Update UI immediately
-    form.setValue("youtubelinks", newLinks, { 
+  const setYoutubeLinks = useCallback(async (links: Array<{url?: string; title?: string}>) => {
+    form.setValue("youtubelinks", links, { 
       shouldValidate: true,
       shouldDirty: true 
     });
     await form.trigger("youtubelinks");
-    
-    try {
-      // Fetch video metadata
-      const title = await fetchYouTubeVideoTitle(videoId);
-      if (!title) throw new Error("Could not fetch video title");
-      
-      // Update with real data
-      const updatedLinks = [...newLinks];
-      updatedLinks[position] = { url: trimmedUrl, title };
-      
-      form.setValue("youtubelinks", updatedLinks, { 
-        shouldValidate: true,
-        shouldDirty: true 
+  }, [form]);
+
+  // Use custom hooks with adapters
+  const { handleFiles } = useFileUpload({
+    getFiles,
+    setFiles,
+    assignmentId,
+    studentId: form.getValues("student_id"),
       });
-      await form.trigger("youtubelinks");
-      
-      toast({
-        title: "Success",
-        description: "YouTube video added successfully",
-      });
-      return true;
-    } catch (error) {
-      console.error("Error fetching YouTube data:", error);
-      
-      // Rollback on failure
-      const rollbackLinks = [...currentLinks];
-      
-      form.setValue("youtubelinks", rollbackLinks, { 
-        shouldValidate: true,
-        shouldDirty: true
-      });
-      await form.trigger("youtubelinks");
-      
-      toast({
-        title: "Invalid URL",
-        description: error instanceof Error ? error.message : "Could not process YouTube URL.",
-        variant: "destructive",
-      });
-      return false;
-    }
-  }, [form, toast]);
+  
+  const { handleYoutubeUrl } = useYoutubeLinks({
+    getLinks: getYoutubeLinks,
+    setLinks: setYoutubeLinks
+  });
+  
+  const { handleDeleteFile } = useFileManagement({
+    getFiles,
+    setFiles
+  });
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -333,10 +157,15 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
             <FormDescription className="text-sm text-gray-600">
               Select the subject that this work is related to.
             </FormDescription>
-            <SubjectSelect 
-              gradeSubjects={gradeSubjects} 
-              userGrade={grade ?? ""} 
-              field={field} 
+            <ValidatedSelect
+              field={field}
+              form={form}
+              items={subjectOptions}
+              placeholder="Select Subject"
+              styles={{
+                selectTrigger: "mt-2"
+              }}
+              emptyMessage={grade ? "No subjects available for your grade" : "Please set your grade in profile settings"}
             />
             <FormMessage />
           </FormItem>
@@ -423,45 +252,4 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
       />
     </div>
   );
-} 
-
-// Memoized Subject Select component
-const SubjectSelect = memo(({ 
-  gradeSubjects, 
-  userGrade, 
-  field 
-}: { 
-  gradeSubjects: string[], 
-  userGrade: string, 
-  field: {
-    onChange: (value: string) => void;
-    value: string;
-  }
-}) => (
-  <Select
-    onValueChange={field.onChange}
-    value={field.value}
-    defaultValue={field.value}
-  >
-    <FormControl>
-      <SelectTrigger className="mt-2">
-        <SelectValue placeholder="Select Subject" className="text-muted-foreground" />
-      </SelectTrigger>
-    </FormControl>
-    <SelectContent>
-      {gradeSubjects.length > 0 ? (
-        gradeSubjects.map((subject) => (
-          <SelectItem key={subject} value={subject}>
-            {subject}
-          </SelectItem>
-        ))
-      ) : (
-        <SelectItem value="no_subject_available" disabled>
-          {userGrade ? "No subjects available for your grade" : "Please set your grade in profile settings"}
-        </SelectItem>
-      )}
-    </SelectContent>
-  </Select>
-));
-
-SubjectSelect.displayName = "SubjectSelect";
+}

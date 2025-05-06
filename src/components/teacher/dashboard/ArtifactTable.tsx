@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { PencilIcon } from "lucide-react";
+import { PencilIcon, CopyIcon } from "lucide-react";
 import { cn, formatSubject } from "@/lib/utils";
 import {
   ASSIGNMENT_STATUS,
@@ -16,6 +16,14 @@ import {
   STATUS_DISPLAY_NAMES,
   AssignmentStatus,
 } from "@/constants/assignment-status";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { ROUTES } from "@/config/routes";
 
 // Types based on the data structure in the image
 export interface Artifact {
@@ -40,13 +48,43 @@ interface ArtifactTableProps {
 }
 
 export const ArtifactTable = memo(
-  ({ artifacts, onRowClick, isLoading = false, searchQuery = "" }: ArtifactTableProps) => {
+  ({
+    artifacts,
+    onRowClick,
+    isLoading = false,
+    searchQuery = "",
+  }: ArtifactTableProps) => {
+    const { toast } = useToast();
+
+    const handleCopyLink = async (e: React.MouseEvent, artifact: Artifact) => {
+      e.stopPropagation();
+      
+      // Create the assignment detail URL using the routes configuration
+      const assignmentUrl = `${window.location.origin}${ROUTES.ASSIGNMENT.DETAIL.replace(':id', String(artifact.id))}`;
+      
+      try {
+        await navigator.clipboard.writeText(assignmentUrl);
+        toast({
+          title: "Link copied!",
+          description: "Assignment link copied to clipboard",
+          duration: 3000,
+        });
+      } catch (err) {
+        toast({
+          title: "Copy failed",
+          description: "Could not copy to clipboard",
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
+    };
+
     if (artifacts.length === 0) {
       return null;
     }
 
     return (
-      <div 
+      <div
         className="border rounded-[6px] overflow-hidden bg-white w-full"
         role="region"
         aria-label="Artifacts table"
@@ -76,7 +114,7 @@ export const ArtifactTable = memo(
                 <TableHead className="whitespace-nowrap hidden lg:table-cell px-6 py-3">
                   Last updated
                 </TableHead>
-                <TableHead className="w-[40px] px-6 py-3">
+                <TableHead className="w-[80px] px-6 py-3 text-right">
                   <span className="sr-only">Actions</span>
                 </TableHead>
               </TableRow>
@@ -119,16 +157,44 @@ export const ArtifactTable = memo(
                     {artifact.lastUpdated}
                   </TableCell>
                   <TableCell className="py-4 px-6">
-                    <button
-                      className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRowClick?.(artifact);
-                      }}
-                      aria-label={`Edit ${artifact.name}`}
-                    >
-                      <PencilIcon className="size-5 text-[#475467]" />
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      <TooltipProvider>
+                        {artifact.status === ASSIGNMENT_STATUS.APPROVED && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                onClick={(e) => handleCopyLink(e, artifact)}
+                                aria-label={`Copy link for ${artifact.name}`}
+                              >
+                                <CopyIcon className="size-5 text-[#475467]" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Copy artifact link</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                        
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onRowClick?.(artifact);
+                              }}
+                              aria-label={`Edit ${artifact.name}`}
+                            >
+                              <PencilIcon className="size-5 text-[#475467]" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Edit artifact</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

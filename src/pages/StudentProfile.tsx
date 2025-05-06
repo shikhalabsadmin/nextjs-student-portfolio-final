@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EnhancedUser } from "@/hooks/useAuthState";
+import { PROFILE_KEYS } from "@/query-key/profile";
 
 // Schema
 const formSchema = z.object({
@@ -66,7 +67,8 @@ export const StudentProfile = ({ user }: { user: Partial<EnhancedUser> }) => {
         description: "Your profile has been updated successfully.",
       });
       // Invalidate any relevant queries if needed
-      queryClient.invalidateQueries({ queryKey: ["user-profile"] });
+      queryClient.invalidateQueries({ queryKey: PROFILE_KEYS.authSession });
+      queryClient.invalidateQueries({ queryKey: PROFILE_KEYS.profile(user.id) });
     },
     onError: (error) => {
       console.error("[StudentProfile] Update profile failed", error);

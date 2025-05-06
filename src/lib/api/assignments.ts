@@ -102,23 +102,89 @@ export const getAssignmentWithFiles = async (id: string) => {
 };
 
 // File operations
-export const uploadFileToStorage = async (file: File, filePath: string) => {
-  debug.log("Uploading file to storage", { filePath });
+export const uploadFileToStorage = async (file: File, filePath: string, onProgress?: (progress: number) => void) => {
+  debug.log("[DEBUG PROGRESS BAR] Starting file upload", { filePath, fileName: file.name, fileSize: `${(file.size / (1024 * 1024)).toFixed(2)}MB` });
 
-  const { error: uploadError } = await supabase.storage
-    .from("assignments")
-    .upload(filePath, file);
-
-  if (uploadError) {
-    debug.error("Failed to upload file", uploadError);
-    throw uploadError;
+  // Initialize progress with 0 explicitly
+  if (onProgress) {
+    debug.log("[DEBUG PROGRESS BAR] Initializing progress at 0%");
+    onProgress(0);
   }
+  
+  let progressFallbackTimer: NodeJS.Timeout | null = null;
+  
+  // Set up a fallback progress updater in case Supabase doesn't fire events
+  if (onProgress) {
+    let fallbackProgress = 1;
+    progressFallbackTimer = setInterval(() => {
+      // Only update if we're still under 90%
+      if (fallbackProgress < 90) {
+        fallbackProgress += 5;
+        debug.log(`[DEBUG PROGRESS BAR] Fallback progress for ${file.name}: ${fallbackProgress}% (artificial)`);
+        onProgress(fallbackProgress);
+      }
+    }, 500);
+  }
+  
+  try {
+    // Upload with progress tracking
+    const { error: uploadError } = await supabase.storage
+      .from("assignments")
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+        onUploadProgress: (progressEvent: { loaded: number; total: number }) => {
+          // Make sure we have a valid progress event
+          if (!progressEvent || typeof progressEvent.loaded !== 'number' || typeof progressEvent.total !== 'number') {
+            debug.log("[DEBUG PROGRESS BAR] Invalid progress event received", progressEvent);
+            return;
+          }
+          
+          // Calculate percentage (0-100)
+          const percentage = progressEvent.total > 0 
+            ? Math.min(Math.floor((progressEvent.loaded * 100) / progressEvent.total), 99) 
+            : 0;
+          
+          // Log every progress update for debugging
+          debug.log(`[DEBUG PROGRESS BAR] Upload progress for ${file.name}: ${percentage}% (${(progressEvent.loaded / (1024 * 1024)).toFixed(2)}MB / ${(progressEvent.total / (1024 * 1024)).toFixed(2)}MB)`);
+          
+          // Report progress to the caller
+          if (onProgress) onProgress(percentage);
+        }
+      } as { cacheControl: string; upsert: boolean; onUploadProgress: (progressEvent: { loaded: number; total: number }) => void });
 
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from("assignments").getPublicUrl(filePath);
+    // Clear the fallback timer
+    if (progressFallbackTimer) {
+      clearInterval(progressFallbackTimer);
+      progressFallbackTimer = null;
+    }
 
-  return { publicUrl };
+    if (uploadError) {
+      debug.error("[DEBUG PROGRESS BAR] Failed to upload file", uploadError);
+      throw uploadError;
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("assignments").getPublicUrl(filePath);
+
+    // Mark as complete with 100%
+    if (onProgress) {
+      debug.log(`[DEBUG PROGRESS BAR] Marking upload as complete (100%) for ${file.name}`);
+      onProgress(100);
+    }
+    debug.log(`[DEBUG PROGRESS BAR] Upload completed for ${file.name}: ${publicUrl}`);
+
+    return { publicUrl };
+  } catch (error) {
+    // Clear the fallback timer in case of error
+    if (progressFallbackTimer) {
+      clearInterval(progressFallbackTimer);
+    }
+    
+    debug.error(`[DEBUG PROGRESS BAR] Error during upload of ${file.name}:`, error);
+    throw error;
+  }
 };
 
 export const createFileRecord = async (fileData: FileRecordData) => {
@@ -141,7 +207,10 @@ export const uploadAssignmentFile = async (
   file: File,
   assignment_id?: string,
   student_id?: string,
-  metadata?: { is_process_documentation?: boolean }
+  metadata?: { 
+    is_process_documentation?: boolean,
+    onProgress?: (progress: number) => void
+  }
 ) => {
   debug.log("Uploading assignment file", {
     fileName: file.name,
@@ -154,8 +223,8 @@ export const uploadAssignmentFile = async (
   const fileName = `${crypto.randomUUID()}.${fileExt}`;
   const filePath = fileName;
 
-  // Upload file to storage
-  const { publicUrl } = await uploadFileToStorage(file, filePath);
+  // Upload file to storage with progress tracking
+  const { publicUrl } = await uploadFileToStorage(file, filePath, metadata?.onProgress);
 
   // Create database record
   const fileData = await createFileRecord({
@@ -165,7 +234,7 @@ export const uploadAssignmentFile = async (
     file_type: getFileTypeCategory(file.type),
     file_size: file.size,
     student_id,
-    ...metadata // Spread any additional metadata fields
+    ...(metadata ? { is_process_documentation: metadata.is_process_documentation } : {}) // Only spread the is_process_documentation field
   });
 
   return fileData;

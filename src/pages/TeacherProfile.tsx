@@ -80,16 +80,18 @@ const getGradeOptions = (): Option[] =>
   }));
 
 // Helper function to extract grade subjects from user data
-const extractGradeSubjects = (teachingSubjects: TeachingSubject[] = []): GradeSubjects => {
+const extractGradeSubjects = (
+  teachingSubjects: TeachingSubject[] = []
+): GradeSubjects => {
   const gradeSubjects: GradeSubjects = {};
-  
+
   teachingSubjects.forEach((ts) => {
     if (!ts?.grade) return;
-    
+
     gradeSubjects[ts.grade] = gradeSubjects[ts.grade] || [];
     if (ts?.subject) gradeSubjects[ts.grade].push(ts.subject);
   });
-  
+
   return gradeSubjects;
 };
 
@@ -107,10 +109,10 @@ export const TeacherProfile = ({ user }: { user: EnhancedUser | null }) => {
     },
     mode: "onChange",
   });
-  
+
   const isDirty = form.formState.isDirty;
   const isValid = form.formState.isValid;
-  
+
   // Warn user before leaving with unsaved changes
   useBeforeUnload(
     useCallback(
@@ -127,14 +129,16 @@ export const TeacherProfile = ({ user }: { user: EnhancedUser | null }) => {
   // Initialize form with user data
   useEffect(() => {
     if (!user) return;
-    
+
     debug.log("Initializing form with user data", user);
-    
-    const gradeSubjects = extractGradeSubjects(user?.teaching_subjects as TeachingSubject[]);
+
+    const gradeSubjects = extractGradeSubjects(
+      user?.teaching_subjects as TeachingSubject[]
+    );
     debug.log("Processed grade subjects", gradeSubjects);
 
     form.reset({
-      full_name: user?.full_name as string ?? "",
+      full_name: (user?.full_name as string) ?? "",
       selectedGrades: (user?.grade_levels as string[])?.map(String) ?? [],
       gradeSubjects: Object.keys(gradeSubjects).length > 0 ? gradeSubjects : {},
     });
@@ -144,23 +148,26 @@ export const TeacherProfile = ({ user }: { user: EnhancedUser | null }) => {
   useEffect(() => {
     const selectedGrades = form.watch("selectedGrades");
     debug.log("Selected grades changed", selectedGrades);
-    
+
     // Only run this effect when selectedGrades actually changes
     if (!selectedGrades || selectedGrades.length === 0) return;
-    
+
     const currentGradeSubjects = form.getValues("gradeSubjects") ?? {};
-    
+
     // Filter out subjects for grades that are no longer selected
     const cleanedGradeSubjects = Object.fromEntries(
       Object.entries(currentGradeSubjects).filter(([grade]) =>
         selectedGrades.includes(grade)
       )
     );
-    
+
     debug.log("Cleaned grade subjects", cleanedGradeSubjects);
-    
+
     // Only update if there was a change
-    if (JSON.stringify(currentGradeSubjects) !== JSON.stringify(cleanedGradeSubjects)) {
+    if (
+      JSON.stringify(currentGradeSubjects) !==
+      JSON.stringify(cleanedGradeSubjects)
+    ) {
       form.setValue("gradeSubjects", cleanedGradeSubjects, {
         shouldValidate: true,
       });
@@ -173,7 +180,7 @@ export const TeacherProfile = ({ user }: { user: EnhancedUser | null }) => {
       debug.startTimer("profile-submission");
       debug.log("Submitting form values", values);
       setIsSubmitting(true);
-      
+
       try {
         if (!user?.id) {
           toast({
@@ -194,7 +201,7 @@ export const TeacherProfile = ({ user }: { user: EnhancedUser | null }) => {
             grade,
           }))
         );
-        
+
         debug.log("Processed teaching subjects", teaching_subjects);
 
         // Update profile in database
@@ -213,18 +220,20 @@ export const TeacherProfile = ({ user }: { user: EnhancedUser | null }) => {
           toast({
             title: "Error",
             description:
-              error instanceof Error ? error.message : "Failed to update profile",
+              error instanceof Error
+                ? error.message
+                : "Failed to update profile",
             variant: "destructive",
           });
           return;
-        };
+        }
 
         debug.info("Profile updated successfully");
         toast({
           title: "Profile updated",
           description: "Your teaching profile has been updated successfully.",
         });
-        
+
         // Mark form as pristine after successful save
         form.reset(values);
       } catch (error) {
@@ -268,7 +277,11 @@ export const TeacherProfile = ({ user }: { user: EnhancedUser | null }) => {
   // Handle navigation with confirmation if form is dirty
   const handleNavigation = useCallback(() => {
     if (isDirty) {
-      if (window.confirm("You have unsaved changes. Are you sure you want to leave?")) {
+      if (
+        window.confirm(
+          "You have unsaved changes. Are you sure you want to leave?"
+        )
+      ) {
         navigate(-1);
       }
     } else {
@@ -294,7 +307,9 @@ export const TeacherProfile = ({ user }: { user: EnhancedUser | null }) => {
   return (
     <div className="container mx-auto px-4 py-4 sm:py-8">
       <Card className="w-full max-w-2xl mx-auto p-4 sm:p-6">
-        <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Teacher Profile</h1>
+        <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">
+          Teacher Profile
+        </h1>
 
         <Form {...form}>
           <form
@@ -380,11 +395,7 @@ export const TeacherProfile = ({ user }: { user: EnhancedUser | null }) => {
               </Button>
               <Button
                 type="submit"
-                disabled={
-                  isSubmitting ||
-                  !isDirty ||
-                  !isValid
-                }
+                disabled={isSubmitting}
                 className="w-full sm:w-auto"
               >
                 {isSubmitting ? "Saving..." : "Save Profile"}
