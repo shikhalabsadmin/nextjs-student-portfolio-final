@@ -13,7 +13,7 @@ export function Acknowledgments({ form, currentLength }: AcknowledgmentsProps) {
       form={form}
       name="acknowledgments"
       label="Your gratitude"
-      description="Who helped you with this work? How would you like to thank them?"
+      description="Who helped you with this work? How would you like to gratitude them?"
       placeholder="Share your acknowledgments"
       currentLength={currentLength}
     />

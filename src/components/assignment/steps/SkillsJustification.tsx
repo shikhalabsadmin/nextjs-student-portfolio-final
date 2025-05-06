@@ -18,13 +18,13 @@ export function SkillsJustification({ form }: SkillsJustificationProps) {
             Justify the selected skills <span className="text-red-500">*</span>
           </FormLabel>
           <FormDescription>
-            How did each skill contribute to the creation of the artifact?
+            How did each skill contribute to the creation of the work?
             What actions, decisions, or moments during the process
             demonstrated these skills?
           </FormDescription>
           <FormControl>
             <CharacterLimitedTextarea
-              placeholder="How did each skill help you in creating this artifact?"
+              placeholder="How did each skill help you in creating this work?"
               value={field.value || ""}
               onChange={field.onChange}
               onBlur={field.onBlur}

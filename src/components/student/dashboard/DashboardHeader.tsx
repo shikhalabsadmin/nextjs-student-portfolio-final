@@ -119,13 +119,13 @@ export function DashboardHeader({
                 <Input
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}
-                  placeholder="Search by artefacts name, Subject"
+                  placeholder="Search by works name, subject"
                   className="pl-10 w-full lg:w-80"
-                  aria-label="Search artefacts"
+                  aria-label="Search works"
                 />
               </TooltipTrigger>
               <TooltipContent>
-                <p>Search artefacts</p>
+                <p>Search works</p>
               </TooltipContent>
             </Tooltip>
           </div>
@@ -147,12 +147,12 @@ export function DashboardHeader({
                 </DialogTrigger>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Filter artefacts</p>
+                <p>Filter works</p>
               </TooltipContent>
             </Tooltip>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>Filter Artefacts by Status and Subject</DialogTitle>
+                <DialogTitle>Filter work by status and subject</DialogTitle>
               </DialogHeader>
               <div className="grid gap-6 py-4">
                 {/* Status Filters */}
@@ -244,7 +244,7 @@ export function DashboardHeader({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Create New Artefact</p>
+              <p>Create new work</p>
             </TooltipContent>
           </Tooltip>
         </div>

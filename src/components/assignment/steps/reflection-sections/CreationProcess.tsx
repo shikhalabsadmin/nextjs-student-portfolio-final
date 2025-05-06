@@ -13,7 +13,7 @@ export function CreationProcess({ form, currentLength }: CreationProcessProps) {
       form={form}
       name="creation_process"
       label="Describe the process you used to create it"
-      description="Detail step-by-step how you created the artifact: Planning: Did you use any strategies or tools to plan your work? Execution: How did you approach each stage of the work? Reflection: How did you ensure the quality of their work along the way?"
+      description="Detail step-by-step how you created the work: Planning: Did you use any strategies or tools to plan your work? Execution: How did you approach each stage of the work? Reflection: How did you ensure the quality of their work along the way?"
       placeholder="Explain your process"
       currentLength={currentLength}
     />

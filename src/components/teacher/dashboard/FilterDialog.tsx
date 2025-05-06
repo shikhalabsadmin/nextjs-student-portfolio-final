@@ -120,7 +120,7 @@ export const FilterDialog = memo(({
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] max-w-[90vw] p-4 sm:p-6">
         <DialogHeader className="pb-2">
-          <DialogTitle className="text-lg text-slate-800">Filter Artefacts</DialogTitle>
+          <DialogTitle className="text-lg text-slate-800">Filter works</DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-6 py-4 overflow-y-auto max-h-[60vh] sm:max-h-[70vh]">

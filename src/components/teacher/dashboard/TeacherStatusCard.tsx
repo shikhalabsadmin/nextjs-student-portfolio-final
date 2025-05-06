@@ -14,7 +14,7 @@ export const TeacherStatusCard = memo(
         <div className="flex flex-row flex-wrap justify-between items-center text-slate-900 text-xl font-bold gap-1">
           <span> You have </span>
           <span className="text-green-600">
-            {artifactCount} student artefacts
+            {artifactCount} student works
           </span>
           <span> to review.</span>
         </div>

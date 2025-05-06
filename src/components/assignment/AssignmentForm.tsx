@@ -119,7 +119,7 @@ function AssignmentForm({ user }: AssignmentFormProps) {
       <GenericBreadcrumb
         items={[
           { label: "Dashboard", to: ROUTES.STUDENT.DASHBOARD },
-          { label: "New Artefact", to: "" },
+          { label: "New work", to: "" },
           {
             label: assignmentStatus
               ? `${assignmentStatus.charAt(0).toUpperCase()}${assignmentStatus

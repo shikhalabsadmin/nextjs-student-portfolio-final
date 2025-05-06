@@ -2,7 +2,7 @@ import type { UseFormReturn } from "react-hook-form";
 import type { AssignmentFormValues } from "@/lib/validations/assignment";
 import type { AssignmentFile } from "@/types/file";
 import { MONTHS } from "@/constants/months";
-import { useMemo, memo, useCallback } from "react";
+import { useMemo, useCallback } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useYoutubeLinks } from "@/hooks/useYoutubeLinks";
@@ -17,7 +17,6 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { SelectItem } from "@/components/ui/select";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { FileUploadSection, YoutubeLinksSection } from "./file-upload";
 import { GRADE_SUBJECTS, GradeLevel } from "@/constants/grade-subjects";
@@ -109,7 +108,7 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
               What is the name of your work? <span className="text-red-500">*</span>
             </FormLabel>
             <FormDescription className="text-sm text-gray-600">
-              Give your artifact a meaningful title that represents your work.
+              Give your work name a meaningful title that represents your work.
             </FormDescription>
             <FormControl>
               <Input
@@ -132,11 +131,11 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
               What type of work is this? <span className="text-red-500">*</span>
             </FormLabel>
             <FormDescription className="text-sm text-gray-600">
-              Artifact Type refers to whether the work is a project, essay, model, performance, presentation, or another specific format.
+              Work type refers to whether the work is a project, essay, model, performance, presentation, or another specific format.
             </FormDescription>
             <FormControl>
               <Input
-                placeholder='Example: "This artefact is a essay"'
+                placeholder='Example: "This work is a essay"'
                 className="mt-2"
                 {...field}
               />

@@ -211,7 +211,7 @@ export function StickyCorner({ user }: StickyCornerProps) {
             </DialogContent>
           </Dialog>
         
-          {/* Create Artefact Button */}
+          {/* Create work Button */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -224,7 +224,7 @@ export function StickyCorner({ user }: StickyCornerProps) {
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Create New Artefact</p>
+              <p>Create new work</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

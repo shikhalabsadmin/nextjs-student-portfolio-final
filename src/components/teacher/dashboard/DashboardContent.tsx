@@ -159,7 +159,7 @@ const DashboardContent = ({ user }: TeacherDataProps) => {
       <div className="bg-[#F7F7F7] flex-1 w-full z-10 px-8 md:px-16 mt-4 md:mt-8 flex flex-col gap-4">
         <div className="flex flex-col py-4">
           <h1 className="text-slate-900 text-xl font-semibold">
-            Artefact to review
+            Work to review
           </h1>
           <p className="text-slate-600 text-sm font-normal">
             Manage and track your academic portfolio

@@ -52,7 +52,7 @@ export const DashboardHeader = memo(({
         <SearchInput
           value={searchQuery}
           onChange={onSearchChange}
-          placeholder="Search by artefacts or student details"
+          placeholder="Search by works or student details"
           className="w-full sm:w-[250px] md:w-[300px] lg:w-[350px]"
         />
       </div>

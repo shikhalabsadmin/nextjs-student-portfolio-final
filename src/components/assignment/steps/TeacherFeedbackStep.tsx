@@ -41,7 +41,7 @@ const NoFeedback = memo(() => (
         Your work is under review
       </h2>
       <p className="text-slate-500 text-xs sm:text-sm md:text-base max-w-[240px] sm:max-w-[320px] md:max-w-[400px] mx-auto">
-        Your Artefact has been submitted and is now being reviewed by your
+        Your work has been submitted and is now being reviewed by your
         teacher. You'll receive feedback soon. Keep an eye on your dashboard for
         updates!
       </p>
