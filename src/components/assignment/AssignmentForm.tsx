@@ -17,6 +17,7 @@ import {
 } from "@/constants/assignment-status";
 import { GenericBreadcrumb } from "./AssignmentBreadcrumb";
 import { ROUTES } from "@/config/routes";
+import { isBasicInfoComplete } from "@/lib/utils/basic-info-validation";
 
 type AssignmentFormProps = {
   user: User;
@@ -35,8 +36,13 @@ function AssignmentForm({ user }: AssignmentFormProps) {
     validateStep,
     isLoading,
     isContinueDisabled,
-    handleSubmitAssignment
+    handleSubmitAssignment,
   } = useAssignmentForm({ user });
+
+  // Check if basic info is complete
+  const basicInfoTabNotComplete = useMemo(() => {
+    return !isBasicInfoComplete(form.getValues());
+  }, [form.watch()]);
 
   // Derived state
   const assignmentStatus = form.getValues().status || ASSIGNMENT_STATUS.DRAFT;
@@ -46,29 +52,22 @@ function AssignmentForm({ user }: AssignmentFormProps) {
     [currentStep]
   );
 
-  const filteredSteps = useMemo(
-    () => {
-      if (assignmentStatus === ASSIGNMENT_STATUS.DRAFT) {
-        // For DRAFT status, show all steps except "teacher-feedback"
-        return STEPS.filter((step) => step.id !== "teacher-feedback");
-      } else if (
-        assignmentStatus === ASSIGNMENT_STATUS.NEEDS_REVISION
-      ) {
-        // For NEEDS_REVISION, show only "teacher-feedback"
-        setCurrentStep("teacher-feedback");
-        return STEPS.filter((step) => step.id === "teacher-feedback");
-      } else if (
-        assignmentStatus === ASSIGNMENT_STATUS.SUBMITTED
-      ) {
-        // For SUBMITTED, show all steps but they'll be read-only
-        return STEPS;
-      } else {
-        // For other statuses (e.g., APPROVED), show all steps
-        return STEPS;
-      }
-    },
-    [assignmentStatus, setCurrentStep]
-  );
+  const filteredSteps = useMemo(() => {
+    if (assignmentStatus === ASSIGNMENT_STATUS.DRAFT) {
+      // For DRAFT status, show all steps except "teacher-feedback"
+      return STEPS.filter((step) => step.id !== "teacher-feedback");
+    } else if (assignmentStatus === ASSIGNMENT_STATUS.NEEDS_REVISION) {
+      // For NEEDS_REVISION, show only "teacher-feedback"
+      setCurrentStep("teacher-feedback");
+      return STEPS.filter((step) => step.id === "teacher-feedback");
+    } else if (assignmentStatus === ASSIGNMENT_STATUS.SUBMITTED) {
+      // For SUBMITTED, show all steps but they'll be read-only
+      return STEPS;
+    } else {
+      // For other statuses (e.g., APPROVED), show all steps
+      return STEPS;
+    }
+  }, [assignmentStatus, setCurrentStep]);
 
   // Event handlers
   const handleSetCurrentStep = useCallback(
@@ -101,6 +100,7 @@ function AssignmentForm({ user }: AssignmentFormProps) {
     setCurrentStep: handleSetCurrentStep,
     validateStep,
     status: assignmentStatus as AssignmentStatus,
+    disabled: basicInfoTabNotComplete,
   };
 
   // Loading state
@@ -163,14 +163,12 @@ function AssignmentForm({ user }: AssignmentFormProps) {
                   {assignmentStatus === ASSIGNMENT_STATUS.SUBMITTED && (
                     <div className="bg-amber-50 border border-amber-200 p-3 mb-4 rounded-md">
                       <p className="text-amber-800 text-sm">
-                        Your assignment has been submitted. You can view all sections but cannot make any changes.
+                        Your assignment has been submitted. You can view all
+                        sections but cannot make any changes.
                       </p>
                     </div>
                   )}
-                  <StepContent 
-                    step={currentStep} 
-                    form={form} 
-                  />
+                  <StepContent step={currentStep} form={form} />
                 </section>
               </div>
             </Form>

@@ -24,6 +24,7 @@ import {
   getAssignmentWithFiles,
 } from "@/api/assignment";
 import { ASSIGNMENT_KEYS } from "@/query-key/student-assignment";
+import { isBasicInfoComplete } from "@/lib/utils/basic-info-validation";
 
 // Constants
 const AUTO_SAVE_DELAY = 5000;
@@ -367,7 +368,9 @@ function useAssignmentForm({ user }: { user: User }) {
 
     const errorStep = steps.findStepWithErrors(errors);
     if (errorStep && errorStep !== currentStep) {
-      formLogger.info("[onSubmit] Navigating to step with errors", { step: errorStep });
+      formLogger.info("[onSubmit] Navigating to step with errors", {
+        step: errorStep,
+      });
       setCurrentStep(errorStep);
       toast.error("Please fix the errors before submitting");
     }
@@ -443,8 +446,23 @@ function useAssignmentForm({ user }: { user: User }) {
 
   // Disable continue button when form is not editable or loading
   const isContinueDisabled = useMemo(() => {
-    return isLoading || !steps.isEditable(form.getValues().status);
-  }, [isLoading, form]);
+    console.log(["DEBUG 1st tab must be completed"], {
+      isLoading,
+      isEditable: steps.isEditable(form.getValues().status),
+      isBasicInfoComplete: isBasicInfoComplete(form.getValues()),
+      status: form.getValues().status,
+      formValues: form.getValues(),
+      result:
+        isLoading ||
+        !steps.isEditable(form.getValues().status) ||
+        !isBasicInfoComplete(form.getValues()),
+    });
+    return (
+      isLoading ||
+      !steps.isEditable(form.getValues().status) ||
+      !isBasicInfoComplete(form.getValues())
+    );
+  }, [isLoading, form.watch()]);
 
   // Public interface
   return {

@@ -1,6 +1,9 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { AssignmentStep, type StepConfig } from "@/types/assignment";
-import { ASSIGNMENT_STATUS, AssignmentStatus } from "@/constants/assignment-status";
+import {
+  ASSIGNMENT_STATUS,
+  AssignmentStatus,
+} from "@/constants/assignment-status";
 import { StepButton } from "@/components/assignment/StepButton";
 import { StepIndicator } from "@/components/assignment/StepIndicator";
 import { getFilteredSteps } from "@/utils/student-assignment-steps-utils";
@@ -19,6 +22,8 @@ interface StepProgressProps {
   validateStep: (stepId: AssignmentStep) => boolean;
   /** Assignment status, defaults to DRAFT */
   status?: AssignmentStatus;
+  /** Whether navigation to steps other than basic-info should be disabled */
+  disabled?: boolean;
 }
 
 /**
@@ -31,6 +36,7 @@ export function StepProgress({
   setCurrentStep,
   validateStep,
   status = ASSIGNMENT_STATUS.DRAFT,
+  disabled = false,
 }: StepProgressProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   // Optimize toggle handler
@@ -39,7 +45,6 @@ export function StepProgress({
   const currentStepData = useMemo(() => {
     return steps?.find((step) => step?.id === currentStep);
   }, [steps, currentStep]);
-
 
   return (
     <div className="w-full">
@@ -55,8 +60,8 @@ export function StepProgress({
           aria-controls="step-progress-mobile"
         >
           <div className="flex items-center gap-3">
-            <StepIndicator 
-              isComplete={validateStep(currentStep as AssignmentStep)} 
+            <StepIndicator
+              isComplete={validateStep(currentStep as AssignmentStep)}
               isCurrent={true}
             />
             <span className="font-medium text-gray-900">
@@ -71,7 +76,7 @@ export function StepProgress({
         </button>
 
         {isExpanded && (
-          <div 
+          <div
             id="step-progress-mobile"
             className="border-t border-slate-200 p-3 bg-white animate-in slide-in-from-top duration-200"
           >
@@ -82,10 +87,15 @@ export function StepProgress({
                   step={step}
                   isCurrent={currentStep === step.id}
                   isComplete={validateStep(step.id)}
-                  onClick={() => {
-                    setCurrentStep(step.id);
-                    setIsExpanded(false);
-                  }}
+                  onClick={
+                    disabled
+                      ? () => {}
+                      : () => {
+                          setCurrentStep(step.id);
+                          setIsExpanded(false);
+                        }
+                  }
+                  disabled={disabled}
                 />
               ))}
             </nav>
@@ -105,7 +115,15 @@ export function StepProgress({
               step={step}
               isCurrent={currentStep === step.id}
               isComplete={validateStep(step.id)}
-              onClick={() => setCurrentStep(step.id)}
+              onClick={
+                disabled
+                  ? () => {}
+                  : () => {
+                      setCurrentStep(step.id);
+                      setIsExpanded(false);
+                    }
+              }
+              disabled={disabled}
             />
           ))}
         </nav>
