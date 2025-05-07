@@ -1,4 +1,4 @@
-import { useState, useEffect, FC } from "react";
+import { useState, useEffect, FC, memo, useCallback } from "react";
 import { useAuthState } from "@/hooks/useAuthState";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -36,6 +36,7 @@ import { NavbarProps } from "@/types/navigation";
 import { toast } from "@/components/ui/use-toast";
 import { UserRole } from "@/enums/user.enum";
 import { Button } from "@/components/ui/button";
+import { usePortfolioPreview } from "@/contexts/PortfolioPreviewContext";
 
 // Navigation icons mapping
 const NAV_ICONS = {
@@ -283,26 +284,32 @@ export const Navbar: FC<NavbarProps> = ({ logo }) => {
   };
 
   // Student navigation options based on current route
-  const StudentNavOptions = () => {
+  const StudentNavOptions = memo(function StudentNavOptions() {
+    const { openPreview } = usePortfolioPreview();
+    
+    const handleOpenPortfolioPreview = useCallback(() => {
+      if (profile?.id) {
+        openPreview(profile.id);
+      }
+    }, [profile?.id, openPreview]);
+    
     if (!user || userRole !== UserRole.STUDENT || !profile) return null;
 
     return (
       <>
         {location.pathname === ROUTES.STUDENT.DASHBOARD && (
-          <Button variant="outline" size="sm" className="flex" asChild>
-            <Link
-              to={ROUTES.PORTFOLIO.STUDENT.replace(
-                ":student_id",
-                profile.id || ""
-              )}
-            >
-              Portfolio Preview
-            </Link>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex" 
+            onClick={handleOpenPortfolioPreview}
+          >
+            Portfolio Preview
           </Button>
         )}
       </>
     );
-  };
+  });
 
   return (
     <header className="sticky top-0 left-0 right-0 border-b bg-background backdrop-blur-sm shadow-sm z-50">

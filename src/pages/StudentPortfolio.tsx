@@ -9,8 +9,9 @@ import GridPatternBase from "@/components/ui/grid-pattern";
 import StudentCard from "@/components/student/dashboard/StudentDetailCard";
 import { getProfileInfo } from "@/api/profiles";
 import { getApprovedAssignments } from "@/api/assignment";
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 import { AssignmentStatus } from "@/constants/assignment-status";
+import { usePortfolioPreview } from "@/contexts/PortfolioPreviewContext";
 
 // Define types for our data
 interface ProfileData {
@@ -41,10 +42,21 @@ function isValidAssignmentArray(data: unknown): data is AssignmentData[] {
     typeof item === 'object' && item !== null && 'id' in item);
 }
 
-export default function StudentPortfolio() {
-  const { student_id } = useParams<{ student_id: string }>();
+interface StudentPortfolioProps {
+  previewMode?: boolean;
+}
 
-  logger.info(`Rendering StudentPortfolio component`, { student_id });
+// Memoized assignment card component to prevent unnecessary re-renders
+const MemoizedAssignmentCard = memo(AssignmentCard);
+
+function StudentPortfolio({ previewMode = false }: StudentPortfolioProps) {
+  const params = useParams<{ student_id: string }>();
+  const { studentId: previewStudentId } = usePortfolioPreview();
+  
+  // Use either the preview student ID or the URL param
+  const student_id = previewMode ? previewStudentId : params.student_id;
+
+  logger.info(`Rendering StudentPortfolio component`, { student_id, previewMode });
 
   // Fetch student info
   const {
@@ -55,6 +67,7 @@ export default function StudentPortfolio() {
     queryKey: ["studentInfo", student_id],
     queryFn: () => getProfileInfo(student_id!),
     enabled: !!student_id,
+    staleTime: previewMode ? Infinity : 5 * 60 * 1000, // Cache longer in preview mode
   });
 
   // Fetch approved assignments
@@ -67,6 +80,7 @@ export default function StudentPortfolio() {
     queryKey: ["assignments", student_id, "approved"],
     queryFn: () => getApprovedAssignments(student_id!),
     enabled: !!student_id,
+    staleTime: previewMode ? Infinity : 5 * 60 * 1000, // Cache longer in preview mode
   });
 
   // Process data with type guards
@@ -89,6 +103,20 @@ export default function StudentPortfolio() {
   const error = useMemo(() => {
     return studentInfoError || assignmentsError;
   }, [studentInfoError, assignmentsError]);
+
+  // Memoize the grid pattern props
+  const gridPatternProps = useMemo(() => ({
+    width: 20,
+    height: 20,
+    className: "absolute inset-0",
+    squares: [
+      [1, 3],
+      [2, 1],
+      [5, 2],
+      [6, 4],
+      [8, 1],
+    ] as [number, number][]
+  }), []);
 
   if (isLoading) {
     logger.info(`StudentPortfolio is in loading state`, { student_id });
@@ -140,18 +168,7 @@ export default function StudentPortfolio() {
   return (
     <div className="relative bg-gray-50 min-h-dvh">
       {/* Grid Pattern Background */}
-      <GridPatternBase
-        width={20}
-        height={20}
-        className="absolute inset-0"
-        squares={[
-          [1, 3],
-          [2, 1],
-          [5, 2],
-          [6, 4],
-          [8, 1],
-        ]}
-      />
+      <GridPatternBase {...gridPatternProps} />
 
       <div className="relative container mx-auto py-8 px-4 space-y-8 flex flex-col min-h-[calc(100vh-8rem)]">
         {/* Student Details Card */}
@@ -171,7 +188,7 @@ export default function StudentPortfolio() {
           aria-busy={isLoading}
         >
           {assignments.map((assignment) => (
-            <AssignmentCard
+            <MemoizedAssignmentCard
               key={assignment.id}
               id={assignment.id}
               title={assignment.title}
@@ -187,3 +204,6 @@ export default function StudentPortfolio() {
     </div>
   );
 }
+
+// Export a memoized version of the component
+export default memo(StudentPortfolio);

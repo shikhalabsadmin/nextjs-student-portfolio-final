@@ -15,6 +15,7 @@ import { UserRole } from "@/enums/user.enum";
 import { ROUTES } from "@/config/routes";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { queryClient } from "@/query-key/client";
+import { PortfolioPreviewProvider } from "@/contexts/PortfolioPreviewContext";
 
 // Create module-specific logger
 const appLogger = logger.forModule("App");
@@ -295,9 +296,11 @@ const App: React.FC = () => {
     <ErrorBoundary fallback={<Error fullScreen={true} message="Something went wrong" />}>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <AppContent />
-          <Toaster />
-          <Sonner />
+          <PortfolioPreviewProvider>
+            <AppContent />
+            <Toaster />
+            <Sonner />
+          </PortfolioPreviewProvider>
         </TooltipProvider>
       </QueryClientProvider>
     </ErrorBoundary>
