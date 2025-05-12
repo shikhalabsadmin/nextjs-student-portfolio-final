@@ -15,18 +15,27 @@ export const getProfileInfo = async (profileId: string, fields?: string[]) => {
     if (error) {
       logger.error(`Error fetching profile info`, { profileId, error });
       return {
+        data: null,
         error: true,
         message: `Failed to fetch profile: ${error.message}`,
       };
     }
 
-    return data;
+    return {
+      data,
+      error: false,
+      message: "Profile info fetched successfully",
+    };
   } catch (error: unknown) {
     logger.error(`Error fetching profile info`, { profileId, error });
     const errorMessage =
       error instanceof Error
         ? error.message
         : "Unknown error fetching profile info";
-    return { error: true, message: errorMessage };
+    return {
+      data: null,
+      error: true,
+      message: errorMessage,
+    };
   }
 };
