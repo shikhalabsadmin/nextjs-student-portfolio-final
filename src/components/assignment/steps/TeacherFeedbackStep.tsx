@@ -1,4 +1,4 @@
-import { useState, useCallback, memo, useEffect } from "react";
+import { useState, useCallback, memo, useEffect, useMemo } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import type { AssignmentFormValues } from "@/lib/validations/assignment";
 import teacherFeedbackImage from "/teacher-feedback.png";
@@ -9,24 +9,68 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { formatDate } from "@/utils/teacher-feedback-date-utils";
 import { Error } from "@/components/ui/error";
+import { useQuery } from "@tanstack/react-query";
+import { TeacherFeedbackData as BaseFeedbackData, TeacherProfile } from "@/components/ui/feedback-item";
+import { getProfileInfo } from "@/api/profiles";
+import { Badge } from "@/components/ui/badge";
+import GroupedTeacherFeedback from "@/components/ui/teacher-feedback-group";
 
 // Interfaces
 interface TeacherFeedbackStepProps {
   form: UseFormReturn<AssignmentFormValues>;
 }
 
-interface TeacherFeedbackData {
-  teacher_name?: string;
-  subject?: string;
-  date?: string;
-  text?: string;
-  teacher_id?: string;
+// Extend the TeacherFeedbackData to include skills properties
+interface TeacherFeedbackData extends BaseFeedbackData {
+  selected_skills?: string[];
+  skills_justification?: string;
 }
 
-interface TeacherProfile {
+// Define interface for profile data from API
+interface ProfileData {
   id: string;
-  full_name: string;
+  full_name?: string;
+  [key: string]: string | undefined;
 }
+
+// Skills Card Component
+const SkillsCard = memo(({ feedback }: { feedback: TeacherFeedbackData }) => {
+  if (!feedback?.selected_skills?.length && !feedback?.skills_justification) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col gap-5 m-5 p-5 border border-slate-200 rounded-md shadow-md">
+      <h3 className="text-lg font-semibold text-slate-900 mb-4">Skills Assessment</h3>
+      
+      {feedback.selected_skills && feedback.selected_skills.length > 0 && (
+        <div className="mb-4">
+          <h4 className="text-sm font-medium text-slate-700 mb-2">Skills Demonstrated</h4>
+          <div className="flex flex-wrap gap-2">
+            {feedback.selected_skills.map((skill, index) => (
+              <Badge 
+                key={index}
+                className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200 px-2.5 py-0.5 text-xs font-medium"
+              >
+                {skill}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {feedback.skills_justification && (
+        <div>
+          <h4 className="text-sm font-medium text-slate-700 mb-2">Justification</h4>
+          <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-md border border-slate-100">
+            {feedback.skills_justification}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+});
+SkillsCard.displayName = "SkillsCard";
 
 // No Feedback Component (Memoized)
 const NoFeedback = memo(() => (
@@ -53,48 +97,65 @@ NoFeedback.displayName = "NoFeedback";
 // Have Feedback Component (Memoized)
 const HaveFeedback = memo(
   ({ form }: { form: UseFormReturn<AssignmentFormValues> }) => {
+    console.log("[DEBUG] feedback", form.getValues().feedback);
     const [isLoading, setIsLoading] = useState(false);
-    const [fetchError, setFetchError] = useState(false);
-    const [teacherProfile, setTeacherProfile] = useState<TeacherProfile | null>(
-      null
-    );
-    const feedbackData = form.getValues().feedback as
-      | TeacherFeedbackData
-      | undefined;
+    const feedbackItems = Array.isArray(form.getValues().feedback) 
+      ? form.getValues().feedback as TeacherFeedbackData[]
+      : [];
     const assignmentId = form.getValues().id ?? "";
     const assignmentSubject = form.getValues().subject ?? "";
 
-    // Fetch teacher profile data
-    useEffect(() => {
-      const fetchTeacherProfile = async () => {
-        if (!feedbackData?.teacher_id) {
-          // Show toast for missing teacher ID
-          toast.info("No teacher information available");
-          return;
-        }
+    // Find most recent feedback (for skills card)
+    const sortedFeedback = [...feedbackItems].sort((a, b) => {
+      const dateA = a.date ? new Date(a.date).getTime() : 0;
+      const dateB = b.date ? new Date(b.date).getTime() : 0;
+      return dateB - dateA; // Sort in descending order (newest first)
+    });
+    const mostRecentFeedback = sortedFeedback[0];
 
-        setFetchError(false);
+    // Get unique teacher IDs from all feedback items
+    const teacherIds = [...new Set(
+      feedbackItems
+        .filter(item => item.teacher_id)
+        .map(item => item.teacher_id as string)
+    )];
+
+    // Fetch teacher profiles data using React Query
+    const {
+      data: teacherProfiles = {}, 
+      isLoading: isLoadingProfiles,
+      isError: isErrorProfiles,
+      refetch
+    } = useQuery({
+      queryKey: ['teacher-profiles', teacherIds],
+      queryFn: async () => {
+        if (teacherIds.length === 0) return {};
+        
         try {
-          const { data, error } = await supabase
-            .from("profiles")
-            .select("id, full_name")
-            .eq("id", feedbackData.teacher_id)
-            .single();
-
-          if (error) {
-            setFetchError(true);
-            toast.error("Failed to fetch teacher profile");
-            throw error;
-          }
-          if (data) setTeacherProfile(data);
+          // Fetch each teacher profile using the API function
+          const profilePromises = teacherIds.map(id => getProfileInfo(id, ["id", "full_name"]));
+          const profiles = await Promise.all(profilePromises);
+          
+          // Create a map of teacher profiles for easy lookup
+          return profiles.reduce((acc, result) => {
+            // Make sure data exists and has valid profile data
+            if (!result.error && result.data) {
+              // First cast to unknown, then to ProfileData
+              const profileData = result.data as unknown as ProfileData;
+              if (profileData && profileData.id) {
+                acc[profileData.id] = profileData as unknown as TeacherProfile;
+              }
+            }
+            return acc;
+          }, {} as Record<string, TeacherProfile>);
         } catch (error) {
-          setFetchError(true);
-          console.error("Error fetching teacher profile:", error);
+          console.error("Error fetching teacher profiles:", error);
+          toast.error("Failed to fetch teacher profiles");
+          throw error;
         }
-      };
-
-      fetchTeacherProfile();
-    }, [feedbackData?.teacher_id]);
+      },
+      enabled: teacherIds.length > 0,
+    });
 
     const handleRevision = useCallback(async () => {
       if (!assignmentId) {
@@ -128,78 +189,58 @@ const HaveFeedback = memo(
       }
     }, [assignmentId, form]);
 
-    if (!feedbackData?.text) {
-      toast.error("No feedback text available");
-      return null;
+    if (feedbackItems.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center w-full h-full p-4 text-center">
+          <h2 className="text-slate-900 text-base sm:text-lg font-semibold mb-2">
+            No feedback available
+          </h2>
+          <p className="text-slate-500 text-xs sm:text-sm max-w-md">
+            There is no feedback for this assignment yet. Check back later.
+          </p>
+        </div>
+      );
     }
 
-    // Use teacher profile data if available, otherwise fallback to default values
-    const teacherName = teacherProfile?.full_name || "Unknown Teacher";
-    const teacherSubject = assignmentSubject
-      ? `${assignmentSubject} Teacher`
-      : "Subject Teacher";
-    const dateString = formatDate(feedbackData?.date);
-    const teacherInitial = teacherName.charAt(0).toUpperCase();
-
-    if (fetchError) {
+    if (isErrorProfiles) {
       return (
         <Error
           showHomeButton={false}
-          retry={() => {
-            window.location.reload();
-          }}
+          retry={() => refetch()}
         />
       );
     }
 
     return (
-      <div className="flex flex-col gap-5 md:gap-10">
-        <div className="flex flex-col gap-3">
-          <h3 className="text-sm sm:text-base font-semibold text-slate-900">
-            Reviewed by:
-          </h3>
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback>{teacherInitial}</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col justify-between">
-              <p className="font-semibold text-slate-900 text-sm sm:text-base">
-                {teacherName}{" "}
-                <span className="text-xs md:text-sm font-normal">
-                  on {dateString}
-                </span>
-              </p>
-              <p className="text-xs sm:text-sm text-slate-600 font-normal">
-                {teacherSubject}
-              </p>
-            </div>
+      <div className="flex flex-col gap-5">
+        {/* Skills Card - showing most recent selected skills */}
+        {mostRecentFeedback && (
+          mostRecentFeedback.selected_skills?.length > 0 || mostRecentFeedback.skills_justification ? (
+            <SkillsCard feedback={mostRecentFeedback} />
+          ) : null
+        )}
+        
+        {isLoadingProfiles && teacherIds.length > 0 ? (
+          <div className="flex justify-center items-center py-6">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
           </div>
-        </div>
-        <div className="flex flex-col gap-3">
-          <h3 className="text-sm sm:text-base font-semibold text-slate-900">
-            Feedback
-          </h3>
-          <div className="px-3 py-2 rounded-md border border-slate-300 bg-transparent text-slate-600 text-sm font-normal">
-            {feedbackData?.text ? (
-              feedbackData.text
-            ) : (
-              <span className="text-slate-400 italic">
-                No feedback provided
-              </span>
-            )}
-          </div>
-          {
-            form?.getValues("status") === ASSIGNMENT_STATUS.NEEDS_REVISION ? (
-              <Button
-                onClick={handleRevision}
-                className="w-max bg-[#6366F1] hover:bg-[#6366F1]/90 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors"
-                disabled={isLoading}
-              >
-                {isLoading ? "Processing..." : "Make Revision"}
-              </Button>
-            ):null
-          }
-        </div>
+        ) : (
+          <GroupedTeacherFeedback
+            feedbackItems={feedbackItems}
+            teacherProfiles={teacherProfiles}
+            assignmentSubject={assignmentSubject}
+          />
+        )}
+        
+        {form?.getValues("status") === ASSIGNMENT_STATUS.NEEDS_REVISION && (
+          <Button
+            onClick={handleRevision}
+            className="w-max bg-[#6366F1] hover:bg-[#6366F1]/90 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors"
+            disabled={isLoading}
+          >
+            {isLoading ? "Processing..." : "Make Revision"}
+          </Button>
+        )}
       </div>
     );
   }
@@ -208,7 +249,7 @@ HaveFeedback.displayName = "HaveFeedback";
 
 // Main Component
 export function TeacherFeedbackStep({ form }: TeacherFeedbackStepProps) {
-  const hasFeedback = !!form?.getValues()?.feedback?.text;
+  const hasFeedback = !!form?.getValues()?.feedback?.length;
 
   return <>{hasFeedback ? <HaveFeedback form={form} /> : <NoFeedback />}</>;
 }

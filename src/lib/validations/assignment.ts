@@ -1,6 +1,7 @@
 import * as z from "zod";
 import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
-
+// Remove the circular import
+// import { ExtendedAssignmentFormValues } from "@/types/teacher/hooks/useSingleAssignmentView";
 // Schema for YouTube link objects
 export const youtubeLinkSchema = z.object({
   url: z.string().optional().default(""),
@@ -20,6 +21,17 @@ export const assignmentFileSchema = z.object({
   student_id: z.string().optional(),
   is_process_documentation: z.boolean().optional()
 }).strict();
+
+// Schema for feedback items
+export const feedbackItemSchema = z.object({
+  selected_skills: z.array(z.string()).optional(),
+  skills_justification: z.string().optional(),
+  text: z.string().optional(),
+  date: z.string().optional().default(() => new Date().toISOString()),
+  teacher_id: z.string().nullable().optional()
+}).strict();
+
+export type FeedbackItem = z.infer<typeof feedbackItemSchema>;
 
 // Base schema for loading (permissive)
 export const baseAssignmentFormSchema = z.object({
@@ -47,8 +59,8 @@ export const baseAssignmentFormSchema = z.object({
   improvements: z.string().optional().default(""),
   acknowledgments: z.string().optional().default(""),
   submitted_at: z.string().optional().default(() => new Date().toISOString()),
-  verified_at: z.string().optional().default(() => new Date().toISOString()),
-  feedback: z.record(z.unknown()).optional().default({}),
+  verified_at: z.string().nullable().optional().default(() => new Date().toISOString()),
+  feedback: z.array(feedbackItemSchema).optional().default([]),
   youtubelinks: z.array(youtubeLinkSchema).optional().default([]),
   files: z.array(assignmentFileSchema).optional().default([]),
   originality_explanation: z.string().optional().default(""),

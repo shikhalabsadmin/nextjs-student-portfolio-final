@@ -1,14 +1,17 @@
 import { type UseFormReturn } from "react-hook-form";
 import { type AssignmentFormValues } from "@/lib/validations/assignment";
 import { type AssignmentStep } from "@/types/assignment";
-import { BasicInfoStep } from "@/components/assignment/steps/BasicInfoStep";
-import { CollaborationStep } from "@/components/assignment/steps/CollaborationStep";
-import { ProcessStep } from "@/components/assignment/steps/ProcessStep";
-import { ReflectionStep } from "@/components/assignment/steps/ReflectionStep";
-import { PreviewStep } from "@/components/assignment/steps/PreviewStep";
-import { TeacherFeedbackStep } from "@/components/assignment/steps/TeacherFeedbackStep";
 import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
-import { createContext, useContext } from "react";
+import { createContext, useContext, lazy, Suspense } from "react";
+import { Loading } from "@/components/ui/loading";
+
+// Lazy load all step components
+const BasicInfoStep = lazy(() => import("@/components/assignment/steps/BasicInfoStep").then(mod => ({ default: mod.BasicInfoStep })));
+const CollaborationStep = lazy(() => import("@/components/assignment/steps/CollaborationStep").then(mod => ({ default: mod.CollaborationStep })));
+const ProcessStep = lazy(() => import("@/components/assignment/steps/ProcessStep").then(mod => ({ default: mod.ProcessStep })));
+const ReflectionStep = lazy(() => import("@/components/assignment/steps/ReflectionStep").then(mod => ({ default: mod.ReflectionStep })));
+const PreviewStep = lazy(() => import("@/components/assignment/steps/PreviewStep").then(mod => ({ default: mod.PreviewStep })));
+const TeacherFeedbackStep = lazy(() => import("@/components/assignment/steps/TeacherFeedbackStep").then(mod => ({ default: mod.TeacherFeedbackStep })));
 
 // Create a context to provide the readonly state to all form components
 type FormStateContextType = {
@@ -33,7 +36,9 @@ export function StepContent({ step, form }: StepContentProps) {
   return (
     <FormStateContext.Provider value={{ readonly: isReadOnly }}>
       <div className={isReadOnly ? "opacity-90 pointer-events-none" : ""}>
-        {renderStepContent(step, form)}
+        <Suspense fallback={<Loading text="Loading step..." />}>
+          {renderStepContent(step, form)}
+        </Suspense>
       </div>
     </FormStateContext.Provider>
   );

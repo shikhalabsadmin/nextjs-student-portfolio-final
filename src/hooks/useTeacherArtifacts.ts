@@ -70,7 +70,7 @@ export function useTeacherArtifacts(
       
       try {
         // Create query filters based on teaching_subjects
-        let query = supabase.from("assignments").select('*');
+        let query = supabase.from("assignments").select('*').order('created_at', { ascending: false });
         
         // Only filter by subjects and grades if teaching_subjects exist
         if (teachingSubjects.length > 0) {

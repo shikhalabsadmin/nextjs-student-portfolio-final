@@ -26,7 +26,7 @@ const SKILLS = [
   "Sociability",
 ];
 
-// Define form validation schema
+// Define a single form validation schema with context
 const formSchema = z.object({
   selectedSkills: z
     .array(z.string())
@@ -37,15 +37,28 @@ const formSchema = z.object({
     .min(1, "Please justify the selected skills")
     .max(200, "Justification must be less than 200 characters"),
   feedback: z.string().optional(),
+  isRevision: z.boolean().optional(), // Context field to determine validation
+}).refine((data) => {
+  // If it's a revision, feedback should be required
+  if (data.isRevision && (!data.feedback || data.feedback.trim() === '')) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Please provide feedback for the revision",
+  path: ["feedback"]
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 // Separate hook for form logic to follow SRP
-const useApprovalForm = (defaultValues: FormValues) => {
+const useApprovalForm = (defaultValues: Omit<FormValues, 'isRevision'>) => {
   return useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues,
+    defaultValues: {
+      ...defaultValues,
+      isRevision: false
+    },
   });
 };
 
@@ -62,7 +75,7 @@ interface ApprovalModalProps {
   onFormDataChange: (formData: FormValues) => void;
 }
 
-export const ApprovalModal = memo(
+const ApprovalModal = memo(
   ({
     isOpen,
     onClose,
@@ -111,9 +124,20 @@ export const ApprovalModal = memo(
 
     // Handle submission for approval
     const handleSubmitForm = async (values: FormValues) => {
+      // Make sure isRevision is false for approval
+      const valuesWithContext = { ...values, isRevision: false };
+      
+      // Validate with the schema (though feedback is optional here)
+      const result = formSchema.safeParse(valuesWithContext);
+      if (!result.success) {
+        // Set field errors from validation
+        result.error.format();
+        return;
+      }
+      
       setIsSubmitting(true);
       try {
-        // Pass form data to parent component
+        // Pass form data to parent component (without isRevision flag)
         onFormDataChange(values);
 
         // Call the appropriate function based on action (approve)
@@ -130,10 +154,48 @@ export const ApprovalModal = memo(
 
     // Handle submission for revision
     const handleRevision = async () => {
+      // Get form values
       const values = form.getValues();
+      
+      // Add isRevision flag to trigger feedback validation
+      const valuesWithContext = { ...values, isRevision: true };
+      
+      // Validate with the schema
+      const result = formSchema.safeParse(valuesWithContext);
+      if (!result.success) {
+        // Extract and set the errors from zod validation
+        const zodErrors = result.error.flatten().fieldErrors;
+        
+        // Set feedback error if present
+        if (zodErrors.feedback) {
+          form.setError("feedback", {
+            type: "manual",
+            message: zodErrors.feedback[0]
+          });
+          return;
+        }
+        
+        // Set other errors if any
+        if (zodErrors.selectedSkills) {
+          form.setError("selectedSkills", {
+            type: "manual",
+            message: zodErrors.selectedSkills[0]
+          });
+        }
+        
+        if (zodErrors.justification) {
+          form.setError("justification", {
+            type: "manual",
+            message: zodErrors.justification[0]
+          });
+        }
+        
+        return;
+      }
+      
       setIsSubmitting(true);
       try {
-        // Pass form data to parent component
+        // Pass form data to parent component (without isRevision flag)
         onFormDataChange(values);
 
         // Call the revision function
@@ -274,7 +336,7 @@ export const ApprovalModal = memo(
                             Feedback
                           </FormLabel>
                           <span className="text-slate-500 text-sm font-normal">
-                            (optional)
+                            (required for revision, optional for approval)
                           </span>
                         </div>
                         <FormControl>
@@ -352,3 +414,5 @@ export const ApprovalModal = memo(
     );
   }
 );
+
+export default ApprovalModal;

@@ -132,6 +132,16 @@ export class StepService {
       return false;
     }
     
+    // Special case for review-submit - only valid when status is SUBMITTED
+    if (stepId === 'review-submit') {
+      return formData.status === ASSIGNMENT_STATUS.SUBMITTED;
+    }
+
+    // Special case for teacher-feedback - only valid when status is APPROVED
+    if (stepId === 'teacher-feedback') {
+      return formData.status === ASSIGNMENT_STATUS.APPROVED;
+    }
+    
     const requirements = STEP_REQUIREMENTS[stepId];
     
     // Skip validation for steps marked as always valid
