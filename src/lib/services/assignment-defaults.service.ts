@@ -21,7 +21,7 @@ export const getDefaultValues = (): Omit<AssignmentFormValues, 'files'> => ({
   challenges: "",
   improvements: "",
   acknowledgments: "",
-  feedback: {},
+  feedback: [],
   youtubelinks: [],
   submitted_at: new Date().toISOString(),
   verified_at: new Date().toISOString(),

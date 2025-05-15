@@ -355,7 +355,7 @@ const AssignmentPreview = memo(
             value={values?.improvements || ""}
           />
           {hasAcknowledgments && (
-            <PreviewField label="Your thanks" value={values?.acknowledgments} />
+            <PreviewField label="Your gratitude" value={values?.acknowledgments} />
           )}
         </div>
       </div>
