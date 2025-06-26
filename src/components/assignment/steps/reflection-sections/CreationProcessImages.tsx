@@ -62,9 +62,6 @@ export function CreationProcessImages({ form }: CreationProcessImagesProps) {
       }
     },
     enabled: !!assignmentId,
-    // Use staleTime that matches the root QueryClient configuration
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    retry: 1
   });
   
   // Mutation for deleting images

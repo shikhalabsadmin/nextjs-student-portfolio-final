@@ -173,7 +173,6 @@ export function useStudentAssignments(
     queryFn: fetchAssignments,
     enabled: !!user?.id,
     refetchOnMount: true,
-    staleTime: 0,
     retry: (failureCount, error: unknown) => {
       // Don't retry auth errors
       if (error && 

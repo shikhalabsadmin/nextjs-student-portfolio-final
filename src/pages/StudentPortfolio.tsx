@@ -140,8 +140,6 @@ function StudentPortfolio({ previewMode = false }: StudentPortfolioProps) {
       return response?.data as unknown as StudentProfile;
     },
     enabled: !!studentId, // Only run if studentId exists
-    staleTime: 0, // Always consider data stale
-    gcTime: 0, // Don't cache data
     refetchOnMount: "always", // Always refetch when component mounts
     refetchOnWindowFocus: true, // Refetch when window regains focus
   });
@@ -162,8 +160,6 @@ function StudentPortfolio({ previewMode = false }: StudentPortfolioProps) {
     queryKey: ["assignments", studentId, "approved"],
     queryFn: () => getApprovedAssignments(studentId!),
     enabled: !!studentId,
-    staleTime: 0, // Always consider data stale
-    gcTime: 0, // Don't cache data
     refetchOnMount: "always", // Always refetch when component mounts
     refetchOnWindowFocus: true, // Refetch when window regains focus
     select: (data: unknown) => Array.isArray(data) ? data as AssignmentData[] : []
@@ -196,8 +192,6 @@ function StudentPortfolio({ previewMode = false }: StudentPortfolioProps) {
       return getFilesForMultipleAssignments(stringIds, studentId!);
     },
     enabled: !!studentId && stringIds.length > 0, // Only run if we have assignments
-    staleTime: 0, // Always consider data stale
-    gcTime: 0, // Don't cache data
     refetchOnMount: "always", // Always refetch when component mounts
     refetchOnWindowFocus: true, // Refetch when window regains focus
     select: (data: unknown) => Array.isArray(data) ? data as FileRecord[] : []

@@ -73,7 +73,6 @@ export const AssignmentsList = () => {
       return data || [];
     },
     enabled: !!user?.id,
-    staleTime: 0
   });
 
   const deleteMutation = useMutation({

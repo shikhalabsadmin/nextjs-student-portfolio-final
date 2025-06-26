@@ -223,7 +223,6 @@ function useAssignmentForm({ user }: { user: User }) {
     refetchOnWindowFocus: false,
     retry: isNewAssignment ? 0 : 3, // Don't retry for new assignments
     refetchOnMount: true, // Force refetch on mount
-    staleTime: 0, // Never cache data
   });
 
   // ===== Auto-Save Logic =====
