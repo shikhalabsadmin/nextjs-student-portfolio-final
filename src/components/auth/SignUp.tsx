@@ -26,6 +26,7 @@ import { AuthLayout } from "./AuthLayout";
 import { UserRole } from "@/enums/user.enum";
 import { ROUTES } from "@/config/routes";
 import { GRADE_LEVELS } from "@/constants/grade-subjects";
+import { STUDENT_PROFILE_DEFAULTS } from "@/constants/student-profile-defaults";
 
 
 // Define form schema
@@ -145,7 +146,7 @@ export function SignUp({ onToggleMode }: SignUpProps) {
         details: existingProfileError?.details,
       });
 
-      // Prepare profile data
+      // Prepare profile data with defaults for students
       const profileInput = {
         id: signUpData.user.id,
         role: values.role,
@@ -155,6 +156,11 @@ export function SignUp({ onToggleMode }: SignUpProps) {
         subjects: [],
         grade_levels: values.role === UserRole.TEACHER ? [] : null,
         teaching_subjects: values.role === UserRole.TEACHER ? [] : null,
+        // Add default school and bio for students
+        ...(values.role === UserRole.STUDENT && {
+          school_name: STUDENT_PROFILE_DEFAULTS.school,
+          bio: STUDENT_PROFILE_DEFAULTS.bio,
+        }),
       };
 
       console.log("[SignUp] Attempting profile upsert with:", profileInput);
