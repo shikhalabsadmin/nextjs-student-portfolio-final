@@ -26,6 +26,8 @@ import { EnhancedUser } from "@/hooks/useAuthState";
 import type { TeachingSubject } from "@/types/supabase";
 import { ROUTES } from "@/config/routes";
 import { createDebugService } from "@/lib/utils/debug.service";
+import { useQueryClient } from "@tanstack/react-query";
+import { PROFILE_KEYS } from "@/query-key/profile";
 
 // Create debug instance for TeacherProfile
 const debug = createDebugService("TeacherProfile");
@@ -99,6 +101,7 @@ export const TeacherProfile = ({ user }: { user: EnhancedUser | null }) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -234,8 +237,16 @@ export const TeacherProfile = ({ user }: { user: EnhancedUser | null }) => {
           description: "Your teaching profile has been updated successfully.",
         });
 
-        // Mark form as pristine after successful save
+        // Invalidate profile query
+        queryClient.invalidateQueries({ queryKey: PROFILE_KEYS.profile(user.id) });
+
+        // Mark form as pristine after successful save to prevent popup
         form.reset(values);
+
+        // Navigate to dashboard after successful save with full page refresh
+        setTimeout(() => {
+          window.location.replace(ROUTES.TEACHER.DASHBOARD);
+        }, 100);
       } catch (error) {
         debug.error("Profile update error", error);
         toast({
