@@ -18,7 +18,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { GRADE_LEVELS } from "@/constants/grade-subjects";
 import {
   Select,
@@ -31,6 +31,8 @@ import { PROFILE_KEYS } from "@/query-key/profile";
 import { X, Upload, Info } from "lucide-react";
 import SCHOOL_OPTIONS from "@/constants/student_profile_school_options";
 import { getProfileInfo } from "@/api/profiles";
+import { Loading } from "@/components/ui/loading";
+import { DEFAULT_STUDENT_BIO, DEFAULT_STUDENT_SCHOOL } from "@/constants/student-profile-defaults";
 
 // Define maximum file size (5MB)
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -41,6 +43,27 @@ const ACCEPTED_IMAGE_TYPES = [
   "image/jpg",
 ];
 
+// Define the profile data structure
+interface ProfileData {
+  id: string;
+  full_name?: string | null;
+  bio?: string | null;
+  grade?: string | null;
+  image?: string | null;
+  image_path?: string | null;
+  school_name?: string | null;
+  [key: string]: unknown;
+}
+
+// Helper function to safely access profile data
+const getProfileValue = (data: unknown, key: keyof ProfileData): string => {
+  if (data && typeof data === 'object' && data !== null && key in data) {
+    const value = (data as ProfileData)[key];
+    return typeof value === 'string' ? value : '';
+  }
+  return '';
+};
+
 // Schema
 const formSchema = z.object({
   full_name: z.string().min(1, "Full name is required").default(""),
@@ -49,8 +72,8 @@ const formSchema = z.object({
     .string()
     .max(500, "Bio must be less than 500 characters")
     .optional()
-    .default(""),
-  school_name: z.string().default(""),
+    .default(DEFAULT_STUDENT_BIO),
+  school_name: z.string().default(DEFAULT_STUDENT_SCHOOL),
   image: z.string().optional().default(""),
   image_path: z.string().optional().default(""),
 });
@@ -74,24 +97,35 @@ export const StudentProfile = ({
   const navigate = useNavigate();
   const { toast } = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  
+  // Use useRef to track if form has been initialized to prevent multiple initializations
+  const isFormInitializedRef = useRef(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      full_name: (user?.full_name as string) || "",
-      grade: (user?.grade as string) || "",
-      bio: (user?.bio as string) || "",
-      school_name: (user?.school_name as string) || "",
-      image: (user?.image as string) || "",
-      image_path: (user?.image_path as string) || "",
+      full_name: "",
+      grade: "",
+      bio: DEFAULT_STUDENT_BIO,
+      school_name: DEFAULT_STUDENT_SCHOOL,
+      image: "",
+      image_path: "",
     },
   });
 
   // Use React Query to fetch profile data
-  const { data: profileData } = useQuery({
+  const { 
+    data: profileData, 
+    isLoading: isLoadingProfile, 
+    error: profileError 
+  } = useQuery({
     queryKey: PROFILE_KEYS.profile(user?.id),
     queryFn: async () => {
-      const response = await getProfileInfo(user?.id);
+      if (!user?.id) {
+        throw new Error("User ID is required");
+      }
+
+      const response = await getProfileInfo(user.id);
 
       if (response.error) {
         toast({
@@ -102,31 +136,52 @@ export const StudentProfile = ({
         throw new Error(response.message);
       }
 
-      const data = response?.data;
-
-      console.log("[DEBUG Profile Picture] data", {
-        data:data,
-        full_name: data["fullname"],
-        bio: data["bio"],
-        grade: data["grade"],
-        image: data["image"],
-        image_path: data["image_path"],
-        school_name: data["school_name"],
-      });
-
-      form.reset({
-        full_name: data["fullname"],
-        bio: data["bio"],
-        grade: data["grade"],
-        image: data["image"],
-        image_path: data["image_path"],
-        school_name: data["school_name"],
-      });
-
-      return data;
+      return response.data;
     },
     enabled: !!user?.id,
   });
+
+  // Update form when profile data is loaded - runs only once using useRef
+  useEffect(() => {
+    if (profileData && !isFormInitializedRef.current && typeof profileData === 'object' && profileData !== null) {
+      console.log("[DEBUG Profile Picture] Initializing form with data", {
+        profileData,
+        full_name: getProfileValue(profileData, 'full_name'),
+        bio: getProfileValue(profileData, 'bio'),
+        grade: getProfileValue(profileData, 'grade'),
+        image: getProfileValue(profileData, 'image'),
+        image_path: getProfileValue(profileData, 'image_path'),
+        school_name: getProfileValue(profileData, 'school_name'),
+      });
+
+      // Map the data correctly - the database field is 'full_name', not 'fullname'
+      const formData = {
+        full_name: getProfileValue(profileData, 'full_name'),
+        bio: getProfileValue(profileData, 'bio') || DEFAULT_STUDENT_BIO, // Fallback to demo bio
+        grade: getProfileValue(profileData, 'grade'),
+        image: getProfileValue(profileData, 'image'),
+        image_path: getProfileValue(profileData, 'image_path'),
+        school_name: getProfileValue(profileData, 'school_name') || DEFAULT_STUDENT_SCHOOL, // Fallback to default
+      };
+
+      form.reset(formData);
+      isFormInitializedRef.current = true;
+
+      console.log("[DEBUG Profile Picture] Form initialized successfully");
+    }
+  }, [profileData, form]);
+
+  // Handle query error
+  useEffect(() => {
+    if (profileError) {
+      console.error("[DEBUG Profile Picture] Profile fetch error", profileError);
+      toast({
+        title: "Error",
+        description: "Failed to load profile data. Please refresh the page.",
+        variant: "destructive",
+      });
+    }
+  }, [profileError, toast]);
 
   // Function to handle file upload to Supabase storage and return the file name and public URL
   const uploadProfilePicture = async (
@@ -461,6 +516,23 @@ export const StudentProfile = ({
     }
   };
 
+  // Show loading state while fetching profile data
+  if (isLoadingProfile && !isFormInitializedRef.current) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <Card className="max-w-4xl mx-auto p-6 sm:p-8 bg-white/80 backdrop-blur-sm shadow-xl rounded-2xl border border-gray-100">
+          <div className="space-y-1.5 mb-10">
+            <h1 className="text-3xl font-bold text-gray-900">Student Profile</h1>
+            <p className="text-gray-500 text-sm">
+              Loading your profile information...
+            </p>
+          </div>
+          <Loading />
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="max-w-4xl mx-auto p-6 sm:p-8 bg-white/80 backdrop-blur-sm shadow-xl rounded-2xl border border-gray-100">
@@ -477,7 +549,7 @@ export const StudentProfile = ({
             {/* Profile Picture Section */}
             <div className="space-y-4">
               <FormLabel className="text-base font-semibold text-gray-700">
-                Profile Picture
+                Profile Picture <span className="text-sm font-normal text-gray-500">(Optional)</span>
               </FormLabel>
 
               <div>
@@ -558,13 +630,14 @@ export const StudentProfile = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm font-medium text-gray-700">
-                      Full Name
+                      Full Name <span className="text-red-500">*</span>
                     </FormLabel>
                     <FormControl>
                       <Input
                         {...field}
                         placeholder="Enter your full name"
                         className="h-11 bg-gray-50/50 border-gray-200 focus:border-primary/50 focus:ring-primary/20 rounded-lg shadow-sm"
+                        required
                       />
                     </FormControl>
                     <FormMessage />
@@ -578,7 +651,7 @@ export const StudentProfile = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm font-medium text-gray-700">
-                      School Name
+                      School Name <span className="text-sm font-normal text-gray-500">(Optional)</span>
                     </FormLabel>
                     <Select
                       onValueChange={field.onChange}
@@ -609,7 +682,7 @@ export const StudentProfile = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm font-medium text-gray-700">
-                    Grade Level
+                    Grade Level <span className="text-red-500">*</span> <span className="text-sm font-normal text-gray-500">(Set during signup)</span>
                   </FormLabel>
                   <Select
                     onValueChange={field.onChange}
@@ -617,7 +690,7 @@ export const StudentProfile = ({
                     disabled
                   >
                     <FormControl>
-                      <SelectTrigger className="h-11 bg-gray-50/50 border-gray-200 focus:border-primary/50 focus:ring-primary/20 rounded-lg shadow-sm">
+                      <SelectTrigger className="h-11 bg-gray-100 border-gray-200 rounded-lg shadow-sm cursor-not-allowed">
                         <SelectValue placeholder="Select your grade" />
                       </SelectTrigger>
                     </FormControl>
@@ -641,7 +714,7 @@ export const StudentProfile = ({
                 <FormItem>
                   <div className="flex items-center justify-between">
                     <FormLabel className="text-sm font-medium text-gray-700">
-                      Bio
+                      Bio <span className="text-sm font-normal text-gray-500">(Optional)</span>
                     </FormLabel>
                     <FormDescription className="text-xs text-gray-500">
                       {field.value?.length || 0}/500 characters
