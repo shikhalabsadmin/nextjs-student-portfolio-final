@@ -292,8 +292,9 @@ export const QuestionField = ({ question, value, onChange, uploadProgress = {}, 
 
   if (question.type === "textarea") {
     const wordCount = (value || "").trim().split(/\s+/).filter(Boolean).length;
-    const isOverLimit = question.maxWords && wordCount > question.maxWords;
     const maxWords = question.maxWords || 2000;
+    const suggestedMaxWords = question.maxWords && question.maxWords < 2000 ? question.maxWords : 200;
+    const isOverLimit = wordCount > suggestedMaxWords;
 
     return (
       <div className="space-y-3">
@@ -318,7 +319,7 @@ export const QuestionField = ({ question, value, onChange, uploadProgress = {}, 
           />
           <div className="absolute top-0 right-0 mt-2 mr-2">
             <span className={`text-base ${isOverLimit ? "text-red-500" : "text-gray-400"}`}>
-              {wordCount}/{maxWords} suggested words
+              {wordCount}/{suggestedMaxWords} suggested words
             </span>
           </div>
         </div>

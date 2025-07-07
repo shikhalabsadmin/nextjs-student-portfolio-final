@@ -32,6 +32,8 @@ export function SkillsJustification({ form }: SkillsJustificationProps) {
               ref={field.ref}
               required
               currentLength={field.value?.length || 0}
+              maxLength={2000}
+              suggestedLength={200}
             />
           </FormControl>
           <FormMessage />

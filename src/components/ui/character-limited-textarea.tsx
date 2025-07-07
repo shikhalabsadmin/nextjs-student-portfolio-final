@@ -4,12 +4,13 @@ import { forwardRef } from "react";
 
 interface CharacterLimitedTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   maxLength?: number;
+  suggestedLength?: number;
   currentLength?: number;
 }
 
 export const CharacterLimitedTextarea = forwardRef<HTMLTextAreaElement, CharacterLimitedTextareaProps>(
-  ({ maxLength = 2000, currentLength = 0, className, ...props }, ref) => {
-    const isExceeded = currentLength > maxLength;
+  ({ maxLength = 2000, suggestedLength = 200, currentLength = 0, className, ...props }, ref) => {
+    const isExceeded = currentLength > suggestedLength;
     
     return (
       <div className="space-y-1">
@@ -21,7 +22,7 @@ export const CharacterLimitedTextarea = forwardRef<HTMLTextAreaElement, Characte
         />
         <div className="flex justify-end">
           <span className={`text-base ${isExceeded ? "text-red-500" : "text-gray-500"}`}>
-            {currentLength}/{maxLength} suggested words
+            {currentLength}/{suggestedLength} suggested words
           </span>
         </div>
       </div>
