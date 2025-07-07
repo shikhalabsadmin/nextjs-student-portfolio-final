@@ -20,11 +20,9 @@ export const CharacterLimitedTextarea = forwardRef<HTMLTextAreaElement, Characte
           {...props}
         />
         <div className="flex justify-end">
-          {isExceeded ? (
-            <span className="text-base text-red-500">
-              {currentLength}/{maxLength} suggested words
-            </span>
-          ) : null}
+          <span className={`text-base ${isExceeded ? "text-red-500" : "text-gray-500"}`}>
+            {currentLength}/{maxLength} suggested words
+          </span>
         </div>
       </div>
     );

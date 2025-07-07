@@ -316,13 +316,11 @@ export const QuestionField = ({ question, value, onChange, uploadProgress = {}, 
             }`}
             placeholder={question.hint}
           />
-          {isOverLimit && (
-            <div className="absolute top-0 right-0 mt-2 mr-2">
-              <span className="text-base text-red-500">
-                {wordCount}/{maxWords} suggested words
-              </span>
-            </div>
-          )}
+          <div className="absolute top-0 right-0 mt-2 mr-2">
+            <span className={`text-base ${isOverLimit ? "text-red-500" : "text-gray-400"}`}>
+              {wordCount}/{maxWords} suggested words
+            </span>
+          </div>
         </div>
         {isOverLimit && (
           <div className="text-base text-red-500">
