@@ -20,6 +20,21 @@ import { ROUTES } from "@/config/routes";
 import { isBasicInfoComplete } from "@/lib/utils/basic-info-validation";
 import { useToast } from "@/components/ui/use-toast";
 
+// Define required fields for each step
+const STEP_REQUIRED_FIELDS = {
+  'basic-info': ['title', 'artifact_type', 'subject', 'month', 'files', 'youtubelinks'],
+  'role-originality': ['is_team_work', 'is_original_work', 'team_contribution', 'originality_explanation'],
+  'skills-reflection': ['selected_skills', 'skills_justification', 'pride_reason'],
+  'process-challenges': ['creation_process', 'learnings', 'challenges', 'improvements', 'acknowledgments'],
+  'review-submit': [],
+  'teacher-feedback': []
+};
+
+// Helper function to get required fields for a step
+const getStepRequiredFields = (stepId: AssignmentStep): string[] => {
+  return STEP_REQUIRED_FIELDS[stepId] || [];
+};
+
 type AssignmentFormProps = {
   user: User;
 };
@@ -91,7 +106,7 @@ function AssignmentForm({ user }: AssignmentFormProps) {
     [setCurrentStep]
   );
 
-  const handleSaveAndContinueClick = useCallback(() => {
+  const handleSaveAndContinueClick = useCallback(async () => {
     if (currentStep === "review-submit") {
       // Only show confirmation modal if all steps are complete
       if (areAllStepsComplete) {
@@ -106,8 +121,30 @@ function AssignmentForm({ user }: AssignmentFormProps) {
       }
       return;
     }
-    handleSaveAndContinue();
-  }, [currentStep, handleSaveAndContinue, areAllStepsComplete, toast]);
+    
+    // For other steps, trigger validation for the current step's fields
+    // This will show red error messages for required fields
+    const stepConfig = STEPS.find(step => step.id === currentStep);
+    if (stepConfig) {
+      // Get the fields for the current step from STEP_REQUIREMENTS
+      const stepFields = getStepRequiredFields(currentStep as AssignmentStep);
+      
+      // Trigger validation only for the fields in the current step
+      const isStepValid = await form.trigger(stepFields as any);
+      
+      if (isStepValid) {
+        // If valid, save and continue
+        handleSaveAndContinue();
+      } else {
+        // If invalid, show toast but let them navigate (errors will remain visible)
+        toast({
+          title: "Missing Required Fields",
+          description: "Please fill in all required fields marked in red.",
+          variant: "destructive",
+        });
+      }
+    }
+  }, [currentStep, handleSaveAndContinue, areAllStepsComplete, toast, form]);
 
   const handleConfirmSubmit = useCallback(() => {
     handleSubmitAssignment(form.getValues());
