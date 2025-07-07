@@ -19,6 +19,7 @@ import { GenericBreadcrumb } from "./AssignmentBreadcrumb";
 import { ROUTES } from "@/config/routes";
 import { isBasicInfoComplete } from "@/lib/utils/basic-info-validation";
 import { useToast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
 
 // Define required fields for each step
 const STEP_REQUIRED_FIELDS = {
@@ -146,9 +147,17 @@ function AssignmentForm({ user }: AssignmentFormProps) {
     }
   }, [currentStep, handleSaveAndContinue, areAllStepsComplete, toast, form]);
 
-  const handleConfirmSubmit = useCallback(() => {
-    handleSubmitAssignment(form.getValues());
-    setShowConfirmationModal(false);
+  const handleConfirmSubmit = useCallback(async () => {
+    try {
+      await handleSubmitAssignment(form.getValues());
+      setShowConfirmationModal(false);
+      
+      // Navigate to dashboard after successful submission
+      window.location.href = ROUTES.STUDENT.DASHBOARD;
+    } catch (error) {
+      console.error("Error submitting assignment:", error);
+      // Keep the modal open if there's an error
+    }
   }, [handleSubmitAssignment, form]);
 
   // Shared props
@@ -221,10 +230,19 @@ function AssignmentForm({ user }: AssignmentFormProps) {
                 <section className="px-3 py-2 md:px-6 md:py-4 flex-1 overflow-y-auto">
                   {assignmentStatus === ASSIGNMENT_STATUS.SUBMITTED && (
                     <div className="bg-amber-50 border border-amber-200 p-3 mb-4 rounded-md">
-                      <p className="text-amber-800 text-sm">
-                        Your assignment has been submitted. You can view all
-                        sections but cannot make any changes.
-                      </p>
+                      <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+                        <p className="text-amber-800 text-sm mb-3 md:mb-0">
+                          Your assignment has been submitted. You can view all
+                          sections but cannot make any changes.
+                        </p>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => window.location.href = ROUTES.STUDENT.DASHBOARD}
+                          className="bg-white border-amber-500 text-amber-700 hover:bg-amber-50"
+                        >
+                          Return to Dashboard
+                        </Button>
+                      </div>
                     </div>
                   )}
                   <StepContent step={currentStep} form={form} />
