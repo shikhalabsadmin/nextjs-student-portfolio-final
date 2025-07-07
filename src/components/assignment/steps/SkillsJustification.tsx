@@ -14,7 +14,7 @@ export function SkillsJustification({ form }: SkillsJustificationProps) {
       name="skills_justification"
       render={({ field }) => (
         <FormItem>
-          <FormLabel className="text-base font-medium">
+          <FormLabel className="text-lg font-medium">
             Justify the selected skills <span className="text-red-500">*</span>
           </FormLabel>
           <FormDescription>

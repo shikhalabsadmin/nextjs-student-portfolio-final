@@ -45,13 +45,13 @@ export function PreviewStep({ form }: PreviewStepProps) {
   return (
     <div className="relative">
       <div className="flex flex-row justify-between items-center mb-4">
-        <h2 className="text-sm md:text-base font-semibold text-slate-900">
+        <h2 className="text-lg md:text-xl font-semibold text-slate-900">
           Your Assignment
         </h2>
         <Button
           variant="outline"
           onClick={handleToggleFullScreen}
-          className="px-2 py-1 md:px-4 md:py-2 flex items-center gap-2.5 text-sm text-slate-800 font-medium"
+          className="px-2 py-1 md:px-4 md:py-2 flex items-center gap-2.5 text-base text-slate-800 font-medium"
           size="sm"
         >
           <Maximize2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />

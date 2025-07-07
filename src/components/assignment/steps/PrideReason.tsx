@@ -14,7 +14,7 @@ export function PrideReason({ form }: PrideReasonProps) {
       name="pride_reason"
       render={({ field }) => (
         <FormItem>
-          <FormLabel className="text-base font-medium">
+          <FormLabel className="text-lg font-medium">
             Why are you proud of this artifact? <span className="text-red-500">*</span>
           </FormLabel>
           <FormDescription>

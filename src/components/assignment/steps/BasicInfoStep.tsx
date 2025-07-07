@@ -104,10 +104,10 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
         name="title"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="text-base font-medium text-gray-900">
+            <FormLabel className="text-lg font-medium text-gray-900">
               What is the name of your work? <span className="text-red-500">*</span>
             </FormLabel>
-            <FormDescription className="text-sm text-gray-600">
+            <FormDescription className="text-base text-gray-600">
               Give your work name a meaningful title that represents your work.
             </FormDescription>
             <FormControl>
@@ -127,10 +127,10 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
         name="artifact_type"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="text-base font-medium text-gray-900">
+            <FormLabel className="text-lg font-medium text-gray-900">
               What type of work is this? <span className="text-red-500">*</span>
             </FormLabel>
-            <FormDescription className="text-sm text-gray-600">
+            <FormDescription className="text-base text-gray-600">
               Work type refers to whether the work is a project, essay, model, performance, presentation, or another specific format.
             </FormDescription>
             <FormControl>
@@ -150,10 +150,10 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
         name="subject"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="text-base font-medium text-gray-900">
+            <FormLabel className="text-lg font-medium text-gray-900">
               What subject is this for? <span className="text-red-500">*</span>
             </FormLabel>
-            <FormDescription className="text-sm text-gray-600">
+            <FormDescription className="text-base text-gray-600">
               Select the subject that this work is related to.
             </FormDescription>
             <ValidatedSelect
@@ -176,10 +176,10 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
         name="month"
         render={({ field }) => (
           <FormItem className="max-w-max">
-            <FormLabel className="text-base font-medium text-gray-900">
+            <FormLabel className="text-lg font-medium text-gray-900">
               When did you complete this? <span className="text-red-500">*</span>
             </FormLabel>
-            <FormDescription className="text-sm text-gray-600">
+            <FormDescription className="text-base text-gray-600">
               Select the date when you completed this work.
             </FormDescription>
             <DatePicker 

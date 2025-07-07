@@ -47,8 +47,8 @@ function ToggleField({ form, name, label, description }: ToggleFieldProps) {
       render={({ field }) => (
         <FormItem className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border p-3 sm:p-4">
           <div className="space-y-0.5 mb-2 sm:mb-0">
-            <FormLabel className="text-base">{label}</FormLabel>
-            <FormDescription className="text-sm">{description}</FormDescription>
+            <FormLabel className="text-lg">{label}</FormLabel>
+            <FormDescription className="text-base">{description}</FormDescription>
           </div>
           <FormControl>
             <div className="flex gap-2.5">
@@ -57,7 +57,7 @@ function ToggleField({ form, name, label, description }: ToggleFieldProps) {
                 type="button"
                 onClick={() => field.onChange(false)}
                 className={cn(
-                  "text-sm px-3 py-1 rounded-md transition-colors",
+                  "text-base px-3 py-1 rounded-md transition-colors",
                   !field.value ? "font-bold text-slate-900 bg-slate-100" : "text-slate-500 hover:text-slate-900"
                 )}
               >
@@ -69,7 +69,7 @@ function ToggleField({ form, name, label, description }: ToggleFieldProps) {
                 type="button"
                 onClick={() => field.onChange(true)}
                 className={cn(
-                  "text-sm px-3 py-1 rounded-md transition-colors",
+                  "text-base px-3 py-1 rounded-md transition-colors",
                   field.value ? "font-bold text-slate-900 bg-slate-100" : "text-slate-500 hover:text-slate-900"
                 )}
               >
@@ -97,7 +97,7 @@ function ConditionalTextarea({ form, toggleName, textareaName, label, placeholde
       name={textareaName}
       render={({ field }) => (
         <FormItem className="pb-1 sm:pb-2">
-          <FormLabel>{label}</FormLabel>
+          <FormLabel className="text-lg">{label}</FormLabel>
           <FormControl>
             <Textarea
               placeholder={placeholder}

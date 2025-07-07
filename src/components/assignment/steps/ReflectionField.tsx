@@ -26,7 +26,7 @@ export function ReflectionField({
       name={name}
       render={({ field }) => (
         <FormItem>
-          <FormLabel className="text-base font-medium">
+          <FormLabel className="text-lg font-medium">
             {label} <span className="text-red-500">*</span>
           </FormLabel>
           <FormDescription>{description}</FormDescription>
