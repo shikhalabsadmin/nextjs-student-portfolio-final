@@ -2,12 +2,18 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescripti
 import { CharacterLimitedTextarea } from "@/components/ui/character-limited-textarea";
 import type { UseFormReturn } from "react-hook-form";
 import type { AssignmentFormValues } from "@/lib/validations/assignment";
+import { SKILLS } from "@/constants";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
 interface SkillsJustificationProps {
   form: UseFormReturn<AssignmentFormValues>;
 }
 
 export function SkillsJustification({ form }: SkillsJustificationProps) {
+  const selectedSkillIds = form.watch("selected_skills") || [];
+  const selectedSkills = SKILLS.filter(skill => selectedSkillIds.includes(skill.id));
+  
   return (
     <FormField
       control={form.control}
@@ -22,6 +28,26 @@ export function SkillsJustification({ form }: SkillsJustificationProps) {
             What actions, decisions, or moments during the process
             demonstrated these skills?
           </FormDescription>
+          
+          {selectedSkills.length > 0 && (
+            <Alert className="bg-blue-50 border-blue-100 mb-4">
+              <InfoIcon className="h-5 w-5 text-blue-500" />
+              <AlertDescription className="text-blue-700">
+                <p className="font-medium mb-2">Your selected skills:</p>
+                <ul className="list-disc pl-5 space-y-2">
+                  {selectedSkills.map(skill => (
+                    <li key={skill.id}>
+                      <span className="font-medium">{skill.name}</span>
+                      {skill.description && (
+                        <p className="text-sm text-blue-600 mt-1">{skill.description}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <FormControl>
             <CharacterLimitedTextarea
               placeholder="How did each skill help you in creating this work?"
