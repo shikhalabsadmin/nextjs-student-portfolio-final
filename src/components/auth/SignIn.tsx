@@ -14,6 +14,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Alert } from "@/components/ui/alert";
+import { AlertCircle, UserRound, Lock } from "lucide-react";
 import { AuthLayout } from "./AuthLayout";
 import { UserRole } from "@/enums/user.enum";
 import { ROUTES } from "@/config/routes";
@@ -191,9 +193,9 @@ export function SignIn({ onToggleMode, onResetPassword }: SignInProps) {
 
   return (
     <AuthLayout
-      title="Welcome Back"
-      description="Sign in to continue to your portfolio"
-      toggleLabel="Don't have an account? "
+      title="Welcome back!"
+      description="Continue your learning journey"
+      toggleLabel="Don't have an account?"
       toggleText="Sign up"
       onToggle={onToggleMode}
     >
@@ -204,13 +206,22 @@ export function SignIn({ onToggleMode, onResetPassword }: SignInProps) {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input
-                    type="email"
-                    placeholder="Enter your email"
-                    {...field}
-                  />
+                  <div className="relative">
+                    <div className="absolute left-3 top-2.5 h-4 w-4 text-blue-500">
+                      <UserRound className="h-4 w-4" />
+                    </div>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Email"
+                      autoCapitalize="none"
+                      autoComplete="email"
+                      autoCorrect="off"
+                      className="pl-9 h-10 rounded-lg bg-blue-50/50 border-blue-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-300"
+                      {...field}
+                    />
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -222,33 +233,42 @@ export function SignIn({ onToggleMode, onResetPassword }: SignInProps) {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>
-                  <div className="flex justify-between items-center">
-                    <span>Password</span>
-                    <Button
-                      variant="link"
-                      className="p-0 h-auto font-normal"
-                      type="button"
-                      onClick={onResetPassword}
-                    >
-                      Forgot password?
-                    </Button>
-                  </div>
-                </FormLabel>
+                <div className="flex justify-between items-center mb-1">
+                  <FormLabel className="text-sm font-medium">Password</FormLabel>
+                  <Button
+                    variant="link"
+                    className="p-0 h-auto text-xs font-normal text-gray-500 hover:text-blue-500"
+                    type="button"
+                    onClick={onResetPassword}
+                  >
+                    Forgot password?
+                  </Button>
+                </div>
                 <FormControl>
-                  <Input
-                    type="password"
-                    placeholder="Enter your password"
-                    {...field}
-                  />
+                  <div className="relative">
+                    <div className="absolute left-3 top-2.5 h-4 w-4 text-blue-500">
+                      <Lock className="h-4 w-4" />
+                    </div>
+                    <Input
+                      type="password"
+                      placeholder="Password"
+                      autoComplete="current-password"
+                      className="pl-9 h-10 rounded-lg bg-blue-50/50 border-blue-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-300"
+                      {...field}
+                    />
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Loading..." : "Sign In"}
+          <Button 
+            type="submit" 
+            className="w-full h-11 mt-2 font-medium rounded-lg bg-blue-500 hover:bg-blue-600 text-white shadow-sm transition-all hover:shadow" 
+            disabled={loading}
+          >
+            {loading ? "Signing In..." : "Let's Go!"}
           </Button>
         </form>
       </Form>

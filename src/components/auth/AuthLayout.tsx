@@ -1,12 +1,5 @@
 import { ReactNode } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -15,6 +8,7 @@ interface AuthLayoutProps {
   toggleLabel?: string;
   toggleText?: string;
   onToggle?: (e: React.MouseEvent) => void;
+  isSignUp?: boolean;
 }
 
 export function AuthLayout({
@@ -23,24 +17,40 @@ export function AuthLayout({
   description,
   toggleLabel,
   toggleText,
-  onToggle
+  onToggle,
+  isSignUp = false
 }: AuthLayoutProps) {
   return (
-    <div className="flex flex-col items-center justify-center">
-      <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-        <div className="flex flex-col space-y-2 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-          <p className="text-sm text-muted-foreground">{description}</p>
-        </div>
+    <div className="w-full h-full flex flex-col">
+      {/* Header - compact for sign up form */}
+      <div className={cn(
+        "flex-shrink-0",
+        isSignUp ? "mb-3" : "mb-4"
+      )}>
+        <h1 className={cn(
+          "text-xl font-semibold tracking-tight",
+          isSignUp ? "text-blue-600" : "text-gray-800"
+        )}>
+          {title}
+        </h1>
+        <p className="text-sm text-gray-500 mt-0.5">
+          {description}
+        </p>
+      </div>
 
+      {/* Content area - takes remaining space */}
+      <div className="flex-1 overflow-y-auto">
         {children}
+      </div>
 
+      {/* Footer - fixed height */}
+      <div className="h-5 mt-auto flex-shrink-0 flex items-center justify-center">
         {toggleLabel && toggleText && onToggle && (
-          <p className="px-8 text-center text-sm text-muted-foreground">
+          <p className="text-center text-xs text-gray-500">
             {toggleLabel}
             <button
               onClick={onToggle}
-              className="underline hover:text-brand ml-1"
+              className="underline hover:text-blue-500 transition-colors ml-1 font-medium"
             >
               {toggleText}
             </button>

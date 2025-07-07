@@ -14,6 +14,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Alert } from "@/components/ui/alert";
+import { AlertCircle, CheckCircle2, UserRound } from "lucide-react";
 import { AuthLayout } from "./AuthLayout";
 
 // Define form schema
@@ -29,8 +31,9 @@ interface ResetPasswordProps {
 
 export function ResetPassword({ onToggleMode }: ResetPasswordProps) {
   const [loading, setLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const { toast } = useToast();
-
+  
   const form = useForm<ResetFormValues>({
     resolver: zodResolver(resetSchema),
     defaultValues: {
@@ -53,9 +56,9 @@ export function ResetPassword({ onToggleMode }: ResetPasswordProps) {
         title: "Reset email sent",
         description: "Please check your email for the password reset link.",
       });
-
-      // Switch back to sign in
-      onToggleMode(new MouseEvent("click") as unknown as React.MouseEvent);
+      
+      // Show success state
+      setIsSuccess(true);
     } catch (error) {
       console.error("[ResetPassword] Error:", error);
       toast({
@@ -71,37 +74,70 @@ export function ResetPassword({ onToggleMode }: ResetPasswordProps) {
 
   return (
     <AuthLayout
-      title="Reset Password"
-      description="Enter your email to reset your password"
-      toggleLabel="Remember your password? "
+      title="Forgot your password?"
+      description="Don't worry, we'll help you reset it!"
+      toggleLabel="Remember your password?"
       toggleText="Sign in"
       onToggle={onToggleMode}
     >
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleReset)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input
-                    type="email"
-                    placeholder="Enter your email"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Sending..." : "Send Reset Link"}
+      {isSuccess ? (
+        <div className="flex flex-col items-center justify-center h-full">
+          <div className="bg-green-100 rounded-full p-4 mb-4">
+            <CheckCircle2 className="h-8 w-8 text-green-500" />
+          </div>
+          <h3 className="text-center font-medium mb-2">Magic link sent!</h3>
+          <p className="text-center text-sm text-gray-600 mb-4">
+            We've sent a password reset link to {form.getValues().email}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-2 h-10 shadow-sm hover:shadow transition-all border-blue-200 hover:bg-blue-50 hover:text-blue-600 rounded-lg"
+            onClick={onToggleMode}
+          >
+            Back to Sign In
           </Button>
-        </form>
-      </Form>
+        </div>
+      ) : (
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleReset)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <div className="relative">
+                      <div className="absolute left-3 top-2.5 h-4 w-4 text-blue-500">
+                        <UserRound className="h-4 w-4" />
+                      </div>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="Email"
+                        autoCapitalize="none"
+                        autoComplete="email"
+                        autoCorrect="off"
+                        className="pl-9 h-10 rounded-lg bg-blue-50/50 border-blue-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-300"
+                        {...field}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button 
+              type="submit" 
+              className="w-full h-11 mt-2 font-medium rounded-lg bg-blue-500 hover:bg-blue-600 text-white shadow-sm transition-all hover:shadow" 
+              disabled={loading}
+            >
+              {loading ? "Sending..." : "Send Magic Link"}
+            </Button>
+          </form>
+        </Form>
+      )}
     </AuthLayout>
   );
 } 

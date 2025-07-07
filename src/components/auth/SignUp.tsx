@@ -21,19 +21,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Alert } from "@/components/ui/alert";
+import { AlertCircle, UserRound, Lock, GraduationCap, School } from "lucide-react";
 import { AuthLayout } from "./AuthLayout";
 import { UserRole } from "@/enums/user.enum";
 import { ROUTES } from "@/config/routes";
 import { GRADE_LEVELS } from "@/constants/grade-subjects";
 import { STUDENT_PROFILE_DEFAULTS } from "@/constants/student-profile-defaults";
 
-
 // Define form schema
 const signUpSchema = z
   .object({
     email: z.string().email("Please enter a valid email address"),
     password: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string().min(6, "Please confirm your password"),
     role: z.nativeEnum(UserRole, {
       required_error: "Please select a role",
     }),
@@ -47,6 +48,13 @@ const signUpSchema = z
     {
       message: "Grade is required for students",
       path: ["grade"],
+    }
+  )
+  .refine(
+    (data) => data.password === data.confirmPassword,
+    {
+      message: "Passwords do not match",
+      path: ["confirmPassword"],
     }
   );
 
@@ -66,6 +74,7 @@ export function SignUp({ onToggleMode }: SignUpProps) {
     defaultValues: {
       email: "",
       password: "",
+      confirmPassword: "",
       role: UserRole.STUDENT,
       grade: undefined,
     },
@@ -245,11 +254,12 @@ export function SignUp({ onToggleMode }: SignUpProps) {
 
   return (
     <AuthLayout
-      title="Create Account"
-      description="Start your academic journey today"
-      toggleLabel="Already have an account? "
+      title="Join the adventure!"
+      description="Create your account to get started"
+      toggleLabel="Already have an account?"
       toggleText="Sign in"
       onToggle={onToggleMode}
+      isSignUp={true}
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSignUp)} className="space-y-4">
@@ -259,30 +269,40 @@ export function SignUp({ onToggleMode }: SignUpProps) {
             render={({ field }) => (
               <FormItem>
                 <FormControl>
-                  <ToggleGroup
-                    type="single"
-                    value={field.value}
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      if (value === UserRole.TEACHER) {
+                  <div className="flex space-x-2 mb-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        field.onChange(UserRole.STUDENT);
+                        if (field.value === UserRole.TEACHER) {
+                          form.setValue("grade", undefined);
+                        }
+                      }}
+                      className={`flex-1 py-2 px-3 rounded-lg flex items-center justify-center text-sm font-medium transition-colors ${
+                        field.value === UserRole.STUDENT
+                          ? "bg-blue-500 text-white"
+                          : "bg-blue-50 text-gray-600 hover:bg-blue-100"
+                      }`}
+                    >
+                      <GraduationCap className="h-4 w-4 mr-1.5" />
+                      Student
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        field.onChange(UserRole.TEACHER);
                         form.setValue("grade", undefined);
-                      }
-                    }}
-                    className="flex gap-3"
-                  >
-                    <ToggleGroupItem
-                      value={UserRole.STUDENT}
-                      className="flex-1 py-2.5 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                      }}
+                      className={`flex-1 py-2 px-3 rounded-lg flex items-center justify-center text-sm font-medium transition-colors ${
+                        field.value === UserRole.TEACHER
+                          ? "bg-blue-500 text-white"
+                          : "bg-blue-50 text-gray-600 hover:bg-blue-100"
+                      }`}
                     >
-                      {UserRole.STUDENT.toLowerCase()}
-                    </ToggleGroupItem>
-                    <ToggleGroupItem
-                      value={UserRole.TEACHER}
-                      className="flex-1 py-2.5 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                    >
-                      {UserRole.TEACHER.toLowerCase()}
-                    </ToggleGroupItem>
-                  </ToggleGroup>
+                      <School className="h-4 w-4 mr-1.5" />
+                      Teacher
+                    </button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -296,17 +316,16 @@ export function SignUp({ onToggleMode }: SignUpProps) {
               name="grade"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Grade</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-10 rounded-lg bg-blue-50/50 border-blue-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-300">
                         <SelectValue placeholder="Select your grade" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {Object?.values(GRADE_LEVELS ?? {}).map((e) => (
                         <SelectItem key={e} value={e}>
-                          {e}
+                          Grade {e}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -322,13 +341,22 @@ export function SignUp({ onToggleMode }: SignUpProps) {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input
-                    type="email"
-                    placeholder="Enter your email"
-                    {...field}
-                  />
+                  <div className="relative">
+                    <div className="absolute left-3 top-2.5 h-4 w-4 text-blue-500">
+                      <UserRound className="h-4 w-4" />
+                    </div>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Email"
+                      autoCapitalize="none"
+                      autoComplete="email"
+                      autoCorrect="off"
+                      className="pl-9 h-10 rounded-lg bg-blue-50/50 border-blue-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-300"
+                      {...field}
+                    />
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -340,21 +368,61 @@ export function SignUp({ onToggleMode }: SignUpProps) {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input
-                    type="password"
-                    placeholder="Enter your password"
-                    {...field}
-                  />
+                  <div className="relative">
+                    <div className="absolute left-3 top-2.5 h-4 w-4 text-blue-500">
+                      <Lock className="h-4 w-4" />
+                    </div>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Password"
+                      autoCapitalize="none"
+                      autoComplete="new-password"
+                      autoCorrect="off"
+                      className="pl-9 h-10 rounded-lg bg-blue-50/50 border-blue-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-300"
+                      {...field}
+                    />
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Loading..." : "Create Account"}
+          <FormField
+            control={form.control}
+            name="confirmPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <div className="relative">
+                    <div className="absolute left-3 top-2.5 h-4 w-4 text-blue-500">
+                      <Lock className="h-4 w-4" />
+                    </div>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      placeholder="Confirm Password"
+                      autoCapitalize="none"
+                      autoComplete="new-password"
+                      autoCorrect="off"
+                      className="pl-9 h-10 rounded-lg bg-blue-50/50 border-blue-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-300"
+                      {...field}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button
+            type="submit"
+            className="w-full h-11 mt-2 font-medium rounded-lg bg-blue-500 hover:bg-blue-600 text-white shadow-sm transition-all hover:shadow"
+            disabled={loading}
+          >
+            {loading ? "Creating Account..." : "Start Your Journey!"}
           </Button>
         </form>
       </Form>
