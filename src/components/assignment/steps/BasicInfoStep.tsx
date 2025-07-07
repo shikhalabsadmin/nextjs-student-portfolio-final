@@ -207,11 +207,11 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
         name="files"
         render={() => (
           <FormItem>
-            <FormLabel className="text-base font-medium text-gray-900">
+            <FormLabel className="text-lg font-medium text-gray-900">
               Upload your work <span className="text-red-500">*</span>
             </FormLabel>
-            <FormDescription className="text-sm text-gray-600">
-              Upload files or add YouTube links to your work (at least one is required)
+            <FormDescription className="text-lg text-gray-600">
+              <strong>Upload files, add YouTube links, or both</strong> to continue to the next step. You must provide at least one item.
             </FormDescription>
             
             <FileUploadSection 

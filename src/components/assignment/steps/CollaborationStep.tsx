@@ -125,7 +125,7 @@ export function CollaborationStep({ form }: CollaborationStepProps) {
         form={form}
         name="is_team_work"
         label="Team Project"
-        description="Is this a team project or individual work?"
+        description="Is this a team project"
       />
       
       <ConditionalTextarea

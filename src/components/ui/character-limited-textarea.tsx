@@ -17,7 +17,7 @@ export const CharacterLimitedTextarea = forwardRef<HTMLTextAreaElement, Characte
           maxLength={maxLength}
           {...props}
         />
-        <div className="flex justify-end text-xs text-gray-500">
+        <div className="flex justify-end text-base text-gray-500">
           {currentLength}/{maxLength} max
         </div>
       </div>

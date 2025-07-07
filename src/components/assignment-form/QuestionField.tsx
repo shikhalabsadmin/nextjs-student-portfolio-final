@@ -143,13 +143,13 @@ export const QuestionField = ({ question, value, onChange, uploadProgress = {}, 
             />
             <div className="flex flex-col items-center justify-center space-y-2">
               <Upload className="h-8 w-8 text-gray-400" />
-              <div className="text-sm text-gray-500">
+              <div className="mb-2 text-lg text-gray-500">
                 <span className="font-medium text-[#62C59F] hover:text-[#62C59F]/80">
                   Upload files
                 </span>
                 <span className="pl-1">or drag and drop</span>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-base text-gray-500">
                 Upload multiple files of any type
               </p>
             </div>
@@ -186,15 +186,15 @@ export const QuestionField = ({ question, value, onChange, uploadProgress = {}, 
                     </div>
                     <div className="flex flex-col flex-grow">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-700">{fileName}</span>
+                        <span className="text-lg text-gray-700">{fileName}</span>
                         {fileSize > 0 && (
-                          <span className="text-xs text-gray-500">{formatFileSize(fileSize)}</span>
+                          <span className="text-base text-gray-500">{formatFileSize(fileSize)}</span>
                         )}
                       </div>
                       {isUploading && (
                         <div className="mt-2">
                           <Progress value={progress} className="h-1" />
-                          <span className="text-xs text-gray-500 mt-1">{progress.toFixed(0)}% uploaded</span>
+                          <span className="text-base text-gray-500 mt-1">{progress.toFixed(0)}% uploaded</span>
                         </div>
                       )}
                     </div>
@@ -297,7 +297,7 @@ export const QuestionField = ({ question, value, onChange, uploadProgress = {}, 
     return (
       <div className="space-y-3">
         {question.followUpQuestions && question.followUpQuestions.length > 0 && (
-          <ul className="list-disc pl-5 space-y-1 text-sm text-gray-600">
+          <ul className="list-disc pl-5 space-y-1 text-lg text-gray-600">
             {question.followUpQuestions.map((q, i) => (
               <li key={i}>{q}</li>
             ))}
@@ -320,14 +320,14 @@ export const QuestionField = ({ question, value, onChange, uploadProgress = {}, 
           />
           {question.maxWords && (
             <div className="absolute top-0 right-0 mt-2 mr-2">
-              <span className={`text-xs ${isOverLimit ? "text-red-500" : "text-gray-400"}`}>
+              <span className={`text-base ${isOverLimit ? "text-red-500" : "text-gray-400"}`}>
                 {wordCount}/{question.maxWords} words
               </span>
             </div>
           )}
         </div>
         {isOverLimit && (
-          <div className="text-xs text-red-500">
+          <div className="text-base text-red-500">
             Word limit exceeded. Please shorten your response.
           </div>
         )}

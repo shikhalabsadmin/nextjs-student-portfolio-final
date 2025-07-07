@@ -20,7 +20,7 @@ export function FormField({ label, hint, error, children, required, className }:
   return (
     <div className={cn("space-y-2", className)}>
       <div className="flex items-center gap-2">
-        <label className="text-sm font-medium text-gray-900">
+        <label className="text-lg font-medium text-gray-900">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -31,7 +31,7 @@ export function FormField({ label, hint, error, children, required, className }:
                 <AlertCircle className="h-4 w-4 text-gray-400" />
               </TooltipTrigger>
               <TooltipContent>
-                <p className="text-sm">{hint}</p>
+                <p className="text-lg">{hint}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -39,7 +39,7 @@ export function FormField({ label, hint, error, children, required, className }:
       </div>
       {children}
       {error && (
-        <p className="text-sm text-red-500">{error}</p>
+        <p className="text-lg text-red-500">{error}</p>
       )}
     </div>
   );

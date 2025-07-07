@@ -16,7 +16,7 @@ export const PreviewSection = ({ title, children }: PreviewSectionProps) => (
 
 export const PreviewField = ({ label, value }: { label: string; value: React.ReactNode }) => (
   <div className="space-y-1">
-    <dt className="text-sm font-medium text-gray-500">{label}</dt>
-    <dd className="text-sm text-gray-900">{value}</dd>
+    <dt className="text-lg font-medium text-gray-500">{label}</dt>
+    <dd className="text-lg text-gray-900">{value}</dd>
   </div>
 ); 

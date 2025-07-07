@@ -11,11 +11,11 @@ export const FormStep = ({ label, hint, children }: FormStepProps) => {
   return (
     <div className="space-y-2.5">
       <div className="space-y-1">
-        <Label className="text-sm font-medium tracking-tight text-gray-700">
+        <Label className="text-lg font-medium tracking-tight text-gray-700">
           {label}
         </Label>
         {hint && (
-          <p className="text-[13px] leading-normal text-gray-500/90">{hint}</p>
+          <p className="text-base leading-normal text-gray-500/90">{hint}</p>
         )}
       </div>
       <div className="[&>*]:w-full [&>*]:transition-shadow [&>*]:duration-200">

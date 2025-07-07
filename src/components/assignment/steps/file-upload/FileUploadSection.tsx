@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload } from "lucide-react";
+import { Upload, Youtube } from "lucide-react";
 import type { AssignmentFile } from "@/types/file";
+import { Alert } from "@/components/ui/alert";
 
 interface FileUploadSectionProps {
   files: AssignmentFile[];
@@ -12,10 +14,18 @@ interface FileUploadSectionProps {
 }
 
 export function FileUploadSection({
+  files,
+  youtubeLinks,
   handleFiles,
   handleYoutubeUrl,
   isMobile
 }: FileUploadSectionProps) {
+  const [showYoutubeInput, setShowYoutubeInput] = useState(false);
+  const [youtubeInputValue, setYoutubeInputValue] = useState("");
+  
+  // Check if either files or youtube links are present
+  const hasContent = files.length > 0 || youtubeLinks.some(link => link?.url && link.url.trim() !== "");
+  
   const handleFileSelect = () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -40,48 +50,86 @@ export function FileUploadSection({
   };
 
   const handleYoutubeSubmit = async () => {
-    const urlInput = document.querySelector('input[placeholder="Add YouTube URL"]') as HTMLInputElement;
-    if (urlInput && urlInput.value && await handleYoutubeUrl(urlInput.value)) {
-      urlInput.value = '';
+    if (youtubeInputValue.trim()) {
+      if (await handleYoutubeUrl(youtubeInputValue)) {
+        setYoutubeInputValue("");
+        setShowYoutubeInput(false);
+      }
     }
   };
 
   return (
     <div className="space-y-4">
+      {!hasContent && (
+        <Alert className="bg-blue-50 border-blue-200 text-blue-800">
+          <p>You need to upload files, add YouTube links, or both to continue to the next step.</p>
+        </Alert>
+      )}
+      
       {/* Upload controls */}
-      <div className={`mt-2 ${isMobile ? 'flex flex-col space-y-3' : 'flex items-center gap-2'}`}>
-        <Button
-          type="button"
-          variant="outline"
-          className={`flex items-center gap-2 text-gray-600 ${isMobile ? 'w-full justify-center' : ''}`}
-          onClick={handleFileSelect}
-        >
-          <Upload className="h-4 w-4" />
-          Upload Files
-        </Button>
-        <div className={`${isMobile ? 'w-full' : 'flex-1'} flex items-center gap-2`}>
-          <Input
-            placeholder="Add YouTube URL"
-            className="flex-1"
-            onKeyDown={async (e) => {
-              if (e.key === 'Enter') {
-                const input = e.target as HTMLInputElement;
-                if (await handleYoutubeUrl(input.value)) {
-                  input.value = '';
-                }
-              }
-            }}
-          />
+      <div className={`mt-2 ${isMobile ? 'flex flex-col space-y-3' : 'flex flex-col space-y-3'}`}>
+        <div className="flex gap-2">
           <Button
             type="button"
-            size="icon"
             variant="outline"
-            className="text-gray-600 w-10 h-10 flex-shrink-0"
-            onClick={handleYoutubeSubmit}
+            className="flex items-center gap-2 text-gray-600"
+            onClick={handleFileSelect}
           >
-            +
+            <Upload className="h-4 w-4" />
+            Upload Files
           </Button>
+          
+          {!showYoutubeInput && (
+            <Button
+              type="button"
+              variant="outline"
+              className="flex items-center gap-2 text-gray-600"
+              onClick={() => setShowYoutubeInput(true)}
+            >
+              <Youtube className="h-4 w-4" />
+              Add YouTube URL
+            </Button>
+          )}
         </div>
+        
+        {showYoutubeInput && (
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Paste YouTube video URL here"
+              className="flex-1"
+              value={youtubeInputValue}
+              onChange={(e) => setYoutubeInputValue(e.target.value)}
+              onKeyDown={async (e) => {
+                if (e.key === 'Enter') {
+                  await handleYoutubeSubmit();
+                } else if (e.key === 'Escape') {
+                  setShowYoutubeInput(false);
+                  setYoutubeInputValue("");
+                }
+              }}
+              autoFocus
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="text-gray-600"
+              onClick={handleYoutubeSubmit}
+            >
+              Add
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-gray-600"
+              onClick={() => {
+                setShowYoutubeInput(false);
+                setYoutubeInputValue("");
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
