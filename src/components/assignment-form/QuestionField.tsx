@@ -293,6 +293,7 @@ export const QuestionField = ({ question, value, onChange, uploadProgress = {}, 
   if (question.type === "textarea") {
     const wordCount = (value || "").trim().split(/\s+/).filter(Boolean).length;
     const isOverLimit = question.maxWords && wordCount > question.maxWords;
+    const maxWords = question.maxWords || 2000;
 
     return (
       <div className="space-y-3">
@@ -308,27 +309,24 @@ export const QuestionField = ({ question, value, onChange, uploadProgress = {}, 
             value={value || ""}
             onChange={(e) => {
               const newValue = e.target.value;
-              const newWordCount = newValue.trim().split(/\s+/).filter(Boolean).length;
-              if (!question.maxWords || newWordCount <= question.maxWords) {
-                onChange(newValue);
-              }
+              onChange(newValue);
             }}
             className={`w-full min-h-[120px] p-3 rounded-lg border focus:border-[#62C59F] focus:ring-1 focus:ring-[#62C59F] ${
               isOverLimit ? "border-red-500" : ""
             }`}
             placeholder={question.hint}
           />
-          {question.maxWords && (
+          {isOverLimit && (
             <div className="absolute top-0 right-0 mt-2 mr-2">
-              <span className={`text-base ${isOverLimit ? "text-red-500" : "text-gray-400"}`}>
-                {wordCount}/{question.maxWords} words
+              <span className="text-base text-red-500">
+                {wordCount}/{maxWords} suggested words
               </span>
             </div>
           )}
         </div>
         {isOverLimit && (
           <div className="text-base text-red-500">
-            Word limit exceeded. Please shorten your response.
+            Word limit exceeded. Please consider shortening your response.
           </div>
         )}
       </div>

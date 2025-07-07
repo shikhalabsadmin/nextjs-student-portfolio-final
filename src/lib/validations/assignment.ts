@@ -74,13 +74,13 @@ export const assignmentFormSchema = baseAssignmentFormSchema.extend({
   artifact_type: z.string().min(1, "Type of work is required"),
   month: z.string().optional(),
   selected_skills: z.array(z.string()).min(1, "Select at least one skill"),
-  skills_justification: z.string().min(1, "Skill justification is required").max(200, "Must be 200 characters or less"),
-  pride_reason: z.string().min(1, "This field is required").max(200, "Must be 200 characters or less"),
-  creation_process: z.string().min(1, "This field is required").max(200, "Must be 200 characters or less"),
-  learnings: z.string().min(1, "This field is required").max(200, "Must be 200 characters or less"),
-  challenges: z.string().min(1, "This field is required").max(200, "Must be 200 characters or less"),
-  improvements: z.string().min(1, "This field is required").max(200, "Must be 200 characters or less"),
-  acknowledgments: z.string().min(1, "This field is required").max(200, "Must be 200 characters or less"),
+  skills_justification: z.string().min(1, "Skill justification is required").max(2000, "Must be 2000 characters or less"),
+  pride_reason: z.string().min(1, "This field is required").max(2000, "Must be 2000 characters or less"),
+  creation_process: z.string().min(1, "This field is required").max(2000, "Must be 2000 characters or less"),
+  learnings: z.string().min(1, "This field is required").max(2000, "Must be 2000 characters or less"),
+  challenges: z.string().min(1, "This field is required").max(2000, "Must be 2000 characters or less"),
+  improvements: z.string().min(1, "This field is required").max(2000, "Must be 2000 characters or less"),
+  acknowledgments: z.string().min(1, "This field is required").max(2000, "Must be 2000 characters or less"),
 }).superRefine((data, ctx) => {
   // Validate team contribution is provided if team work is selected
   if (data.is_team_work && (!data.team_contribution || data.team_contribution.trim() === "")) {

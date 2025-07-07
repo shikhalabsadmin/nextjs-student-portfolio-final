@@ -68,7 +68,7 @@ export const INITIAL_QUESTIONS: Question[] = [
     id: "team_contribution",
     label: "Describe your role and experience",
     type: "textarea",
-    maxWords: 200,
+    maxWords: 2000,
     followUpQuestions: [
       "What specific responsibilities did you take on in the group?",
       "How did you work with others?",
@@ -89,7 +89,7 @@ export const INITIAL_QUESTIONS: Question[] = [
     id: "originality_explanation",
     label: "Explain what was new",
     type: "textarea",
-    maxWords: 200,
+    maxWords: 2000,
     followUpQuestions: [
       "What aspects of your work were innovative?",
       "Was it an idea, a method, or the way you presented it?",
@@ -119,7 +119,7 @@ export const INITIAL_QUESTIONS: Question[] = [
     id: "skills_justification",
     label: "Justify the selected skills",
     type: "textarea",
-    maxWords: 200,
+    maxWords: 2000,
     followUpQuestions: [
       "How did each skill contribute to the creation of the artifact?",
       "What actions, decisions, or moments during the process demonstrated these skills?"
@@ -132,7 +132,7 @@ export const INITIAL_QUESTIONS: Question[] = [
     label: "Why are you proud of this artifact?",
     type: "textarea",
     required: true,
-    maxWords: 200,
+    maxWords: 2000,
     followUpQuestions: [
       "What makes this work special to you?",
       "What aspects of your work do you feel particularly proud of?",
@@ -146,7 +146,7 @@ export const INITIAL_QUESTIONS: Question[] = [
     id: "creation_process",
     label: "Describe the process you used to create it",
     type: "textarea",
-    maxWords: 200,
+    maxWords: 2000,
     followUpQuestions: [
       "Planning: Did you use any strategies or tools to plan your work?",
       "Execution: How did you approach each stage of the work?",
@@ -159,7 +159,7 @@ export const INITIAL_QUESTIONS: Question[] = [
     id: "learnings",
     label: "Your learnings and future applications",
     type: "textarea",
-    maxWords: 200,
+    maxWords: 2000,
     followUpQuestions: [
       "What subject knowledge or skills did you acquire?",
       "How might you apply these lessons to future tasks or real-life situations?"
@@ -171,7 +171,7 @@ export const INITIAL_QUESTIONS: Question[] = [
     id: "challenges",
     label: "Your challenges",
     type: "textarea",
-    maxWords: 200,
+    maxWords: 2000,
     followUpQuestions: [
       "What type of challenges did you face?",
       "How did you overcome these challenges?"
@@ -183,7 +183,7 @@ export const INITIAL_QUESTIONS: Question[] = [
     id: "improvements",
     label: "Your improvements",
     type: "textarea",
-    maxWords: 200,
+    maxWords: 2000,
     followUpQuestions: [
       "How did you improve their skills, mindset, or understanding through this work?"
     ],
@@ -194,7 +194,7 @@ export const INITIAL_QUESTIONS: Question[] = [
     id: "acknowledgments",
     label: "Your thanks",
     type: "textarea",
-    maxWords: 200,
+    maxWords: 2000,
     followUpQuestions: [
       "Did teammates, teachers, or peers help them in the process?",
       "Cite any academic resources you used."

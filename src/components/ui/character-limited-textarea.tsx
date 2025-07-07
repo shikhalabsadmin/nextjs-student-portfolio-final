@@ -8,7 +8,9 @@ interface CharacterLimitedTextareaProps extends React.TextareaHTMLAttributes<HTM
 }
 
 export const CharacterLimitedTextarea = forwardRef<HTMLTextAreaElement, CharacterLimitedTextareaProps>(
-  ({ maxLength = 200, currentLength = 0, className, ...props }, ref) => {
+  ({ maxLength = 2000, currentLength = 0, className, ...props }, ref) => {
+    const isExceeded = currentLength > maxLength;
+    
     return (
       <div className="space-y-1">
         <Textarea
@@ -17,8 +19,12 @@ export const CharacterLimitedTextarea = forwardRef<HTMLTextAreaElement, Characte
           maxLength={maxLength}
           {...props}
         />
-        <div className="flex justify-end text-base text-gray-500">
-          {currentLength}/{maxLength} max
+        <div className="flex justify-end">
+          {isExceeded ? (
+            <span className="text-base text-red-500">
+              {currentLength}/{maxLength} suggested words
+            </span>
+          ) : null}
         </div>
       </div>
     );
