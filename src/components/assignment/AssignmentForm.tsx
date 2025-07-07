@@ -18,6 +18,7 @@ import {
 import { GenericBreadcrumb } from "./AssignmentBreadcrumb";
 import { ROUTES } from "@/config/routes";
 import { isBasicInfoComplete } from "@/lib/utils/basic-info-validation";
+import { useToast } from "@/components/ui/use-toast";
 
 type AssignmentFormProps = {
   user: User;
@@ -26,6 +27,7 @@ type AssignmentFormProps = {
 function AssignmentForm({ user }: AssignmentFormProps) {
   // State management
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const { toast } = useToast();
 
   // Form and assignment state from custom hook
   const {
@@ -43,6 +45,16 @@ function AssignmentForm({ user }: AssignmentFormProps) {
   const basicInfoTabNotComplete = useMemo(() => {
     return !isBasicInfoComplete(form.getValues());
   }, [form.watch()]);
+
+  // Check if all steps are complete for the Submit button
+  const areAllStepsComplete = useMemo(() => {
+    // Skip the review-submit step itself and teacher-feedback step
+    const stepsToValidate = STEPS.filter(step => 
+      step.id !== 'review-submit' && step.id !== 'teacher-feedback'
+    );
+    
+    return stepsToValidate.every(step => validateStep(step.id));
+  }, [validateStep, form.watch()]);
 
   // Derived state
   const assignmentStatus = form.getValues().status || ASSIGNMENT_STATUS.DRAFT;
@@ -81,12 +93,21 @@ function AssignmentForm({ user }: AssignmentFormProps) {
 
   const handleSaveAndContinueClick = useCallback(() => {
     if (currentStep === "review-submit") {
-      // Only keep the modal check for final submission, no need to check step completion
-      setShowConfirmationModal(true);
+      // Only show confirmation modal if all steps are complete
+      if (areAllStepsComplete) {
+        setShowConfirmationModal(true);
+      } else {
+        // Show toast or alert that all steps must be complete
+        toast({
+          title: "Incomplete Assignment",
+          description: "Please complete all required fields before submitting.",
+          variant: "destructive",
+        });
+      }
       return;
     }
     handleSaveAndContinue();
-  }, [currentStep, handleSaveAndContinue]);
+  }, [currentStep, handleSaveAndContinue, areAllStepsComplete, toast]);
 
   const handleConfirmSubmit = useCallback(() => {
     handleSubmitAssignment(form.getValues());
@@ -158,6 +179,7 @@ function AssignmentForm({ user }: AssignmentFormProps) {
                   onContinue={handleSaveAndContinueClick}
                   disabled={isContinueDisabled}
                   step={currentStep as AssignmentStep}
+                  areAllStepsComplete={areAllStepsComplete}
                 />
                 <section className="px-3 py-2 md:px-6 md:py-4 flex-1 overflow-y-auto">
                   {assignmentStatus === ASSIGNMENT_STATUS.SUBMITTED && (
