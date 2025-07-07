@@ -196,36 +196,39 @@ export const AssignmentsList = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
-        <Button
-          variant={selectedStatus === null ? "default" : "outline"}
-          onClick={() => handleStatusChange(null)}
-          size="sm"
-        >
-          All
-        </Button>
-        <Button
-          variant={selectedStatus === "draft" ? "default" : "outline"}
-          onClick={() => handleStatusChange("draft")}
-          size="sm"
-        >
-          Drafts
-        </Button>
-        <Button
-          variant={selectedStatus === "submitted" ? "default" : "outline"}
-          onClick={() => handleStatusChange("submitted")}
-          size="sm"
-        >
-          Submitted
-        </Button>
+      {/* Sticky filter section at the top */}
+      <div className="sticky top-0 z-10 bg-white py-2 border-b">
+        <div className="flex gap-2">
+          <Button
+            variant={selectedStatus === null ? "default" : "outline"}
+            onClick={() => handleStatusChange(null)}
+            size="sm"
+          >
+            All
+          </Button>
+          <Button
+            variant={selectedStatus === "draft" ? "default" : "outline"}
+            onClick={() => handleStatusChange("draft")}
+            size="sm"
+          >
+            Drafts
+          </Button>
+          <Button
+            variant={selectedStatus === "submitted" ? "default" : "outline"}
+            onClick={() => handleStatusChange("submitted")}
+            size="sm"
+          >
+            Submitted
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center items-center h-64">
+        <div className="flex justify-center items-center h-40">
           <Loader2 className="w-8 h-8 animate-spin" />
         </div>
       ) : (
-        <div className="rounded-md border">
+        <div className="rounded-md border mt-2">
           {/* Header */}
           <div className="grid grid-cols-[1fr,100px,100px,100px,48px] gap-4 px-4 py-3 border-b bg-muted/50">
             <div className="text-sm font-medium">Title</div>
@@ -237,64 +240,58 @@ export const AssignmentsList = () => {
 
           {/* Rows */}
           <div className="divide-y">
-            {assignments?.map((assignment) => {
-              const isDraft = assignment.status.toLowerCase() === 'draft';
-              
-              return (
-                <div
-                  key={assignment.id}
-                  className="grid grid-cols-[1fr,100px,100px,100px,48px] gap-4 px-4 py-3 hover:bg-muted/50 cursor-pointer items-center"
-                  onClick={(e) => {
-                    if (!(e.target as HTMLElement).closest('.kebab-menu')) {
-                      handleCardClick(assignment);
-                    }
-                  }}
-                >
-                  <div className="font-medium truncate">
-                    {assignment.title}
-                  </div>
-                  <div className="text-sm text-muted-foreground truncate">
-                    {assignment.subject}
-                  </div>
-                  <div>
-                    <Badge 
-                      variant="secondary"
-                      className={getStatusBadgeStyle(assignment.status)}
-                    >
-                      {assignment.status.charAt(0).toUpperCase() + assignment.status.slice(1)}
-                    </Badge>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {format(new Date(assignment.created_at), "MMM d, yyyy")}
-                  </div>
-                  <div className="flex justify-end">
-                    {isDraft && (
-                      <div className="kebab-menu" onClick={(e) => e.stopPropagation()}>
+            {assignments?.length === 0 ? (
+              <div className="py-8 text-center text-gray-500">
+                No assignments found
+              </div>
+            ) : (
+              assignments?.map((assignment) => {
+                const isDraft = assignment.status.toLowerCase() === 'draft';
+                
+                return (
+                  <div
+                    key={assignment.id}
+                    className="grid grid-cols-[1fr,100px,100px,100px,48px] gap-4 px-4 py-3 hover:bg-muted/50 cursor-pointer items-center"
+                    onClick={(e) => {
+                      if (!(e.target as HTMLElement).closest('.kebab-menu')) {
+                        handleCardClick(assignment);
+                      }
+                    }}
+                  >
+                    <div className="font-medium truncate">{assignment.title}</div>
+                    <div className="text-sm text-gray-500">{assignment.subject}</div>
+                    <div>
+                      <Badge className={getStatusBadgeStyle(assignment.status)}>
+                        {assignment.status.charAt(0).toUpperCase() + assignment.status.slice(1).toLowerCase().replace('_', ' ')}
+                      </Badge>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {format(new Date(assignment.created_at), 'MMM d')}
+                    </div>
+                    <div className="kebab-menu" onClick={(e) => e.stopPropagation()}>
+                      {isDraft && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              className="text-red-600"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setAssignmentToDelete(assignment.id);
-                              }}
+                            <DropdownMenuItem 
+                              className="text-red-600 focus:text-red-600"
+                              onClick={() => setAssignmentToDelete(assignment.id)}
                             >
-                              <Trash2 className="w-4 h-4 mr-2" />
+                              <Trash2 className="mr-2 h-4 w-4" />
                               Delete Draft
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
       )}
@@ -302,15 +299,26 @@ export const AssignmentsList = () => {
       <AlertDialog open={!!assignmentToDelete} onOpenChange={() => setAssignmentToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Draft</AlertDialogTitle>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this draft? This action cannot be undone.
+              This will permanently delete this draft assignment. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteDraft} className="bg-red-600 hover:bg-red-700">
-              Delete
+            <AlertDialogAction 
+              onClick={handleDeleteDraft}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

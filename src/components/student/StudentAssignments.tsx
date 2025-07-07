@@ -11,20 +11,22 @@ export const StudentAssignments = () => {
   const queryClient = useQueryClient();
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8">My Assignments</h1>
+    <div className="container mx-auto py-4">
+      <h1 className="text-3xl font-bold mb-4">My Assignments</h1>
       
       <Tabs defaultValue="analytics">
-        <TabsList>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="assignments">Assignments</TabsTrigger>
-        </TabsList>
+        <div className="sticky top-0 z-10 bg-white py-2 border-b">
+          <TabsList>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="assignments">Assignments</TabsTrigger>
+          </TabsList>
+        </div>
         
-        <TabsContent value="analytics">
+        <TabsContent value="analytics" className="pt-4">
           <DashboardStats />
         </TabsContent>
         
-        <TabsContent value="assignments">
+        <TabsContent value="assignments" className="pt-4">
           <AssignmentsList />
           <Button 
             onClick={() => {
@@ -35,7 +37,7 @@ export const StudentAssignments = () => {
               localStorage.removeItem('step');
               navigate('/app/submit');
             }}
-            className="bg-[#62C59F] hover:bg-[#51b88e]"
+            className="bg-[#62C59F] hover:bg-[#51b88e] mt-4"
             size="default"
           >
             <Plus className="w-5 h-5 mr-2" />
@@ -45,4 +47,4 @@ export const StudentAssignments = () => {
       </Tabs>
     </div>
   );
-} 
+}; 

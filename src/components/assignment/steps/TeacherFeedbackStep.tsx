@@ -14,6 +14,10 @@ import { TeacherFeedbackData as BaseFeedbackData, TeacherProfile } from "@/compo
 import { getProfileInfo } from "@/api/profiles";
 import { Badge } from "@/components/ui/badge";
 import GroupedTeacherFeedback from "@/components/ui/teacher-feedback-group";
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/config/routes";
+import { useAuthState } from "@/hooks/useAuthState";
+import { UserRole } from "@/enums/user.enum";
 
 // Interfaces
 interface TeacherFeedbackStepProps {
@@ -73,25 +77,57 @@ const SkillsCard = memo(({ feedback }: { feedback: TeacherFeedbackData }) => {
 SkillsCard.displayName = "SkillsCard";
 
 // No Feedback Component (Memoized)
-const NoFeedback = memo(() => (
-  <div className="flex flex-col items-center justify-center w-full h-full px-4 sm:px-6">
-    <img
-      src={teacherFeedbackImage}
-      alt="Teacher feedback illustration"
-      className="w-full max-w-[200px] sm:max-w-[280px] md:max-w-[320px] lg:max-w-[408px] h-auto object-contain"
-    />
-    <div className="flex flex-col text-center mt-4 sm:mt-6 md:mt-8 lg:mt-10 gap-2">
-      <h2 className="text-slate-900 text-base sm:text-lg md:text-xl font-semibold">
-        Your work is under review
-      </h2>
-      <p className="text-slate-500 text-xs sm:text-sm md:text-base max-w-[240px] sm:max-w-[320px] md:max-w-[400px] mx-auto">
-        Your work has been submitted and is now being reviewed by your
-        teacher. You'll receive feedback soon. Keep an eye on your dashboard for
-        updates!
-      </p>
+const NoFeedback = memo(() => {
+  const navigate = useNavigate();
+  const { user } = useAuthState();
+  
+  const getHomeRoute = () => {
+    if (!user) return ROUTES.COMMON.HOME;
+    
+    switch (user.role) {
+      case UserRole.STUDENT:
+        return ROUTES.STUDENT.DASHBOARD;
+      case UserRole.TEACHER:
+        return ROUTES.TEACHER.DASHBOARD;
+      case UserRole.ADMIN:
+        return ROUTES.ADMIN.DASHBOARD;
+      default:
+        return ROUTES.COMMON.HOME;
+    }
+  };
+  
+  const handleGoHome = () => {
+    navigate(getHomeRoute());
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center w-full h-full px-4 sm:px-6">
+      <img
+        src={teacherFeedbackImage}
+        alt="Teacher feedback illustration"
+        className="w-full max-w-[200px] sm:max-w-[280px] md:max-w-[320px] lg:max-w-[408px] h-auto object-contain"
+      />
+      <div className="flex flex-col text-center mt-4 sm:mt-6 md:mt-8 lg:mt-10 gap-2">
+        <h2 className="text-slate-900 text-base sm:text-lg md:text-xl font-semibold">
+          Your work is under review
+        </h2>
+        <p className="text-slate-500 text-xs sm:text-sm md:text-base max-w-[240px] sm:max-w-[320px] md:max-w-[400px] mx-auto">
+          Your work has been submitted and is now being reviewed by your
+          teacher. You'll receive feedback soon. Keep an eye on your dashboard for
+          updates!
+        </p>
+        <div className="mt-4 sm:mt-6 md:mt-8">
+          <Button 
+            onClick={handleGoHome}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm sm:text-base px-6 py-3 rounded-lg transition-colors shadow-md hover:shadow-lg transform hover:-translate-y-1 duration-200"
+          >
+            Go to Dashboard
+          </Button>
+        </div>
+      </div>
     </div>
-  </div>
-));
+  );
+});
 NoFeedback.displayName = "NoFeedback";
 
 // Have Feedback Component (Memoized)

@@ -141,12 +141,12 @@ const DashboardContent = ({ user }: TeacherDataProps) => {
         ]}
       />
       {/* White header section */}
-      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5 md:gap-0 pt-10 px-8 md:pt-[78px] md:px-16">
-        <div className="space-y-4">
+      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5 md:gap-0 pt-6 md:pt-8 px-8 md:px-16">
+        <div className="space-y-2 md:space-y-4">
           <span className="text-slate-700 text-lg font-normal">
             {formattedDate}
           </span>
-          <h1 className="text-black text-[40px] font-bold">
+          <h1 className="text-black text-2xl md:text-[40px] font-bold">
             Hello, {safeUser?.full_name || "Teacher"}
           </h1>
         </div>
@@ -156,7 +156,7 @@ const DashboardContent = ({ user }: TeacherDataProps) => {
       </div>
 
       {/* Gray background section - fills remaining height */}
-      <div className="bg-[#F7F7F7] flex-1 w-full z-10 px-8 md:px-16 mt-4 md:mt-8 flex flex-col gap-4">
+      <div className="bg-[#F7F7F7] flex-1 w-full z-10 px-8 md:px-16 mt-4 flex flex-col gap-4">
         <div className="flex flex-col py-4">
           <h1 className="text-slate-900 text-xl font-semibold">
             Work to review
@@ -166,8 +166,9 @@ const DashboardContent = ({ user }: TeacherDataProps) => {
           </p>
         </div>
 
-        <div className="flex flex-col flex-1 gap-3 md:gap-6 pb-10 overflow-hidden">
-          <div className="flex flex-col gap-5 md:gap-0 md:relative">
+        {/* Fixed search and filter section */}
+        <div className="sticky top-0 z-20 bg-[#F7F7F7] bg-opacity-95 backdrop-blur-sm pt-2 pb-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <ArtifactTabFilter
               activeTab={activeTab}
               onTabChange={(tab) => {
@@ -177,48 +178,45 @@ const DashboardContent = ({ user }: TeacherDataProps) => {
                 );
               }}
             />
-            <div className="md:absolute md:right-0 md:top-0">
-              {" "}
-              <DashboardHeader
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                activeTab={activeTab}
-                totalItems={filteredArtifacts.length}
-                selectedFilters={selectedFilters}
-                onFilterChange={setSelectedFilters}
-                teachingSubjects={safeUser?.teaching_subjects || []}
+            <DashboardHeader
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              activeTab={activeTab}
+              totalItems={filteredArtifacts.length}
+              selectedFilters={selectedFilters}
+              onFilterChange={setSelectedFilters}
+              teachingSubjects={safeUser?.teaching_subjects || []}
+            />
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto mt-2">
+          {isLoading ? (
+            <div className="flex justify-center items-center flex-1">
+              <Loading
+                text="Loading artifacts..."
+                aria-label="Loading artifacts"
               />
             </div>
-          </div>
-
-          <div className="flex flex-1 overflow-y-auto">
-            {isLoading ? (
-              <div className="flex justify-center items-center flex-1">
-                <Loading
-                  text="Loading artifacts..."
-                  aria-label="Loading artifacts"
-                />
-              </div>
-            ) : filteredArtifacts.length > 0 ? (
-              <ArtifactTable
-                artifacts={filteredArtifacts}
-                onRowClick={handleArtifactClick}
-                searchQuery={searchQuery}
-              />
-            ) : (
-              <div className="flex flex-col flex-1 justify-center items-center text-center">
-                <SearchX className="h-12 w-12 text-gray-300 mb-2.5" />
-                <h3 className="text-lg font-medium text-gray-900">
-                  No artifacts found
-                </h3>
-                <p className="mt-2.5 text-sm text-gray-500">
-                  {searchQuery.length > 0
-                    ? "Try adjusting your search or filters"
-                    : "No artifacts match the current filter criteria."}
-                </p>
-              </div>
-            )}
-          </div>
+          ) : filteredArtifacts.length > 0 ? (
+            <ArtifactTable
+              artifacts={filteredArtifacts}
+              onRowClick={handleArtifactClick}
+              searchQuery={searchQuery}
+            />
+          ) : (
+            <div className="flex flex-col flex-1 justify-center items-center text-center min-h-[300px]">
+              <SearchX className="h-12 w-12 text-gray-300 mb-2.5" />
+              <h3 className="text-lg font-medium text-gray-900">
+                No artifacts found
+              </h3>
+              <p className="mt-2.5 text-sm text-gray-500">
+                {searchQuery.length > 0
+                  ? "Try adjusting your search or filters"
+                  : "No artifacts match the current filter criteria."}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

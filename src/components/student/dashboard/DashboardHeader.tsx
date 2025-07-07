@@ -108,34 +108,29 @@ export function DashboardHeader({
   };
 
   return (
-    <div className="flex justify-end">
-      <TooltipProvider>
-        <div className="flex flex-col lg:flex-row lg:items-center gap-5">
-          {/* Search Input */}
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  placeholder="Search by works name, subject"
-                  className="pl-10 w-full lg:w-80"
-                  aria-label="Search works"
-                />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Search works</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-          
-          {/* Filter Dialog */}
-          <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+    <div className="flex flex-row items-center justify-between gap-3">
+      <h1 className="text-2xl font-bold hidden md:block">My Works</h1>
+      
+      <div className="flex items-center gap-3 flex-1 md:flex-none md:ml-auto">
+        {/* Search Input */}
+        <div className="relative flex-1 md:w-80">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search by works name, subject"
+            className="pl-10 w-full"
+            aria-label="Search works"
+          />
+        </div>
+        
+        {/* Filter Dialog */}
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+          <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <DialogTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-2">
+                  <Button variant="outline" className="flex items-center gap-2 h-10">
                     <Filter className="h-4 w-4" />
                     Filter
                     {activeFilterCount > 0 && (
@@ -150,94 +145,83 @@ export function DashboardHeader({
                 <p>Filter works</p>
               </TooltipContent>
             </Tooltip>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Filter work by status and subject</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-6 py-4">
-                {/* Status Filters */}
-                <div className="space-y-4">
-                  <h3 className="font-medium text-gray-700">Status</h3>
+          </TooltipProvider>
+          
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Filter work by status and subject</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-6 py-4">
+              {/* Status Filters */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-gray-700">Status</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {Object.entries(ASSIGNMENT_STATUS).map(([key, value]) => (
+                    <div key={key} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={value}
+                        checked={tempFilters[value.toLowerCase() as keyof StudentDashboardFilters]}
+                        onCheckedChange={() => handleFilterChange(value.toLowerCase())}
+                      />
+                      <Label htmlFor={value}>{STATUS_DISPLAY_NAMES[value]}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Subject Filters */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-gray-700">Subject</h3>
+                {availableSubjects && availableSubjects.length > 0 ? (
                   <div className="grid grid-cols-2 gap-4">
-                    {Object.entries(ASSIGNMENT_STATUS).map(([key, value]) => (
-                      <div key={key} className="flex items-center space-x-2">
+                    {availableSubjects.map((subject) => (
+                      <div key={subject} className="flex items-center space-x-2">
                         <Checkbox 
-                          id={value}
-                          checked={tempFilters[value.toLowerCase() as keyof StudentDashboardFilters]}
-                          onCheckedChange={() => handleFilterChange(value.toLowerCase())}
+                          id={subject}
+                          checked={tempFilters[spacesToCamelCase(subject) as keyof StudentDashboardFilters]}
+                          onCheckedChange={() => handleFilterChange(spacesToCamelCase(subject))}
                         />
-                        <Label htmlFor={value}>{STATUS_DISPLAY_NAMES[value]}</Label>
+                        <Label htmlFor={subject}>{subject}</Label>
                       </div>
                     ))}
                   </div>
-                </div>
-
-                {/* Subject Filters */}
-                <div className="space-y-4">
-                  <h3 className="font-medium text-gray-700">Subject</h3>
-                  {availableSubjects && availableSubjects.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-4">
-                      {availableSubjects.map((subject) => (
-                        <div key={subject} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={subject}
-                            checked={tempFilters[spacesToCamelCase(subject) as keyof StudentDashboardFilters]}
-                            onCheckedChange={() => handleFilterChange(spacesToCamelCase(subject))}
-                          />
-                          <Label htmlFor={subject}>{subject}</Label>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-500 italic">No subjects available for current grade</div>
-                  )}
-                </div>
+                ) : (
+                  <div className="text-sm text-gray-500 italic">No subjects available for current grade</div>
+                )}
               </div>
+            </div>
+            
+            {/* Filter Dialog Footer */}
+            <DialogFooter className="flex flex-row justify-between lg:justify-between items-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClearFilters}
+                className="w-[120px]"
+              >
+                Clear All
+              </Button>
               
-              {/* Filter Dialog Footer */}
-              <DialogFooter className="flex flex-row justify-between lg:justify-between items-center">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleClearFilters}
-                      className="w-[120px]"
-                    >
-                      Clear All
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Clear all filters</p>
-                  </TooltipContent>
-                </Tooltip>
-                
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      onClick={handleApplyFilters}
-                      className="w-[120px]"
-                    >
-                      Apply Filters
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Apply selected filters</p>
-                  </TooltipContent>
-                </Tooltip>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-          
-          {/* Add Assignment Button */}
+              <Button
+                type="button"
+                onClick={handleApplyFilters}
+                className="w-[120px]"
+              >
+                Apply Filters
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Add Assignment Button */}
+        <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
                 onClick={handleAddAssignment}
                 variant="default"
                 size="icon"
-                className="bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-lg shadow-md"
+                className="bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-lg shadow-md h-10 w-10"
               >
                 <Plus className="h-5 w-5" />
                 <span className="sr-only">Add</span>
@@ -247,8 +231,8 @@ export function DashboardHeader({
               <p>Create new work</p>
             </TooltipContent>
           </Tooltip>
-        </div>
-      </TooltipProvider>
+        </TooltipProvider>
+      </div>
     </div>
   );
 } 
