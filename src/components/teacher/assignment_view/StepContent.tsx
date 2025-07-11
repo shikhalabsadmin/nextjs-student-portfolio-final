@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
@@ -14,8 +14,14 @@ interface StepContentProps {
   feedbackItems: FeedbackItem[];
   isApproved: boolean;
   isRevisionRequested: boolean;
-  onApprove: () => void;
-  onRequestRevision: () => void;
+  onApprove: (formData?: any) => void;
+  onRevision: (formData?: any) => void;
+  defaultStates: {
+    selectedSkills: string[];
+    justification: string;
+    feedback?: string;
+  };
+  onFormDataChange: (formData: any) => void;
 }
 
 const StepContent = ({
@@ -25,9 +31,34 @@ const StepContent = ({
   isApproved,
   isRevisionRequested,
   onApprove,
-  onRequestRevision,
+  onRevision,
+  defaultStates,
+  onFormDataChange,
 }: StepContentProps) => {
+  // State for active tab (work or feedback)
   const [activeTab, setActiveTab] = useState<"work" | "feedback">("work");
+  
+  // State for form data
+  const [formData, setFormData] = useState({
+    selectedSkills: defaultStates.selectedSkills || [],
+    justification: defaultStates.justification || "",
+    feedback: defaultStates.feedback || "",
+  });
+
+  // Update form data when default states change
+  useEffect(() => {
+    setFormData({
+      selectedSkills: defaultStates.selectedSkills || [],
+      justification: defaultStates.justification || "",
+      feedback: defaultStates.feedback || "",
+    });
+  }, [defaultStates]);
+
+  // Change tab based on activeStep
+  useEffect(() => {
+    // All steps should show the work tab by default
+    setActiveTab("work");
+  }, [activeStep]);
 
   // Determine button state based on assignment status
   const showActionButtons = useMemo(() => {
@@ -43,6 +74,16 @@ const StepContent = ({
       setActiveTab(value);
     }
   };
+
+  // Handle form data changes
+  const handleFormDataChange = (data: any) => {
+    const newData = { ...formData, ...data };
+    setFormData(newData);
+    onFormDataChange(newData);
+  };
+
+  console.log("[StepContent] Current form data:", formData);
+  console.log("[StepContent] Active step:", activeStep);
 
   return (
     <div className="flex flex-col h-full">
@@ -89,34 +130,34 @@ const StepContent = ({
           <TabsList className="h-auto bg-white p-0 mb-0">
             <TabsTrigger
               value="work"
-              className="data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-600 data-[state=active]:shadow-none rounded-none px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium"
+              className="data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-600 data-[state=active]:shadow-none rounded-none px-3 sm:px-6 py-2 text-xs sm:text-sm font-medium"
             >
               Student Work
             </TabsTrigger>
             <TabsTrigger
               value="feedback"
-              className="data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-600 data-[state=active]:shadow-none rounded-none px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium"
+              className="data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 data-[state=active]:text-indigo-600 data-[state=active]:shadow-none rounded-none px-3 sm:px-6 py-2 text-xs sm:text-sm font-medium"
             >
               Your Feedback
             </TabsTrigger>
           </TabsList>
         </div>
 
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-hidden">
           <TabsContent
             value="work"
-            className="p-0 m-0 h-full flex flex-col"
+            className="m-0 h-full"
           >
-            <div className="flex-1 overflow-auto">
-              <Work form={form} />
+            <div className="h-full overflow-auto">
+              <Work form={form} initialStep={activeStep} />
             </div>
           </TabsContent>
 
           <TabsContent
             value="feedback"
-            className="p-0 m-0 h-full flex flex-col"
+            className="m-0 h-full"
           >
-            <div className="flex-1 overflow-auto p-2 sm:p-4">
+            <div className="h-full overflow-auto p-2 sm:p-4">
               <Feedback 
                 form={form!} 
                 feedbackItems={feedbackItems}
@@ -131,14 +172,14 @@ const StepContent = ({
         <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4 p-3 sm:p-4 border-t border-slate-200 bg-slate-50">
           <Button
             variant="outline"
-            onClick={onRequestRevision}
+            onClick={() => onRevision(formData)}
             disabled={isApproved || isRevisionRequested}
             className="w-full sm:w-auto"
           >
             Request Revision
           </Button>
           <Button
-            onClick={onApprove}
+            onClick={() => onApprove(formData)}
             disabled={isApproved || isRevisionRequested}
             className="bg-[#6366F1] hover:bg-[#6366F1]/90 text-white w-full sm:w-auto"
           >

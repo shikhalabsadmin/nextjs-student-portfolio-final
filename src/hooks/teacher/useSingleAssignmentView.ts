@@ -22,6 +22,9 @@ import { TEACHER_KEYS } from "@/query-key/teacher";
 type ExtendedFeedbackItem = FeedbackItem;
 
 const useSingleAssignmentView = (assignmentId: string | undefined, user: User) => {
+  console.log("[useSingleAssignmentView] Hook initialized with ID:", assignmentId);
+  console.log("[useSingleAssignmentView] ID type:", typeof assignmentId);
+
   const [student, setStudent] = useState<StudentProfile | null>(null);
   const [feedbackItems, setFeedbackItems] = useState<ExtendedFeedbackItem[]>([]);
   const [skillsAssessment, setSkillsAssessment] = useState<SkillsAssessment>({
@@ -81,34 +84,46 @@ const useSingleAssignmentView = (assignmentId: string | undefined, user: User) =
   } = useQuery<ExtendedAssignmentFormValues | null>({
     queryKey: assignmentId ? TEACHER_KEYS.assignmentView(assignmentId) : ['teacher', 'assignment', 'undefined'],
     queryFn: async () => {
-      if (!assignmentId) return null;
+      console.log("[useSingleAssignmentView] Starting data fetch for ID:", assignmentId);
+      
+      if (!assignmentId) {
+        console.error("[useSingleAssignmentView] No assignment ID provided");
+        return null;
+      }
 
       try {
+        console.log("[useSingleAssignmentView] Calling getAssignmentWithFiles with ID:", assignmentId);
         const data = await getAssignmentWithFiles(assignmentId);
+        console.log("[useSingleAssignmentView] API response:", data);
         
         if (!data) {
+          console.error("[useSingleAssignmentView] No data returned from API");
           toast.error("Error while loading student assignment");
           return null;
         }
 
         // Fetch student profile if needed
         if (data.student_id) {
+          console.log("[useSingleAssignmentView] Fetching student profile for ID:", data.student_id);
           const studentResponse = await getProfileInfo(data.student_id);
           
           if (!studentResponse.error && studentResponse.data) {
             // Cast to unknown first to satisfy the TypeScript compiler
             setStudent(studentResponse.data as unknown as StudentProfile);
+            console.log("[useSingleAssignmentView] Student profile loaded:", studentResponse.data);
           } else {
-            console.error("Student profile error:", studentResponse.message);
+            console.error("[useSingleAssignmentView] Student profile error:", studentResponse.message);
             toast.error("Error while loading student profile");
           }
         }
 
         // Reset form with assignment data
+        console.log("[useSingleAssignmentView] Resetting form with data");
         form.reset(data, { keepDefaultValues: true, keepDirty: false });
 
         // Process feedback
         const allFeedback = normalizeFeedback(data);
+        console.log("[useSingleAssignmentView] Processed feedback:", allFeedback);
         
         // Sort by date (newest first)
         allFeedback.sort((a, b) => {
@@ -128,7 +143,7 @@ const useSingleAssignmentView = (assignmentId: string | undefined, user: User) =
 
         return data;
       } catch (error) {
-        console.error("Error fetching assignment:", error);
+        console.error("[useSingleAssignmentView] Error fetching assignment:", error);
         toast.error("Failed to load assignment data");
         return null;
       }
@@ -150,6 +165,14 @@ const useSingleAssignmentView = (assignmentId: string | undefined, user: User) =
       assignmentStatus: keyof typeof ASSIGNMENT_STATUS;
     }) => {
       if (!assignment?.id) return;
+
+      console.log("[useSingleAssignmentView] Updating assignment:", {
+        id: assignment.id,
+        status: assignmentStatus,
+        selectedSkills,
+        justification,
+        feedback
+      });
 
       // Create new feedback item
       const newFeedbackItem: ExtendedFeedbackItem = {
@@ -181,7 +204,7 @@ const useSingleAssignmentView = (assignmentId: string | undefined, user: User) =
           }
         };
       } catch (error) {
-        console.error("Error updating assignment:", error);
+        console.error("[useSingleAssignmentView] Error updating assignment:", error);
         throw new Error("Failed to update assignment");
       }
     },
@@ -193,7 +216,7 @@ const useSingleAssignmentView = (assignmentId: string | undefined, user: User) =
       navigate(ROUTES.TEACHER.DASHBOARD);
     },
     onError: (err) => {
-      console.error(err);
+      console.error("[useSingleAssignmentView] Mutation error:", err);
       toast.error("Failed to update assignment");
     },
   });
@@ -208,6 +231,10 @@ const useSingleAssignmentView = (assignmentId: string | undefined, user: User) =
       },
       assignmentStatus: keyof typeof ASSIGNMENT_STATUS
     ) => {
+      console.log("[useSingleAssignmentView] updateAssignmentStatus called with:", {
+        data,
+        status: assignmentStatus
+      });
       mutation.mutate({
         ...data,
         assignmentStatus

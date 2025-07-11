@@ -20,6 +20,10 @@ type TeacherAssignmentViewProps = {
 const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  
+  console.log("[TeacherAssignmentView] Component mounted with ID param:", id);
+  console.log("[TeacherAssignmentView] ID type:", typeof id);
+  
   const [activeStep, setActiveStep] = useState(0);
   const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
@@ -45,6 +49,11 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
     setSkillsAssessment,
     getCurrentTeacherLatestFeedback
   } = useSingleAssignmentView(id, user);
+
+  // Log assignment data when it changes
+  useEffect(() => {
+    console.log("[TeacherAssignmentView] Assignment data:", assignment);
+  }, [assignment]);
 
   // Set initial modal values based on skills assessment and latest feedback
   useEffect(() => {
@@ -80,7 +89,7 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
 
   // Handle back button
   const handleBack = () => {
-    navigate("/app/teacher/dashboard");
+    navigate("/teacher");
   };
 
   // Toggle mobile menu
@@ -88,7 +97,73 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
+  // Handle form data change
+  const handleFormDataChange = (formData: any) => {
+    console.log("[TeacherAssignmentView] Form data changed:", formData);
+    if (formData) {
+      setSkillsAssessment({
+        selected_skills: formData.selectedSkills || [],
+        skills_justification: formData.justification || "",
+      });
+    }
+  };
+
+  // Handle approve action
+  const handleApprove = () => {
+    console.log("[TeacherAssignmentView] Approve button clicked");
+    openApprovalModal();
+  };
+
+  // Handle request revision action
+  const handleRequestRevision = () => {
+    console.log("[TeacherAssignmentView] Request revision button clicked");
+    openRevisionModal();
+  };
+
+  // Handle approval submission
+  const handleApprovalSubmit = async (formData: any) => {
+    console.log("[TeacherAssignmentView] Approving with data:", formData);
+    await updateAssignmentStatus(
+      {
+        selectedSkills: formData?.selectedSkills || [],
+        justification: formData?.justification || "",
+        feedback: formData?.feedback || "",
+      },
+      ASSIGNMENT_STATUS.APPROVED
+    );
+    closeApprovalModal();
+  };
+
+  // Handle revision submission for ApprovalModal (wrapper)
+  const handleRevisionFromApprovalModal = async (formData: any) => {
+    console.log("[TeacherAssignmentView] Requesting revision from approval modal with data:", formData);
+    await updateAssignmentStatus(
+      {
+        selectedSkills: formData?.selectedSkills || [],
+        justification: formData?.justification || "",
+        feedback: formData?.feedback || "",
+      },
+      ASSIGNMENT_STATUS.NEEDS_REVISION
+    );
+    closeApprovalModal();
+  };
+
+  // Handle revision submission for RevisionModal
+  const handleRevisionSubmit = async (feedback: string) => {
+    console.log("[TeacherAssignmentView] Requesting revision with feedback:", feedback);
+    await updateAssignmentStatus(
+      {
+        selectedSkills: modalDefaultValues.selectedSkills || [],
+        justification: modalDefaultValues.justification || "",
+        feedback: feedback,
+      },
+      ASSIGNMENT_STATUS.NEEDS_REVISION
+    );
+    closeRevisionModal();
+  };
+
   if (isLoading || isRefetching) {
+    console.log("[TeacherAssignmentView] Loading state:", { isLoading, isRefetching });
     return (
       <div className="flex items-center justify-center h-screen">
         <Loading />
@@ -98,6 +173,7 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
 
   // Don't attempt to render content if no assignment was loaded
   if (!assignment?.id) {
+    console.error("[TeacherAssignmentView] Assignment not found or invalid ID:", id);
     return (
       <div className="flex items-center justify-center h-screen">
         <Error
@@ -105,7 +181,7 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
           title="Assignment Not Found"
           message="The assignment you're looking for doesn't exist or you don't have permission to view it."
           homeButtonText="Return to Dashboard"
-          onHome={() => navigate("/app/teacher/dashboard")}
+          onHome={() => navigate("/teacher")}
           retryButtonText="Try Again"
           retry={refetchAssignment}
         />
@@ -115,33 +191,11 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
 
   const isApproved = assignment?.status === ASSIGNMENT_STATUS.APPROVED;
   const isRevisionRequested = assignment?.status === ASSIGNMENT_STATUS.NEEDS_REVISION;
+  const showActionButtons = !isApproved && !isRevisionRequested;
 
   return (
-    <div className="px-3 py-3 sm:px-5 sm:py-4 md:px-8 md:py-6 lg:px-16 lg:py-10">
-      {/* Mobile menu toggle button */}
-      <div className="md:hidden mb-3">
-        <button 
-          onClick={toggleMobileMenu}
-          className="flex items-center justify-center p-2 rounded-md bg-white border border-slate-200 shadow-sm"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-          </svg>
-          <span className="ml-2">Assignment Steps</span>
-        </button>
-      </div>
+    <div className="container mx-auto px-4 py-6">
+      <h1 className="text-2xl font-bold mb-4">Assignment Review</h1>
 
       <div className="flex flex-col md:flex-row gap-3 md:gap-4 lg:gap-8">
         {/* Sidebar - hidden on mobile unless toggled */}
@@ -166,40 +220,19 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
                 grade={assignment.grade || "Unknown Grade"}
                 isApproved={isApproved}
                 isRevisionRequested={isRevisionRequested}
+                onApprove={handleApprove}
+                onRequestRevision={handleRequestRevision}
+                showActionButtons={showActionButtons}
               />
             </div>
 
             {/* Content */}
             <StepContent
               activeStep={activeStep}
-              steps={steps}
-              onApprove={async (formData) => {
-                await updateAssignmentStatus(
-                  {
-                    selectedSkills: formData?.selectedSkills || [],
-                    justification: formData?.justification || "",
-                    feedback: formData?.feedback || "",
-                  },
-                  ASSIGNMENT_STATUS.APPROVED
-                );
-              }}
-              onRevision={async (formData) => {
-                await updateAssignmentStatus(
-                  {
-                    selectedSkills: formData?.selectedSkills || [],
-                    justification: formData?.justification || "",
-                    feedback: formData?.feedback || "",
-                  },
-                  ASSIGNMENT_STATUS.NEEDS_REVISION
-                );
-              }}
+              onApprove={handleApprove}
+              onRevision={handleRequestRevision}
               defaultStates={modalDefaultValues}
-              onFormDataChange={(formData) => {
-                setSkillsAssessment({
-                  selected_skills: formData?.selectedSkills || [],
-                  skills_justification: formData?.justification || "",
-                });
-              }}
+              onFormDataChange={handleFormDataChange}
               isApproved={isApproved}
               isRevisionRequested={isRevisionRequested}
               form={form as UseFormReturn<AssignmentFormValues>}
@@ -208,6 +241,28 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
           </div>
         </div>
       </div>
+
+      {/* Approval Modal */}
+      {isApprovalModalOpen && (
+        <ApprovalModal
+          isOpen={isApprovalModalOpen}
+          onClose={closeApprovalModal}
+          onApprove={handleApprovalSubmit}
+          onRevision={handleRevisionFromApprovalModal}
+          defaultStates={modalDefaultValues}
+          onFormDataChange={handleFormDataChange}
+        />
+      )}
+
+      {/* Revision Modal */}
+      {isRevisionModalOpen && (
+        <RevisionModal
+          isOpen={isRevisionModalOpen}
+          onClose={closeRevisionModal}
+          onSubmit={handleRevisionSubmit}
+          currentFeedback={modalDefaultValues.feedback}
+        />
+      )}
     </div>
   );
 };

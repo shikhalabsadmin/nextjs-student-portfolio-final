@@ -45,7 +45,7 @@ export const FormViewAccordion = ({
     <Accordion 
       type="single" 
       collapsible 
-      className={cn("w-full border rounded-md", root)}
+      className={cn("w-full border rounded-md overflow-visible", root)}
       defaultValue={defaultValue}
     >
       {sections.map((section) => (
@@ -53,14 +53,17 @@ export const FormViewAccordion = ({
           key={section.id}
           value={section.id}
           className={cn("border-b last:border-b-0", item)}
+          id={`section-${section.id}`}
         >
-          <AccordionTrigger className={cn("py-4 px-6 [&[data-state=open]]:border-b [&[data-state=open]]:border-gray-200", trigger)}>
+          <AccordionTrigger 
+            className={cn("py-3 px-4 [&[data-state=open]]:border-b [&[data-state=open]]:border-gray-200", trigger)}
+          >
             <div className="flex items-center">
               {section.icon && <div className="mr-2">{section.icon}</div>}
-              <h2 className={cn("text-lg font-medium", title)}>{section.title}</h2>
+              <h2 className={cn("text-base font-medium", title)}>{section.title}</h2>
             </div>
           </AccordionTrigger>
-          <AccordionContent className={cn("px-6 py-4", content)}>
+          <AccordionContent className={cn("px-4 py-3", content)}>
             {section.content}
           </AccordionContent>
         </AccordionItem>

@@ -30,6 +30,7 @@ const UpdatePassword = lazy(() => import("@/components/auth/UpdatePassword").the
 // Updated to use default export
 const StudentAssignmentForm = lazy(() => import("@/components/assignment/AssignmentForm"));
 const TeacherDashboard = lazy(() => import("@/components/teacher/dashboard"));
+// Ensure TeacherAssignmentView uses default export
 const TeacherAssignmentView = lazy(() => import("@/components/teacher/assignment_view"));
 const AssignmentDetailView = lazy(() => import("@/components/assignment/AssignmentDetailView").then(module => ({ default: module.AssignmentDetailView })));
 const NotFound = lazy(() => import("@/pages/NotFound"));

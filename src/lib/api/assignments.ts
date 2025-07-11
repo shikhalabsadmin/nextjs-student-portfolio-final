@@ -112,28 +112,34 @@ export const getAssignmentWithFiles = async (id?: string, userId?: string) => {
       throw new Error("Invalid assignment ID");
     }
 
+    console.log("[getAssignmentWithFiles] Starting fetch with ID:", id, "Type:", typeof id);
+
+    // Make userId optional - for teacher view
     if (!userId) {
-      debug.error("Missing user ID for assignment fetch", { id });
-      throw new Error("User ID is required");
+      console.log("[getAssignmentWithFiles] No userId provided, proceeding as teacher/admin view");
+    } else {
+      console.log("[getAssignmentWithFiles] Fetching for user:", userId);
     }
 
     debug.log("Fetching assignment with files", { id, userId });
 
     // Fetch the assignment
     const assignment = await getAssignment(id);
+    console.log("[getAssignmentWithFiles] Assignment data fetched:", assignment?.id, assignment?.title);
 
-    // If assignment doesn't exist or doesn't belong to this user
-    if (!assignment || (assignment.student_id && assignment.student_id !== userId)) {
+    // If assignment doesn't exist or doesn't belong to this user (only check if userId is provided)
+    if (!assignment || (userId && assignment.student_id && assignment.student_id !== userId)) {
       debug.error("Assignment not found or access denied", { 
         id, userId, 
         exists: !!assignment,
-        belongsToUser: assignment?.student_id === userId
+        belongsToUser: userId ? assignment?.student_id === userId : 'Not checked - teacher view'
       });
       throw new Error("Assignment not found or access denied");
     }
 
     // Fetch the files
     const files = await fetchAssignmentFiles(id);
+    console.log("[getAssignmentWithFiles] Files fetched:", files?.length || 0);
 
     debug.log("getAssignmentWithFiles success", {
       id,
@@ -144,6 +150,7 @@ export const getAssignmentWithFiles = async (id?: string, userId?: string) => {
     // Return the assignment with files
     return { ...(assignment ?? {}), files: files ?? [] };
   } catch (error) {
+    console.error("[getAssignmentWithFiles] Error:", error);
     debug.error("Failed to fetch assignment with files", { id, error });
     throw error;
   }

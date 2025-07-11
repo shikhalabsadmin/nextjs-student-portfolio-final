@@ -127,25 +127,33 @@ function AssignmentForm({ user }: AssignmentFormProps) {
     }
     
     // For other steps, trigger validation for the current step's fields
-    // This will show red error messages for required fields
     const stepConfig = STEPS.find(step => step.id === currentStep);
     if (stepConfig) {
       // Get the fields for the current step from STEP_REQUIREMENTS
       const stepFields = getStepRequiredFields(currentStep as AssignmentStep);
       
-      // Trigger validation only for the fields in the current step
+      // Only trigger validation when user attempts to proceed to next step
       const isStepValid = await form.trigger(stepFields as any);
       
       if (isStepValid) {
         // If valid, save and continue
         handleSaveAndContinue();
       } else {
-        // If invalid, show toast but let them navigate (errors will remain visible)
+        // If invalid, show toast with clear indication of what needs to be fixed
         toast({
           title: "Missing Required Fields",
-          description: "Please fill in all required fields marked in red.",
+          description: "Please fill in all required fields highlighted in red.",
           variant: "destructive",
         });
+        // Focus on the first field with an error
+        const firstErrorField = Object.keys(form.formState.errors)[0];
+        if (firstErrorField) {
+          const element = document.getElementsByName(firstErrorField)[0];
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.focus();
+          }
+        }
       }
     }
   }, [currentStep, handleSaveAndContinue, areAllStepsComplete, toast, form]);

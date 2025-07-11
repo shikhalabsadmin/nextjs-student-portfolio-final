@@ -63,7 +63,7 @@ const getErrorMessage = (error: unknown): string => {
       // Provide user-friendly messages based on error type
       if (errType === 'fetch') {
         return "Failed to load assignments. Please try again later.";
-      }
+  }
       
       if (errType === 'auth') {
         return "Authentication error. Please log in again.";

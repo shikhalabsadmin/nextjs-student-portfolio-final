@@ -48,7 +48,11 @@ function useAssignmentForm({ user }: { user: User }) {
   const form = useForm<AssignmentFormValues>({
     resolver: zodResolver(assignmentFormSchema),
     defaultValues: getDefaultValues(),
-    mode: "onBlur",
+    mode: "onSubmit",
+    criteriaMode: "all",
+    shouldFocusError: true,
+    shouldUnregister: false,
+    shouldUseNativeValidation: false,
   });
 
   // State

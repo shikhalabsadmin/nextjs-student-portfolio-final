@@ -92,12 +92,22 @@ const DashboardContent = ({ user }: TeacherDataProps) => {
   // Handler for artifact clicks
   const handleArtifactClick = (artifact: Artifact) => {
     console.log("Clicked artifact:", artifact);
+    console.log("Artifact ID type:", typeof artifact.id);
+    
+    // Ensure ID is a string
+    const stringId = String(artifact.id);
+    console.log("Converted ID:", stringId);
+    
     if (artifact.status === ASSIGNMENT_STATUS.APPROVED) {
       // For approved assignments, navigate to the assignment detail page
-      navigate(ROUTES.withParams(ROUTES.ASSIGNMENT.DETAIL, { id: String(artifact.id) }));
+      const detailUrl = ROUTES.withParams(ROUTES.ASSIGNMENT.DETAIL, { id: stringId });
+      console.log("Navigating to detail URL:", detailUrl);
+      navigate(detailUrl);
     } else {
       // For other assignments, navigate to the teacher assignment management page
-      navigate(ROUTES.withParams(ROUTES.TEACHER.MANAGE_ASSIGNMENT, { id: String(artifact.id) }));
+      const manageUrl = ROUTES.withParams(ROUTES.TEACHER.MANAGE_ASSIGNMENT, { id: stringId });
+      console.log("Navigating to manage URL:", manageUrl);
+      navigate(manageUrl);
     }
   };
 
