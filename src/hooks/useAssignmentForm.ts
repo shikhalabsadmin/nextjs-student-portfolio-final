@@ -39,7 +39,9 @@ function useAssignmentForm({ user }: { user: User }) {
   const { id: assignmentId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const isNewAssignment = assignmentId === ":id";
+  
+  // Check if this is a new assignment (either ":id" or "new")
+  const isNewAssignment = assignmentId === ":id" || assignmentId === "new";
   const isEditing = !!assignmentId && !isNewAssignment;
 
   // Form setup
@@ -64,7 +66,10 @@ function useAssignmentForm({ user }: { user: User }) {
       return createAssignment(data);
     },
     onSuccess: (response) => {
-      if (!response?.id) return;
+      if (!response?.id) {
+        console.error("Assignment created but no ID returned");
+        return;
+      }
 
       formLogger.info("Assignment created successfully", {
         assignmentId: response.id,
@@ -80,11 +85,14 @@ function useAssignmentForm({ user }: { user: User }) {
         { keepDirty: true }
       );
 
-      navigate(ROUTES.STUDENT.MANAGE_ASSIGNMENT.replace(":id", response.id), {
+      // Navigate to the actual assignment URL with the real ID
+      const newUrl = ROUTES.STUDENT.MANAGE_ASSIGNMENT.replace(":id", response.id);
+      navigate(newUrl, {
         replace: true,
       });
     },
     onError: (error) => {
+      console.error("Assignment creation failed:", error);
       formLogger.error("Failed to create assignment", { error });
       toast.error(`Failed to create assignment: ${error.message}`);
     },
@@ -93,21 +101,30 @@ function useAssignmentForm({ user }: { user: User }) {
   // Fetch assignment data
   const fetchAssignmentData = async () => {
     try {
+      // Special case: ":id" or "new" are placeholders, not an actual ID
+      if (assignmentId === ":id" || assignmentId === "new") {
+        return null; // This will trigger creation of a new assignment
+      }
+
       formLogger.debug("Fetching assignment data", { assignmentId });
+      
       const response = await getAssignmentWithFiles(assignmentId, user.id);
 
       if (!response) {
+        console.warn("No assignment data returned for ID:", assignmentId);
         formLogger.warn("Invalid assignment response", { assignmentId });
         throw new Error("Invalid assignment response");
       }
 
       if (typeof response !== "object" || !("id" in response)) {
+        console.error("Response missing ID field:", response);
         formLogger.warn("Response missing ID field", { response });
         return null;
       }
 
       // Process response data
       formLogger.debug("Assignment fetched successfully", { id: response.id });
+      
       form.reset(
         baseAssignmentFormSchema.parse(response as AssignmentFormValues),
         { keepDirty: true }
@@ -117,6 +134,7 @@ function useAssignmentForm({ user }: { user: User }) {
       );
       return null;
     } catch (error) {
+      console.error("Error fetching assignment:", error);
       formLogger.error("Error fetching assignment", { assignmentId, error });
       toast.error(`Error loading assignment: ${error.message}`);
       throw error;
@@ -186,6 +204,7 @@ function useAssignmentForm({ user }: { user: User }) {
     queryFn: async () => {
       // Create new assignment if needed
       if (isNewAssignment) {
+        
         // Skip creation if already in progress or succeeded
         if (createMutation.isPending || createMutation.isSuccess) {
           return null;
@@ -204,9 +223,6 @@ function useAssignmentForm({ user }: { user: User }) {
       // Skip fetching if we already have form data
       const formId = form.getValues().id;
       if (formId && formId === assignmentId) {
-        formLogger.debug("Skipping fetch - already have matching form ID", {
-          formId,
-        });
         return null;
       }
 
@@ -445,23 +461,23 @@ function useAssignmentForm({ user }: { user: User }) {
 
   // Disable continue button when form is not editable or loading
   const isContinueDisabled = useMemo(() => {
-    console.log(["DEBUG 1st tab must be completed"], {
-      isLoading,
-      isEditable: steps.isEditable(form.getValues().status),
-      isBasicInfoComplete: isBasicInfoComplete(form.getValues()),
-      status: form.getValues().status,
-      formValues: form.getValues(),
-      result:
-        isLoading ||
-        !steps.isEditable(form.getValues().status) ||
-        !isBasicInfoComplete(form.getValues()),
-    });
+    const formValues = form.getValues();
+    
     return (
       isLoading ||
-      !steps.isEditable(form.getValues().status) ||
-      !isBasicInfoComplete(form.getValues())
+      !steps.isEditable(formValues.status) ||
+      !isBasicInfoComplete(formValues)
     );
-  }, [isLoading, form.watch()]);
+  }, [
+    isLoading, 
+    form.watch('title'),
+    form.watch('artifact_type'),
+    form.watch('subject'),
+    form.watch('month'),
+    form.watch('status'),
+    form.watch('files'),
+    form.watch('youtubelinks')
+  ]);
 
   // Public interface
   return {

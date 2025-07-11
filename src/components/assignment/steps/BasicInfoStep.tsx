@@ -62,21 +62,24 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
   
   const setFiles = useCallback(async (files: AssignmentFile[], isTemporary?: boolean) => {
     form.setValue("files", files, { 
-      shouldValidate: !isTemporary,
+      shouldValidate: true, // Always validate to update button state
       shouldDirty: true,
-      shouldTouch: !isTemporary
+      shouldTouch: true
     });
-    if (!isTemporary) {
-      await form.trigger("files");
-    }
+    await form.trigger("files");
+    // Force a re-evaluation of form state
+    await form.trigger();
   }, [form]);
 
   const setYoutubeLinks = useCallback(async (links: Array<{url?: string; title?: string}>) => {
     form.setValue("youtubelinks", links, { 
       shouldValidate: true,
-      shouldDirty: true 
+      shouldDirty: true,
+      shouldTouch: true
     });
     await form.trigger("youtubelinks");
+    // Force a re-evaluation of form state
+    await form.trigger();
   }, [form]);
 
   // Use custom hooks with adapters

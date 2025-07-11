@@ -65,9 +65,6 @@ export function useFileUpload(options: FileUploadOptions): FileUploadHookReturn 
     // Validate files first
     const filesArray = Array.from(fileList);
     
-    // Debug entire file list
-    console.log("Files to validate:", filesArray.map(f => ({ name: f.name, type: f.type, size: `${(f.size / (1024 * 1024)).toFixed(2)}MB` })));
-    
     // Separate invalid files by type and size
     const invalidTypeFiles: File[] = [];
     const invalidSizeFiles: File[] = [];
@@ -76,7 +73,6 @@ export function useFileUpload(options: FileUploadOptions): FileUploadHookReturn 
       // Check for invalid file types
       const validType = validateFileType(file);
       if (!validType) {
-        console.log(`File type validation failed: ${file.name} (${file.type})`);
         invalidTypeFiles.push(file);
         return; // Skip further validation for this file
       }
@@ -84,21 +80,18 @@ export function useFileUpload(options: FileUploadOptions): FileUploadHookReturn 
       // Check for invalid file sizes
       const validSize = validateFileSize(file);
       if (!validSize) {
-        console.log(`File size validation failed: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`);
         invalidSizeFiles.push(file);
         return; // Skip further validation for this file
       }
       
       // Apply custom validation if provided
       if (customValidation && !customValidation(file)) {
-        console.log(`Custom validation failed: ${file.name}`);
         invalidTypeFiles.push(file); // Add to type failures for simplicity
       }
     });
     
     // Count the actual invalid files
     const totalInvalidFiles = invalidTypeFiles.length + invalidSizeFiles.length;
-    console.log(`Total invalid files: ${totalInvalidFiles}`);
     
     // Check for invalid files and show specific error messages
     if (totalInvalidFiles > 0) {
@@ -137,11 +130,8 @@ export function useFileUpload(options: FileUploadOptions): FileUploadHookReturn 
     );
     
     if (validFiles.length === 0) {
-      console.log("No valid files to upload after validation");
       return;
     }
-    
-    console.log(`Proceeding with ${validFiles.length} valid files`);
     
     // Create temp files with object URLs for immediate display
     const currentFiles = getFiles();
@@ -174,9 +164,6 @@ export function useFileUpload(options: FileUploadOptions): FileUploadHookReturn 
           // Force progress to be a valid number between 0-100
           const safeProgress = Math.max(0, Math.min(100, Math.round(progress || 0)));
           
-          // Log progress updates to help with debugging
-          console.log(`[DEBUG PROGRESS BAR] Progress update for ${file.name}: ${safeProgress}% (original value: ${progress})`);
-          
           // Get fresh current state to avoid state conflicts
           const currentState = getFiles();
           
@@ -187,7 +174,6 @@ export function useFileUpload(options: FileUploadOptions): FileUploadHookReturn 
             // Check if progress value has actually changed
             const currentProgress = updatedFiles[tempFileIndex].uploadProgress || 0;
             if (currentProgress !== safeProgress) {
-              console.log(`[DEBUG PROGRESS BAR] Updating file ${file.name} progress from ${currentProgress}% to ${safeProgress}%`);
               
               // Create an updated file object with the new progress
               updatedFiles[tempFileIndex] = {
@@ -197,11 +183,11 @@ export function useFileUpload(options: FileUploadOptions): FileUploadHookReturn 
               
               // Don't await this to avoid blocking progress updates
               setFiles(updatedFiles, true).catch(err => {
-                console.error(`[DEBUG PROGRESS BAR] Error updating progress for ${file.name}:`, err);
+                console.error(`Error updating progress for ${file.name}:`, err);
               });
             }
           } else {
-            console.warn(`[DEBUG PROGRESS BAR] File index not found for progress update: ${tempFileIndex}, file: ${file.name}`);
+            console.warn(`File index not found for progress update: ${tempFileIndex}, file: ${file.name}`);
           }
         };
         
