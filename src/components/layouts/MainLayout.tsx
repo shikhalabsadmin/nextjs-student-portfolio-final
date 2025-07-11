@@ -21,9 +21,9 @@ export const MainLayout = memo(function MainLayout({
   const { isPreviewOpen } = usePortfolioPreview();
   
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col min-h-screen w-full overflow-x-hidden">
       <Navbar variant={variant} signOut={signOut} role={role} />
-      <main>
+      <main className="flex-1 w-full">
         <Outlet />
       </main>
       

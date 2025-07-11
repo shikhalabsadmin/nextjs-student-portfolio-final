@@ -38,7 +38,7 @@ export const DashboardHeader = memo(({
   const hasFilters = allGrades.length > 0;
 
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-2 w-full">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-2 sm:gap-3 w-full">
       <FilterDialog
         activeFilterCount={activeFilterCount}
         selectedFilters={selectedFilters}
@@ -52,8 +52,8 @@ export const DashboardHeader = memo(({
         <SearchInput
           value={searchQuery}
           onChange={onSearchChange}
-          placeholder="Search by works or student details"
-          className="w-full sm:w-[250px] md:w-[300px] lg:w-[350px]"
+          placeholder="Search works"
+          className="w-full text-sm h-9 sm:h-10 sm:w-[220px] md:w-[280px] lg:w-[350px]"
         />
       </div>
     </div>

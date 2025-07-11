@@ -121,6 +121,12 @@ export const getAssignmentFiles = async (assignmentId: string, userId: string) =
   
   export const getFilesForMultipleAssignments = async (assignmentIds: string[], userId: string) => {
     try {
+      // Ensure we have valid IDs before making the request
+      if (!assignmentIds?.length || !userId) {
+        console.warn("Missing assignment IDs or user ID when fetching files");
+        return [];
+      }
+
       const { data, error } = await supabase
         .from("assignment_files")
         .select("*")
@@ -129,6 +135,7 @@ export const getAssignmentFiles = async (assignmentId: string, userId: string) =
         .order('updated_at', { ascending: false });
   
       if (error) {
+        console.error("Error fetching files for multiple assignments:", error);
         return error;
       }
   

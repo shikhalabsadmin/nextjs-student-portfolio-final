@@ -21,6 +21,8 @@ import {
   BarChart,
   Users,
   FileText,
+  Mail,
+  GraduationCap,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
@@ -59,8 +61,9 @@ const navItemClass = `
   hover:bg-background hover:scale-105 focus:bg-background focus:outline-none
 `;
 
+// Use consistent colors for both mobile and desktop
 const activeNavItemClass = "text-primary";
-const inactiveNavItemClass = "text-secondary hover:text-primary";
+const inactiveNavItemClass = "text-slate-700 hover:text-primary";
 
 export const Navbar: FC<NavbarProps> = ({ logo }) => {
   const navigate = useNavigate();
@@ -119,7 +122,7 @@ export const Navbar: FC<NavbarProps> = ({ logo }) => {
     const Icon = NAV_ICONS[label] || FileText;
     return (
       <Icon
-        className={`h-5 w-5 ${isActive ? "text-primary" : "text-secondary"}`}
+        className={`h-5 w-5 ${isActive ? "text-primary" : "text-slate-600"}`}
         onClick={onClick}
         aria-label={label}
         tabIndex={0}
@@ -144,12 +147,12 @@ export const Navbar: FC<NavbarProps> = ({ logo }) => {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <div
-            className="relative h-10 w-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-background transition-colors"
+            className="relative h-10 w-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-slate-100 transition-colors border border-slate-200 bg-white shadow-sm"
             aria-label="User menu"
             tabIndex={0}
           >
             <UserCircle
-              className="h-6 w-6 text-secondary hover:text-primary transition-colors"
+              className="h-6 w-6 text-slate-700 hover:text-primary transition-colors"
               aria-label="User profile"
             />
           </div>
@@ -169,7 +172,7 @@ export const Navbar: FC<NavbarProps> = ({ logo }) => {
                 className={`flex items-center gap-2 px-3 py-2 text-sm transition-colors ${
                   location.pathname === link.to
                     ? "text-primary bg-background"
-                    : "text-secondary hover:bg-background hover:text-primary"
+                    : "text-slate-700 hover:bg-background hover:text-primary"
                 }`}
               >
                 {renderNavIcon(
@@ -202,12 +205,17 @@ export const Navbar: FC<NavbarProps> = ({ logo }) => {
       return null;
     }
 
+    // Find the profile link based on user role
+    const profileLink = links.find(link => 
+      link.label === "My Profile" || link.label === "Profile"
+    );
+
     return (
       <div className="block lg:hidden">
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild>
             <div
-              className="h-9 w-9 flex items-center justify-center rounded-md transition-colors cursor-pointer hover:bg-background"
+              className="h-10 w-10 flex items-center justify-center rounded-md bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer border border-slate-200 shadow-sm"
               aria-label={isOpen ? "Close menu" : "Open menu"}
               tabIndex={0}
               onKeyDown={(e) => {
@@ -217,64 +225,94 @@ export const Navbar: FC<NavbarProps> = ({ logo }) => {
               }}
             >
               {isOpen ? (
-                <X className="h-5 w-5 text-secondary" />
+                <X className="h-6 w-6 text-slate-800" />
               ) : (
-                <Menu className="h-5 w-5 text-secondary" />
+                <Menu className="h-6 w-6 text-slate-800" />
               )}
             </div>
           </SheetTrigger>
           <SheetContent
             side="right"
-            className="w-[300px] sm:w-[400px] bg-background shadow-xl"
+            className="w-[85vw] max-w-[300px] sm:max-w-[400px] bg-background shadow-xl px-2 py-4"
           >
             <SheetHeader>
               <SheetTitle className="text-lg font-semibold text-primary">
                 Menu
               </SheetTitle>
             </SheetHeader>
+
             <div className="mt-6 space-y-2 p-2">
-              {links.map((link) => (
+              {/* Profile link with special styling if it exists */}
+              {profileLink && (
                 <div
-                  key={link.to}
-                  className={`${navItemClass} ${
-                    location.pathname === link.to
-                      ? activeNavItemClass
-                      : inactiveNavItemClass
+                  key={profileLink.to}
+                  className={`${navItemClass} bg-slate-50 border border-slate-200 rounded-lg ${
+                    location.pathname === profileLink.to
+                      ? "text-primary border-primary/30 bg-primary/5"
+                      : "text-slate-700"
                   }`}
-                  onClick={() => handleNavClick(link.to)}
+                  onClick={() => handleNavClick(profileLink.to)}
                   tabIndex={0}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
-                      handleNavClick(link.to);
+                      handleNavClick(profileLink.to);
                     }
                   }}
                 >
-                  {renderNavIcon(
-                    link.label as keyof typeof NAV_ICONS,
-                    undefined,
-                    location.pathname === link.to
-                  )}
-                  <span className="text-sm font-medium">{link.label}</span>
+                  <User className={`h-5 w-5 ${
+                    location.pathname === profileLink.to ? "text-primary" : "text-slate-600"
+                  }`} />
+                  <span className="text-sm font-medium">
+                    {profileLink.label}
+                  </span>
                 </div>
-              ))}
-              {user && (
-                <>
+              )}
+
+              {/* Other navigation links */}
+              {links
+                .filter(link => link.label !== "My Profile" && link.label !== "Profile")
+                .map((link) => (
                   <div
-                    className={`${navItemClass} text-primary hover:bg-background`}
-                    onClick={handleSignOut}
+                    key={link.to}
+                    className={`${navItemClass} ${
+                      location.pathname === link.to
+                        ? activeNavItemClass
+                        : inactiveNavItemClass
+                    }`}
+                    onClick={() => handleNavClick(link.to)}
                     tabIndex={0}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
-                        handleSignOut();
+                        handleNavClick(link.to);
                       }
                     }}
                   >
-                    <LogOut className="h-5 w-5 text-red-500" />
-                    <span className="text-sm font-medium text-red-500">
-                      Sign out
-                    </span>
+                    {renderNavIcon(
+                      link.label as keyof typeof NAV_ICONS,
+                      undefined,
+                      location.pathname === link.to
+                    )}
+                    <span className="text-sm font-medium">{link.label}</span>
                   </div>
-                </>
+                ))}
+              
+              {/* Sign out option */}
+              {user && (
+                <div
+                  className={`${navItemClass} text-primary hover:bg-background mt-4`}
+                  onClick={handleSignOut}
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      handleSignOut();
+                    }
+                  }}
+                >
+                  <LogOut className="h-5 w-5 text-red-500" />
+                  <span className="text-sm font-medium text-red-500">
+                    Sign out
+                  </span>
+                </div>
               )}
             </div>
           </SheetContent>
@@ -313,22 +351,22 @@ export const Navbar: FC<NavbarProps> = ({ logo }) => {
 
   return (
     <header className="sticky top-0 left-0 right-0 border-b bg-background backdrop-blur-sm shadow-sm z-50">
-      <div className="flex items-center justify-between px-5 lg:px-16 py-4">
+      <div className="flex items-center justify-between px-4 sm:px-5 lg:px-16 py-3 sm:py-4">
         <div>
           {logo || (
             <Link to={ROUTES.COMMON.HOME} aria-label="Home">
               <img
                 src="/shikha_labs.png"
                 alt="Shikha Labs Logo"
-                className="w-[32px] h-[42px] lg:w-[42px] lg:h-[56px] object-contain transition-transform hover:scale-105"
+                className="w-[28px] h-[38px] sm:w-[32px] sm:h-[42px] lg:w-[42px] lg:h-[56px] object-contain transition-transform hover:scale-105"
               />
             </Link>
           )}
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           {user && (
             <>
-              <div className="block">
+              <div className="hidden sm:block">
                 <UserDropdown />
               </div>
               <StudentNavOptions />

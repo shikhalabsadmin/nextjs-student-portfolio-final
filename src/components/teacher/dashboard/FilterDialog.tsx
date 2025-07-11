@@ -116,14 +116,18 @@ export const FilterDialog = memo(({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <FilterButton onClick={() => {}} count={activeFilterCount} />
+        <FilterButton 
+          onClick={() => {}} 
+          count={activeFilterCount} 
+          className="h-9 sm:h-10 px-2.5 sm:px-3 text-xs sm:text-sm" 
+        />
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] max-w-[90vw] p-4 sm:p-6">
-        <DialogHeader className="pb-2">
-          <DialogTitle className="text-lg text-slate-800">Filter works</DialogTitle>
+      <DialogContent className="sm:max-w-[425px] max-w-[90vw] p-3 sm:p-4 md:p-6">
+        <DialogHeader className="pb-1 sm:pb-2">
+          <DialogTitle className="text-base sm:text-lg text-slate-800">Filter works</DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-6 py-4 overflow-y-auto max-h-[60vh] sm:max-h-[70vh]">
+        <div className="grid gap-4 sm:gap-6 py-3 sm:py-4 overflow-y-auto max-h-[60vh] sm:max-h-[70vh]">
           <CheckboxGroup
             title="Grade"
             items={allGrades}
@@ -142,17 +146,17 @@ export const FilterDialog = memo(({
           )}
         </div>
 
-        <DialogFooter className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-0 mt-4">
+        <DialogFooter className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-0 mt-2 sm:mt-4">
           <Button
             variant="outline"
             onClick={handleClearFilters}
-            className="w-full sm:w-[120px] border-slate-300 text-slate-900"
+            className="w-full sm:w-[120px] border-slate-300 text-slate-900 text-xs sm:text-sm h-9 sm:h-10"
           >
             Clear All
           </Button>
           <Button 
             onClick={handleApplyFilters} 
-            className="w-full sm:w-[120px] bg-slate-900 hover:bg-slate-700 text-white"
+            className="w-full sm:w-[120px] bg-slate-900 hover:bg-slate-700 text-white text-xs sm:text-sm h-9 sm:h-10"
           >
             Apply Filters
           </Button>

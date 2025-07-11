@@ -252,105 +252,85 @@ const ApprovalModal = memo(
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
         <DialogPortal>
           <DialogOverlay className="fixed inset-0 z-50 bg-black/80" />
-          <div className="fixed left-[50%] top-[50%] z-50 grid w-[90vw] max-w-[20rem] sm:max-w-[24rem] md:max-w-3xl translate-x-[-50%] translate-y-[-50%] bg-white px-4 py-5 sm:px-5 sm:py-7 md:px-10 md:py-[56px] shadow-lg border border-slate-200 rounded-[6px]">
-            <div className="space-y-2.5 sm:space-y-5 md:space-y-10">
+          <div className="fixed left-[50%] top-[50%] z-50 grid w-[95vw] max-w-[20rem] sm:max-w-[24rem] md:max-w-3xl translate-x-[-50%] translate-y-[-50%] bg-white px-3 py-4 sm:px-5 sm:py-7 md:px-10 md:py-[56px] shadow-lg border border-slate-200 rounded-[6px] max-h-[90vh] overflow-y-auto">
+            <div className="space-y-2 sm:space-y-5 md:space-y-10">
               {/* Title */}
               <div className="space-y-1 sm:space-y-2">
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
-                  Confirm Approval
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900">
+                  Approve Assignment
                 </h2>
-                <p className="text-sm sm:text-base text-slate-600 font-normal">
-                  You're about to approve this assignment. Once approved, it
-                  will be added to the student's portfolio.
+                <p className="text-xs sm:text-sm md:text-base text-slate-600 font-normal">
+                  Evaluate the student's work before approving.
                 </p>
               </div>
 
               <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(handleSubmitForm)}
-                  className="space-y-4 sm:space-y-6 md:space-y-8"
-                >
-                  {/* Skills selection */}
+                <form className="space-y-4 sm:space-y-6">
+                  {/* Skills Selection */}
                   <FormField
                     control={form.control}
                     name="selectedSkills"
                     render={({ field }) => (
-                      <FormItem className="space-y-1 sm:space-y-2 md:space-y-3">
-                        <FormLabel className="block text-xs sm:text-sm md:text-base font-semibold text-slate-900">
-                          What skills did you think the student practice?
-                          (Select Top 3)
+                      <FormItem className="space-y-[6px]">
+                        <FormLabel className="block text-xs sm:text-sm font-medium text-slate-900">
+                          Select up to 3 skills demonstrated
                         </FormLabel>
-                        <div className="flex flex-wrap gap-3 sm:gap-4 md:gap-8">
-                          {SKILLS.map((skill) =>
-                            renderSkillCheckbox(skill, field)
-                          )}
-                        </div>
+                        <FormControl>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+                            {SKILLS.map((skill) =>
+                              renderSkillCheckbox(skill, field)
+                            )}
+                          </div>
+                        </FormControl>
                         <FormMessage className="text-red-500 text-xs sm:text-sm" />
                       </FormItem>
                     )}
                   />
 
-                  {/* Justify skills */}
+                  {/* Skills Justification */}
                   <FormField
                     control={form.control}
                     name="justification"
                     render={({ field }) => (
-                      <FormItem className="space-y-1 sm:space-y-2 md:space-y-3">
-                        <div className="flex flex-col gap-1">
-                          <FormLabel className="block text-xs sm:text-sm md:text-base font-semibold text-slate-900">
-                            Justify the selected skills
-                          </FormLabel>
-                          <FormDescription className="text-slate-600 text-xs md:text-sm font-normal">
-                            How did each skill contribute to the creation of the
-                            artifact? What actions, decisions, or moments during
-                            the process demonstrated these skills?
-                          </FormDescription>
-                        </div>
+                      <FormItem className="space-y-[6px]">
+                        <FormLabel className="block text-xs sm:text-sm font-medium text-slate-900">
+                          Justify the skills selection
+                        </FormLabel>
                         <FormControl>
                           <Textarea
                             {...field}
-                            placeholder="How did each skill help in creating this artifact?"
-                            className="min-h-[100px] sm:min-h-[120px] resize-y w-full border border-slate-300 rounded-md text-sm font-normal text-slate-900 placeholder:text-slate-400"
+                            placeholder="Explain why these skills were demonstrated..."
+                            className="min-h-[60px] sm:min-h-[80px] resize-y w-full border border-slate-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md text-xs sm:text-sm"
                             disabled={isSubmitting}
-                            maxLength={200}
                           />
                         </FormControl>
-                        <div className="relative w-full flex">
-                          <FormMessage className="text-red-500 text-xs sm:text-sm" />
-                          <span className="absolute right-0 text-slate-500 text-xs sm:text-sm font-normal">
+                        <FormMessage className="text-red-500 text-xs sm:text-sm" />
+                        <FormDescription className="text-slate-500 text-xs sm:text-sm font-normal">
+                          <span className="text-slate-400">
                             {field.value?.length || 0}/200
                           </span>
-                        </div>
+                        </FormDescription>
                       </FormItem>
                     )}
                   />
 
-                  {/* Feedback (optional) */}
+                  {/* Optional Feedback */}
                   <FormField
                     control={form.control}
                     name="feedback"
                     render={({ field }) => (
-                      <FormItem className="space-y-1 sm:space-y-2">
-                        <div className="flex justify-between">
-                          <FormLabel className="block text-xs sm:text-sm font-medium text-slate-900">
-                            Feedback
-                          </FormLabel>
-                          <span className="text-slate-500 text-sm font-normal">
-                            (required for revision, optional for approval)
-                          </span>
-                        </div>
+                      <FormItem className="space-y-[6px]">
+                        <FormLabel className="block text-xs sm:text-sm font-medium text-slate-900">
+                          Additional feedback (optional)
+                        </FormLabel>
                         <FormControl>
                           <Textarea
                             {...field}
-                            placeholder="Eg: Keep up the good work!"
-                            className="min-h-[100px] sm:min-h-[120px] resize-y w-full border border-slate-300 rounded-md text-sm font-normal text-slate-900 placeholder:text-slate-400"
+                            placeholder="Add any additional comments..."
+                            className="min-h-[60px] sm:min-h-[80px] resize-y w-full border border-slate-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md text-xs sm:text-sm"
                             disabled={isSubmitting}
                           />
                         </FormControl>
-                        <FormDescription className="text-slate-500 text-xs sm:text-sm font-normal">
-                          Suggestion: Express appreciation for your student or
-                          share words of encouragement.
-                        </FormDescription>
                         <FormMessage className="text-red-500 text-xs sm:text-sm" />
                       </FormItem>
                     )}
@@ -358,7 +338,7 @@ const ApprovalModal = memo(
 
                   {form.formState.errors.root && (
                     <p className="text-red-500 text-xs sm:text-sm">
-                      {form.formState.errors.root?.message}
+                      {form.formState.errors.root.message}
                     </p>
                   )}
 
@@ -369,41 +349,40 @@ const ApprovalModal = memo(
                       variant="outline"
                       onClick={onClose}
                       disabled={isSubmitting}
-                      className="w-full sm:w-auto px-3 sm:px-4 py-2 font-medium text-xs sm:text-sm rounded-[6px] border-slate-300 text-slate-800"
+                      className="w-full sm:w-auto px-3 py-2 font-medium text-xs sm:text-sm rounded-[6px] border-slate-300 text-slate-800"
                     >
                       Cancel
                     </Button>
-                    <div className="flex flex-1 flex-row justify-end gap-2.5">
-                      <>
-                        {isSubmitting ? (
-                          <>
-                            <div className="flex items-center justify-center bg-slate-200 rounded-md p-5">
-                              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={handleRevision}
-                              disabled={isSubmitting}
-                              className="w-full sm:w-auto px-3 sm:px-4 py-2 font-medium text-xs sm:text-sm rounded-[6px] border-slate-300 text-slate-800"
-                            >
-                              Send for revision
-                            </Button>
-                            <Button
-                              type="button"
-                              disabled={isSubmitting}
-                              onClick={() => handleSubmitForm(form.getValues())}
-                              className="w-full sm:w-auto px-3 sm:px-4 py-2 font-medium text-xs sm:text-sm rounded-[6px] bg-indigo-500 hover:bg-indigo-600 text-white"
-                            >
-                              Approve
-                            </Button>
-                          </>
-                        )}
-                      </>
-                    </div>
+                    <Button
+                      type="button"
+                      onClick={handleRevision}
+                      disabled={isSubmitting}
+                      className="w-full sm:w-auto px-3 py-2 font-medium text-xs sm:text-sm rounded-[6px] bg-amber-500 hover:bg-amber-600 text-white"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          Sending...
+                        </>
+                      ) : (
+                        "Send for Revision"
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={form.handleSubmit(handleSubmitForm)}
+                      disabled={isSubmitting}
+                      className="w-full sm:w-auto px-3 py-2 font-medium text-xs sm:text-sm rounded-[6px] bg-indigo-500 hover:bg-indigo-600 text-white"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          Approving...
+                        </>
+                      ) : (
+                        "Approve"
+                      )}
+                    </Button>
                   </div>
                 </form>
               </Form>
@@ -415,4 +394,6 @@ const ApprovalModal = memo(
   }
 );
 
-export default ApprovalModal;
+ApprovalModal.displayName = "ApprovalModal";
+
+export { ApprovalModal };

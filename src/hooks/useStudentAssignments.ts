@@ -17,7 +17,7 @@ import { getFilesForMultipleAssignments } from "@/api/assignment-files";
 
 // Basic types for our data structure
 interface AssignmentRecord {
-  id: number;
+  id: string; // Changed from number to string to match Supabase's UUID format
   title: string;
   subject: Subject;
   grade: string;
@@ -30,7 +30,7 @@ interface AssignmentRecord {
 
 // File record type for assignment files
 interface FileRecord {
-  assignment_id: number;
+  assignment_id: string; // Changed from number to string
   file_type: string;
   file_url: string;
   id: number;
@@ -51,8 +51,8 @@ interface UseStudentAssignmentsResult {
   isFetching: boolean;
   error: unknown;
   isEmpty: boolean;
-  deleteAssignment: (assignmentId: number) => Promise<void>;
-  editAssignment: (assignmentId: number) => void;
+  deleteAssignment: (assignmentId: string) => Promise<void>;
+  editAssignment: (assignmentId: string) => void;
   refetch: () => Promise<void>;
 }
 
@@ -71,7 +71,7 @@ export function useStudentAssignments(
     files: FileRecord[] | null
   ): StudentAssignment[] {
     // Create image map for faster lookups
-    const imageMap = new Map<number, string>();
+    const imageMap = new Map<string, string>();
     
     if (files && files.length > 0) {
       files?.forEach(file => {
@@ -132,7 +132,7 @@ export function useStudentAssignments(
       let filesData = null;
 
       try {
-        const filesResult = await getFilesForMultipleAssignments(assignmentIds as unknown as string[], user.id);
+        const filesResult = await getFilesForMultipleAssignments(assignmentIds, user.id);
         
         if (!isError(filesResult)) {
           filesData = filesResult;
@@ -188,12 +188,12 @@ export function useStudentAssignments(
 
   // Delete assignment mutation
   const deleteAssignmentMutation = useMutation({
-    mutationFn: async (assignmentId: number) => {
+    mutationFn: async (assignmentId: string) => { // Changed from number to string
       if (!user?.id) {
         throw new Error("User not authenticated");
       }
       
-      const result = await apiDeleteAssignment(String(assignmentId), user.id);
+      const result = await apiDeleteAssignment(assignmentId, user.id);
       
       if (isError(result)) {
         throw new Error("Failed to delete assignment");
@@ -250,7 +250,7 @@ export function useStudentAssignments(
   });
 
   // Handler functions
-  const deleteAssignment = async (assignmentId: number) => {
+  const deleteAssignment = async (assignmentId: string) => { // Changed from number to string
     if (!user?.id) {
       toast.error("You must be logged in to delete assignments");
       return;
@@ -264,13 +264,13 @@ export function useStudentAssignments(
     }
   };
 
-  const editAssignment = (assignmentId: number) => {
+  const editAssignment = (assignmentId: string) => { // Changed from number to string
     if (!user?.id) {
       toast.error("You must be logged in to edit assignments");
       return;
     }
     
-    navigate(ROUTES.STUDENT.MANAGE_ASSIGNMENT.replace(':id', String(assignmentId)));
+    navigate(ROUTES.STUDENT.MANAGE_ASSIGNMENT.replace(':id', assignmentId));
   };
 
   // Return everything the component needs

@@ -75,14 +75,14 @@ export const RevisionModal = memo(
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
         <DialogPortal>
           <DialogOverlay className="fixed inset-0 z-50 bg-black/80" />
-          <div className="fixed left-[50%] top-[50%] z-50 grid w-[90vw] max-w-[20rem] sm:max-w-[24rem] md:max-w-3xl translate-x-[-50%] translate-y-[-50%] bg-white px-4 py-5 sm:px-5 sm:py-7 md:px-10 md:py-[56px] shadow-lg border border-slate-200 rounded-[6px]">
-            <div className="space-y-2.5 sm:space-y-5 md:space-y-10">
+          <div className="fixed left-[50%] top-[50%] z-50 grid w-[95vw] max-w-[20rem] sm:max-w-[24rem] md:max-w-3xl translate-x-[-50%] translate-y-[-50%] bg-white px-3 py-4 sm:px-5 sm:py-7 md:px-10 md:py-[56px] shadow-lg border border-slate-200 rounded-[6px] max-h-[90vh] overflow-y-auto">
+            <div className="space-y-2 sm:space-y-5 md:space-y-10">
               {/* Title */}
               <div className="space-y-1 sm:space-y-2">
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900">
                   Send for revision
                 </h2>
-                <p className="text-sm sm:text-base text-slate-600 font-normal">
+                <p className="text-xs sm:text-sm md:text-base text-slate-600 font-normal">
                   Please specify what the student should revise.
                 </p>
               </div>
@@ -102,7 +102,7 @@ export const RevisionModal = memo(
                           <Textarea
                             {...field}
                             placeholder="Eg: Clarify Skills Used, Expand Reflection"
-                            className="min-h-[100px] sm:min-h-[120px] resize-y w-full border border-slate-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md text-sm sm:text-base"
+                            className="min-h-[100px] sm:min-h-[120px] resize-y w-full border border-slate-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md text-xs sm:text-sm"
                             disabled={isSubmitting}
                           />
                         </FormControl>
@@ -127,14 +127,14 @@ export const RevisionModal = memo(
                       variant="outline"
                       onClick={onClose}
                       disabled={isSubmitting}
-                      className="w-full sm:w-auto px-3 sm:px-4 py-2 font-medium text-xs sm:text-sm rounded-[6px] border-slate-300 text-slate-800"
+                      className="w-full sm:w-auto px-3 py-2 font-medium text-xs sm:text-sm rounded-[6px] border-slate-300 text-slate-800"
                     >
                       Cancel
                     </Button>
                     <Button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full sm:w-auto px-3 sm:px-4 py-2 font-medium text-xs sm:text-sm rounded-[6px] bg-indigo-500 hover:bg-indigo-600 text-white"
+                      className="w-full sm:w-auto px-3 py-2 font-medium text-xs sm:text-sm rounded-[6px] bg-indigo-500 hover:bg-indigo-600 text-white"
                     >
                       {isSubmitting ? (
                         <>

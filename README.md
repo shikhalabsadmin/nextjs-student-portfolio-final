@@ -234,6 +234,66 @@ You can deploy this application using various platforms such as:
 
 To use a custom domain, you can configure it through your chosen deployment platform. Most platforms provide straightforward options for connecting your domain.
 
+## Responsive Design Implementation
+
+The application has been optimized for responsive display across all device sizes, from mobile phones to large desktop screens. The responsive design implementation follows these principles:
+
+### Breakpoints
+
+We use standard Tailwind CSS breakpoints:
+- `xs`: 0px (default)
+- `sm`: 640px
+- `md`: 768px
+- `lg`: 1024px
+- `xl`: 1280px
+- `2xl`: 1536px
+
+### Responsive Components
+
+Key responsive features include:
+
+1. **Flexible Layouts**
+   - Grid layouts that adapt to screen size
+   - Stack layouts on mobile, horizontal on desktop
+   - Proper spacing adjustments for different screen sizes
+
+2. **Mobile-First Approach**
+   - Components designed for mobile first
+   - Enhanced for larger screens
+   - Consistent padding and margin scales
+
+3. **Collapsible UI Elements**
+   - Sidebars that can be collapsed on smaller screens
+   - Mobile navigation menu
+   - Responsive modals and dialogs
+
+4. **Text Scaling**
+   - Font sizes that adjust based on screen size
+   - Proper text wrapping and overflow handling
+
+5. **Touch-Friendly Controls**
+   - Larger touch targets on mobile
+   - Properly spaced interactive elements
+   - Full-width buttons on mobile
+
+### Responsive Utility Hooks
+
+Custom React hooks for responsive design:
+
+- `useIsMobile(breakpoint)`: Check if viewport is below a specific breakpoint
+- `useActiveBreakpoint()`: Get the current active breakpoint
+- `useBreakpoint(min, max)`: Check if viewport is within a specific range
+
+### Implementation Strategy
+
+The responsive implementation preserves the desktop experience while enhancing mobile usability:
+
+1. **Component-Level Responsiveness**: Each component handles its own responsive behavior
+2. **Consistent Spacing**: Using a consistent spacing scale that adapts to screen size
+3. **Flexible Containers**: Using flex and grid layouts that adapt to available space
+4. **Conditional Rendering**: Showing/hiding elements based on screen size when appropriate
+5. **Performance Optimization**: Minimizing layout shifts and reflows
+
 ## ❓ Troubleshooting
 
 ### Common Issues

@@ -1,20 +1,25 @@
 import { memo } from "react";
 import { Button } from "@/components/ui/button";
 import { FilterIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // Reusable filter button component
 interface FilterButtonProps {
   onClick: () => void;
   count: number;
+  className?: string;
 }
 
-const FilterButton = memo(({ onClick, count }: FilterButtonProps) => {
+const FilterButton = memo(({ onClick, count, className }: FilterButtonProps) => {
   return (
     <Button
       variant="outline"
       onClick={onClick}
       aria-label="Filter"
-      className="h-10 border border-slate-200 bg-white hover:bg-slate-50 flex-shrink-0 relative px-4 py-2 flex items-center gap-2.5 rounded-[6px]"
+      className={cn(
+        "border border-slate-200 bg-white hover:bg-slate-50 flex-shrink-0 relative px-4 py-2 flex items-center gap-2.5 rounded-[6px]",
+        className
+      )}
     >
       <FilterIcon className="h-4 w-4 text-slate-800" />
       <span className="text-slate-800 text-sm font-medium">Filter</span>

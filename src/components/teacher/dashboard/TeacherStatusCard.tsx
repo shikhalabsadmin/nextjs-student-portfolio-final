@@ -8,17 +8,36 @@ interface TeacherStatusCardProps {
 export const TeacherStatusCard = memo(
   ({ artifactCount }: TeacherStatusCardProps) => {
     return (
-      <div className="space-y-4">
-        <h3 className="text-slate-500 text-sm font-normal">Your Update</h3>
-        <div className="bg-red-500 size-6 rounded-full absolute -top-7 left-1/2 -translate-x-1/2" />
-        <div className="flex flex-row flex-wrap justify-between items-center text-slate-900 text-xl font-bold gap-1">
-          <span> You have </span>
-          <span className="text-green-600">
-            {artifactCount} student works
-          </span>
-          <span> to review.</span>
+      <Card className="relative overflow-hidden">
+        {/* Mobile version (shown only on small screens) */}
+        <div className="block sm:hidden px-3 py-2 border-l-4 border-l-green-500">
+          <div className="flex items-center justify-between">
+            <h3 className="text-slate-500 text-xs font-medium">Your Update</h3>
+            <div className="flex items-center">
+              <span className="bg-green-500 h-2 w-2 rounded-full mr-1.5" />
+              <span className="text-xs text-slate-500">Now</span>
+            </div>
+          </div>
+          
+          <p className="text-sm font-medium text-slate-800 mt-1">
+            <span className="text-green-600 font-semibold">{artifactCount}</span> student works to review
+          </p>
         </div>
-      </div>
+
+        {/* Desktop version - more compact (hidden on small screens) */}
+        <div className="hidden sm:block p-3">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-slate-500 text-xs font-medium">Your Update</h3>
+            <div className="flex items-center">
+              <span className="bg-green-500 h-2 w-2 rounded-full mr-1" />
+              <span className="text-xs text-slate-500">Now</span>
+            </div>
+          </div>
+          <p className="text-base font-medium text-slate-800">
+            <span className="text-green-600 font-semibold">{artifactCount}</span> student works to review
+          </p>
+        </div>
+      </Card>
     );
   }
 );

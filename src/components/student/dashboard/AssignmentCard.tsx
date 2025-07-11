@@ -33,7 +33,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 
 interface AssignmentCardProps {
-  id: string | number;
+  id: string; // Changed to only accept string IDs for consistency
   title: string;
   subject: Subject;
   grade: GradeLevel;
@@ -93,9 +93,9 @@ export function AssignmentCard({
   const handleCardClick = () => {
     // Navigate based on assignment status
     if (status === ASSIGNMENT_STATUS.DRAFT || status === ASSIGNMENT_STATUS.NEEDS_REVISION || status === ASSIGNMENT_STATUS.SUBMITTED) {
-      navigate(ROUTES.STUDENT.MANAGE_ASSIGNMENT.replace(":id", String(id)));
+      navigate(ROUTES.STUDENT.MANAGE_ASSIGNMENT.replace(":id", id));
     } else if (status === ASSIGNMENT_STATUS.APPROVED) {
-      navigate(ROUTES.ASSIGNMENT.DETAIL.replace(":id", String(id)));
+      navigate(ROUTES.ASSIGNMENT.DETAIL.replace(":id", id));
     } else {
       // For other statuses, also navigate to detail page
       console.log("Other statuses");
@@ -108,7 +108,7 @@ export function AssignmentCard({
     // Create the assignment detail URL using the routes configuration
     const assignmentUrl = `${
       window.location.origin
-    }${ROUTES.ASSIGNMENT.DETAIL.replace(":id", String(id))}`;
+    }${ROUTES.ASSIGNMENT.DETAIL.replace(":id", id)}`;
 
     try {
       await navigator.clipboard.writeText(assignmentUrl);

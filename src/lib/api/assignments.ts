@@ -24,19 +24,41 @@ export const createAssignment = async (data: AssignmentFormValues) => {
 };
 
 export const getAssignment = async (id: string) => {
-  debug.log("Fetching assignment", { id });
-  const { data, error } = await supabase
-    .from("assignments")
-    .select("*")
-    .eq("id", id)
-    .single();
+  try {
+    if (!id || typeof id !== 'string' || id === ':id') {
+      debug.error("Invalid assignment ID provided", { id });
+      throw new Error("Invalid assignment ID");
+    }
 
-  if (error) {
-    debug.error("Failed to fetch assignment", error);
+    debug.log("Fetching assignment", { id });
+    
+    const { data, error } = await supabase
+      .from("assignments")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      debug.error("Failed to fetch assignment", { id, error });
+      throw error;
+    }
+
+    if (!data) {
+      debug.warn("Assignment not found", { id });
+      throw new Error(`Assignment with ID ${id} not found`);
+    }
+
+    debug.log("Assignment fetched successfully", { 
+      id, 
+      title: data.title, 
+      status: data.status 
+    });
+    
+    return data;
+  } catch (error) {
+    debug.error("Error in getAssignment", { id, error });
     throw error;
   }
-
-  return data;
 };
 
 export const updateAssignment = async (
@@ -82,23 +104,49 @@ export const deleteAssignment = async (id: string) => {
   return { success: true };
 };
 
-export const getAssignmentWithFiles = async (id: string) => {
-  debug.log("Fetching assignment with files", { id });
+export const getAssignmentWithFiles = async (id?: string, userId?: string) => {
+  try {
+    // Validate input parameters
+    if (!id || id === ":id") {
+      debug.error("Invalid assignment ID", { id });
+      throw new Error("Invalid assignment ID");
+    }
 
-  // Fetch the assignment
+    if (!userId) {
+      debug.error("Missing user ID for assignment fetch", { id });
+      throw new Error("User ID is required");
+    }
 
-  const assignment = await getAssignment(id);
+    debug.log("Fetching assignment with files", { id, userId });
 
-  // Fetch the files
-  const files = await fetchAssignmentFiles(id);
+    // Fetch the assignment
+    const assignment = await getAssignment(id);
 
-  console.log("getAssignmentWithFiles", {
-    ...(assignment ?? {}),
-    files: files ?? [],
-  });
+    // If assignment doesn't exist or doesn't belong to this user
+    if (!assignment || (assignment.student_id && assignment.student_id !== userId)) {
+      debug.error("Assignment not found or access denied", { 
+        id, userId, 
+        exists: !!assignment,
+        belongsToUser: assignment?.student_id === userId
+      });
+      throw new Error("Assignment not found or access denied");
+    }
 
-  // Return the assignment with files
-  return { ...(assignment ?? {}), files: files ?? [] };
+    // Fetch the files
+    const files = await fetchAssignmentFiles(id);
+
+    debug.log("getAssignmentWithFiles success", {
+      id,
+      title: assignment?.title,
+      filesCount: files?.length || 0
+    });
+
+    // Return the assignment with files
+    return { ...(assignment ?? {}), files: files ?? [] };
+  } catch (error) {
+    debug.error("Failed to fetch assignment with files", { id, error });
+    throw error;
+  }
 };
 
 // File operations

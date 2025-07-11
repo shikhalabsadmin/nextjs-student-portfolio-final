@@ -174,24 +174,21 @@ export const AssignmentsList = () => {
   };
 
   const handleCardClick = (assignment: any) => {
-    const isDraft = assignment.status.toLowerCase() === 'draft';
+    // Make sure we're using a string ID
+    const assignmentId = String(assignment.id);
     
-    if (isDraft) {
-      console.log('[NAVIGATE] Draft data:', {
-        id: assignment.id,
-        title: assignment.title,
-        artifact_type: assignment.artifact_type,
-        raw: assignment
+    if (!assignmentId) {
+      console.error("Invalid assignment ID:", assignmentId);
+      toast({
+        title: "Error",
+        description: "Could not open assignment: Invalid ID",
+        variant: "destructive"
       });
-      navigate(`/app/submit?id=${assignment.id}`, {
-        state: {
-          draftData: assignment
-        }
-      });
-    } else {
-      // For submitted assignments, show the view-only version
-      navigate(`/app/assignments/${assignment.id}/view`);
+      return;
     }
+    
+    // Navigate to the assignment form
+    navigate(`/student/assignment/${assignmentId}`);
   };
 
   return (

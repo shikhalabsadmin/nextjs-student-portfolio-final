@@ -1,8 +1,9 @@
-import React, { memo } from "react";
+import { memo } from "react";
 import { cn } from "@/lib/utils";
-import { ASSIGNMENT_STATUS, STATUS_DISPLAY_NAMES, AssignmentStatus } from "@/constants/assignment-status";
+import { ASSIGNMENT_STATUS, STATUS_DISPLAY_NAMES } from "@/constants/assignment-status";
+import { Button } from "@/components/ui/button";
 
-export type ArtifactFilterTab = "All" | AssignmentStatus;
+export type ArtifactFilterTab = "All" | keyof typeof ASSIGNMENT_STATUS;
 
 interface ArtifactTabFilterProps {
   activeTab: ArtifactFilterTab;
@@ -27,15 +28,38 @@ export const ArtifactTabFilter = memo(({ activeTab, onTabChange }: ArtifactTabFi
   };
 
   return (
-    <div className="border-b border-slate-300">
-      <div className="flex justify-between items-center">
-        <nav className="-mb-px flex space-x-12 overflow-x-auto" aria-label="Tabs">
+    <div className="w-full">
+      {/* Mobile pill view */}
+      <div className="md:hidden py-3 overflow-x-auto scrollbar-hide">
+        <div className="flex gap-2 min-w-max px-1">
+          {tabs.map((tab) => (
+            <Button
+              key={tab}
+              variant={activeTab === tab ? "default" : "outline"}
+              size="sm"
+              onClick={() => onTabChange(tab)}
+              className={cn(
+                "whitespace-nowrap transition-colors",
+                activeTab === tab
+                  ? "bg-primary text-primary-foreground font-medium"
+                  : "text-slate-700 hover:text-slate-900"
+              )}
+            >
+              {getTabDisplayName(tab)}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* Desktop tabs view */}
+      <div className="hidden md:block border-b border-slate-300">
+        <nav className="-mb-px flex space-x-8 md:space-x-12" aria-label="Tabs">
           {tabs.map((tab) => (
             <button
               key={tab}
               onClick={() => onTabChange(tab)}
               className={cn(
-                "whitespace-nowrap py-4 border-b-2 text-sm font-normal transition-colors cursor-pointer",
+                "whitespace-nowrap py-3 md:py-4 border-b-2 text-sm font-normal transition-colors cursor-pointer",
                 activeTab === tab
                   ? "border-black text-black font-semibold"
                   : "border-transparent text-slate-900"

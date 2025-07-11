@@ -17,6 +17,41 @@ export function Error({
   homeButtonText = "Go Home",
   onHome
 }: ErrorProps) {
+  // Format error message to provide more context when possible
+  const formatErrorMessage = (message: string): string => {
+    if (typeof message !== 'string') {
+      return "An unknown error occurred";
+    }
+
+    // Check if URL contains a literal :id parameter
+    const currentUrl = window.location.href;
+    if (currentUrl.includes('/assignment/:id') || message.includes(':id')) {
+      return "Invalid assignment ID. The URL contains a placeholder ':id' instead of an actual assignment ID.";
+    }
+
+    // Check for specific error patterns
+    if (message.includes('Failed to fetch') || message.includes('Network error')) {
+      return "Network connection issue. Please check your internet connection and try again.";
+    }
+
+    if (message.includes('not found') || message.includes('404')) {
+      return "The requested resource could not be found. It may have been deleted or moved.";
+    }
+
+    if (message.includes('permission') || message.includes('unauthorized') || message.includes('403')) {
+      return "You don't have permission to access this resource. Please log in again or contact support.";
+    }
+
+    if (message.includes('timeout')) {
+      return "The request timed out. Please try again later when the server is less busy.";
+    }
+
+    // If no specific pattern matches, return the original message
+    return message;
+  };
+
+  const formattedMessage = formatErrorMessage(message);
+
   const handleRetry = () => {
     if (retry) {
       retry();
@@ -77,7 +112,7 @@ export function Error({
         "mb-6 text-base md:text-lg",
         variantClasses[variant].message
       )}>
-        {message}
+        {formattedMessage}
       </p>
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <Button

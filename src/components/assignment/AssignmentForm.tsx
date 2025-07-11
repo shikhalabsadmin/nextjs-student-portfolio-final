@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { User } from "@supabase/supabase-js";
+import { useParams } from "react-router-dom";
 import { Form } from "@/components/ui/form";
 import { Loading } from "@/components/ui/loading";
 import {
@@ -40,6 +41,9 @@ type AssignmentFormProps = {
 };
 
 function AssignmentForm({ user }: AssignmentFormProps) {
+  // Get the current route params
+  const { id: routeId } = useParams<{ id: string }>();
+  
   // State management
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const { toast } = useToast();
@@ -172,7 +176,7 @@ function AssignmentForm({ user }: AssignmentFormProps) {
 
   // Main render
   return (
-    <div className="px-16 py-6 flex flex-col gap-6">
+    <div className="px-3 sm:px-8 md:px-16 py-3 sm:py-6 flex flex-col gap-3 sm:gap-6 mobile-container">
       {/* Breadcrumb navigation - full width */}
       <GenericBreadcrumb
         items={[
@@ -190,58 +194,60 @@ function AssignmentForm({ user }: AssignmentFormProps) {
         hasBackIcon={true}
         backTo={ROUTES.STUDENT.DASHBOARD}
         styles={{
-          container: "!w-full !max-w-none !px-0",
+          container: "!w-full !max-w-none !px-0 overflow-x-auto",
         }}
       />
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3 sm:gap-4 mobile-spacing-y">
         {/* Mobile step progress */}
         <div className="w-full md:hidden">
           <StepProgress {...stepProgressProps} />
         </div>
 
-        <div className="flex flex-col md:flex-row md:gap-8">
-          {/* Desktop step progress sidebar */}
-          <div className="hidden md:block w-80 h-max border-2 border-slate-200 rounded-md">
-            <StepProgress {...stepProgressProps} />
+        {/* Main content area with sidebar */}
+        <div className="flex flex-col md:flex-row gap-3 sm:gap-6">
+          {/* Sidebar for desktop */}
+          <div className="hidden md:block w-64 shrink-0">
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden sticky top-4">
+              <StepProgress {...stepProgressProps} />
+            </div>
           </div>
 
-          {/* Main form content */}
+          {/* Main content area */}
           <div className="flex-1">
-            <Form {...form}>
-              <div className="rounded-md border border-gray-200 flex flex-col h-[calc(100vh-8rem)] overflow-hidden">
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              {/* Step header */}
+              {currentStepConfig && (
                 <StepHeader
-                  title={currentStepConfig?.header ?? ""}
-                  description={currentStepConfig?.description ?? ""}
+                  title={currentStepConfig.title}
+                  description={currentStepConfig.description}
                   onContinue={handleSaveAndContinueClick}
                   disabled={isContinueDisabled}
                   step={currentStep as AssignmentStep}
                   areAllStepsComplete={areAllStepsComplete}
                 />
-                <section className="px-3 py-2 md:px-6 md:py-4 flex-1 overflow-y-auto">
-                  {assignmentStatus === ASSIGNMENT_STATUS.SUBMITTED && (
-                    <div className="bg-amber-50 border border-amber-200 p-3 mb-4 rounded-md">
-                      <p className="text-amber-800 text-sm">
-                        Your assignment has been submitted. You can view all
-                        sections but cannot make any changes.
-                      </p>
-                    </div>
-                  )}
-                  <StepContent step={currentStep} form={form} />
-                </section>
-              </div>
-            </Form>
+              )}
 
-            <ConfirmationModal
-              open={showConfirmationModal}
-              onOpenChange={setShowConfirmationModal}
-              onConfirm={handleConfirmSubmit}
-            />
+              {/* Form */}
+              <Form {...form}>
+                <form className="p-3 sm:p-6">
+                  <StepContent step={currentStep as AssignmentStep} form={form} />
+                </form>
+              </Form>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        open={showConfirmationModal}
+        onOpenChange={setShowConfirmationModal}
+        onConfirm={handleConfirmSubmit}
+      />
     </div>
   );
 }
 
+// Change from named export to default export to fix lazy loading issues
 export default AssignmentForm;

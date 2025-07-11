@@ -5,33 +5,26 @@ import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
 import { UseFormReturn } from "react-hook-form";
 import { type AssignmentFormValues } from "@/lib/validations/assignment";
 import { TeacherHeader } from "@/components/teacher/assignment_view/TeacherHeader";
-import TabSidebar from "@/components/teacher/assignment_view/TeacherSidebar";
-
+import TeacherSidebar from "@/components/teacher/assignment_view/TeacherSidebar";
 import { Loading } from "@/components/ui/loading";
 import { Error } from "@/components/ui/error";
 import StepContent from "@/components/teacher/assignment_view/StepContent";
 import useSingleAssignmentView from "@/hooks/teacher/useSingleAssignmentView";
-
-const ApprovalModal = lazy(
-  () => import("@/components/teacher/assignment_view/ApprovalModal")
-);
+import { ApprovalModal } from "@/components/teacher/assignment_view/ApprovalModal";
+import { RevisionModal } from "@/components/teacher/assignment_view/RevisionModal";
 
 type TeacherAssignmentViewProps = {
   user: User;
 };
 
-const tabs = [
-  { id: "work", label: "Work details" },
-  { id: "feedback", label: "Feedback" }
-];
-
 const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [activeSidebarTab, setActiveSidebarTab] =
-    useState<(typeof tabs)[number]["id"]>("work");
-  const [isFeedbackModalOpen, setIsFeedbackModalOpen] =
-    useState<boolean>(false);
+  const [activeStep, setActiveStep] = useState(0);
+  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
+  const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
   const [modalDefaultValues, setModalDefaultValues] = useState({
     selectedSkills: [] as string[],
     justification: "",
@@ -64,22 +57,36 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
     }
   }, [skillsAssessment]);
 
-  // Toggle feedback modal visibility and prepare default values
-  const toggleFeedbackModal = useCallback(() => {
-    if (!isFeedbackModalOpen) {
-      // Modal is about to open - get the latest feedback from current teacher
-      const latestFeedback = getCurrentTeacherLatestFeedback();
-      
-      // Update default values for the modal
-      setModalDefaultValues({
-        selectedSkills: skillsAssessment?.selected_skills || [],
-        justification: skillsAssessment?.skills_justification || "",
-        feedback: "" // Always start with empty feedback
-      });
-    }
-    
-    setIsFeedbackModalOpen((prevState) => !prevState);
-  }, [isFeedbackModalOpen, getCurrentTeacherLatestFeedback, skillsAssessment]);
+  // Prepare steps for the sidebar
+  const steps = [
+    { id: "basic-info", title: "Basic Information", completed: true },
+    { id: "files", title: "Files & Links", completed: true },
+    { id: "reflection", title: "Reflection", completed: true },
+  ];
+
+  // Handle approval modal
+  const openApprovalModal = () => setIsApprovalModalOpen(true);
+  const closeApprovalModal = () => setIsApprovalModalOpen(false);
+
+  // Handle revision modal
+  const openRevisionModal = () => setIsRevisionModalOpen(true);
+  const closeRevisionModal = () => setIsRevisionModalOpen(false);
+
+  // Handle step change
+  const handleStepChange = (step: number) => {
+    setActiveStep(step);
+    setIsMobileMenuOpen(false); // Close mobile menu when changing steps
+  };
+
+  // Handle back button
+  const handleBack = () => {
+    navigate("/app/teacher/dashboard");
+  };
+
+  // Toggle mobile menu
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
 
   if (isLoading || isRefetching) {
     return (
@@ -106,78 +113,101 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
     );
   }
 
+  const isApproved = assignment?.status === ASSIGNMENT_STATUS.APPROVED;
+  const isRevisionRequested = assignment?.status === ASSIGNMENT_STATUS.NEEDS_REVISION;
+
   return (
-    <div className="px-8 py-5 md:px-16 md:py-10">
-      <div className="flex flex-col gap-4 md:gap-8 md:flex-row">
-        {/* Sidebar */}
-        <TabSidebar
-          activeTab={activeSidebarTab}
-          setActiveTab={setActiveSidebarTab}
-          tabs={tabs}
-          title="Work"
-        />
+    <div className="px-3 py-3 sm:px-5 sm:py-4 md:px-8 md:py-6 lg:px-16 lg:py-10">
+      {/* Mobile menu toggle button */}
+      <div className="md:hidden mb-3">
+        <button 
+          onClick={toggleMobileMenu}
+          className="flex items-center justify-center p-2 rounded-md bg-white border border-slate-200 shadow-sm"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+          <span className="ml-2">Assignment Steps</span>
+        </button>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-3 md:gap-4 lg:gap-8">
+        {/* Sidebar - hidden on mobile unless toggled */}
+        <div className={`${isMobileMenuOpen ? 'block' : 'hidden'} md:block z-20`}>
+          <TeacherSidebar
+            steps={steps}
+            activeStep={activeStep}
+            onStepChange={handleStepChange}
+            onBack={handleBack}
+            showBackButton={true}
+          />
+        </div>
 
         {/* Main content area */}
         <div className="flex-1">
-          <div className="rounded border border-slate-200 flex flex-col h-[calc(100vh-8rem)] overflow-hidden shadow-sm bg-white">
+          <div className="rounded border border-slate-200 flex flex-col h-[calc(100vh-6rem)] md:h-[calc(100vh-8rem)] overflow-hidden shadow-sm bg-white">
             {/* Header */}
             <div className="sticky top-0 z-10 bg-white border-b border-slate-200">
               <TeacherHeader
                 studentName={student?.name || "Student"}
                 subject={assignment.subject || "Unknown Subject"}
                 grade={assignment.grade || "Unknown Grade"}
-                isApproved={assignment?.status === ASSIGNMENT_STATUS.APPROVED}
-                sendFeedback={toggleFeedbackModal}
+                isApproved={isApproved}
+                isRevisionRequested={isRevisionRequested}
               />
-              
             </div>
 
-            {/* Content based on sidebar tab */}
-            <div className="flex-1 overflow-auto">
-              <StepContent
-                step={activeSidebarTab}
-                form={form as UseFormReturn<AssignmentFormValues>}
-                feedbackItems={feedbackItems}
-              />
-            </div>
+            {/* Content */}
+            <StepContent
+              activeStep={activeStep}
+              steps={steps}
+              onApprove={async (formData) => {
+                await updateAssignmentStatus(
+                  {
+                    selectedSkills: formData?.selectedSkills || [],
+                    justification: formData?.justification || "",
+                    feedback: formData?.feedback || "",
+                  },
+                  ASSIGNMENT_STATUS.APPROVED
+                );
+              }}
+              onRevision={async (formData) => {
+                await updateAssignmentStatus(
+                  {
+                    selectedSkills: formData?.selectedSkills || [],
+                    justification: formData?.justification || "",
+                    feedback: formData?.feedback || "",
+                  },
+                  ASSIGNMENT_STATUS.NEEDS_REVISION
+                );
+              }}
+              defaultStates={modalDefaultValues}
+              onFormDataChange={(formData) => {
+                setSkillsAssessment({
+                  selected_skills: formData?.selectedSkills || [],
+                  skills_justification: formData?.justification || "",
+                });
+              }}
+              isApproved={isApproved}
+              isRevisionRequested={isRevisionRequested}
+              form={form as UseFormReturn<AssignmentFormValues>}
+              feedbackItems={feedbackItems}
+            />
           </div>
         </div>
       </div>
-
-      {/* Approval Modal */}
-      {isFeedbackModalOpen ? (
-        <ApprovalModal
-          isOpen={isFeedbackModalOpen}
-          onClose={toggleFeedbackModal}
-          onRevision={async (formData) => {
-            await updateAssignmentStatus(
-              {
-                selectedSkills: formData?.selectedSkills || [],
-                justification: formData?.justification || "",
-                feedback: formData?.feedback || "",
-              },
-              ASSIGNMENT_STATUS.NEEDS_REVISION
-            );
-          }}
-          onApprove={async (formData) => {
-            await updateAssignmentStatus(
-              {
-                selectedSkills: formData?.selectedSkills || [],
-                justification: formData?.justification || "",
-                feedback: formData?.feedback || "",
-              },
-              ASSIGNMENT_STATUS.APPROVED
-            );
-          }}
-          defaultStates={modalDefaultValues}
-          onFormDataChange={(formData) => {
-            setSkillsAssessment({
-              selected_skills: formData?.selectedSkills || [],
-              skills_justification: formData?.justification || "",
-            });
-          }}
-        />
-      ) : null}
     </div>
   );
 };

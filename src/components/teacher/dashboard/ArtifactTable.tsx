@@ -24,6 +24,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ROUTES } from "@/config/routes";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Types based on the data structure in the image
 export interface Artifact {
@@ -55,6 +56,7 @@ export const ArtifactTable = memo(
     searchQuery = "",
   }: ArtifactTableProps) => {
     const { toast } = useToast();
+    const isMobile = useIsMobile();
 
     const handleCopyLink = async (e: React.MouseEvent, artifact: Artifact) => {
       e.stopPropagation();
@@ -83,6 +85,71 @@ export const ArtifactTable = memo(
       return null;
     }
 
+    // Mobile card view
+    if (isMobile) {
+      return (
+        <div className="space-y-3">
+          {artifacts.map((artifact) => (
+            <div 
+              key={String(artifact.id)}
+              className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 cursor-pointer"
+              onClick={() => onRowClick?.(artifact)}
+            >
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-medium text-slate-900 text-sm">{artifact.name}</h3>
+                <Badge
+                  className={cn(
+                    "font-normal text-xs py-0.5 px-2 rounded-[15px]",
+                    STATUS_COLORS[artifact.status]
+                  )}
+                >
+                  {STATUS_DISPLAY_NAMES[artifact.status]}
+                </Badge>
+              </div>
+              
+              <div className="space-y-1 mb-3">
+                <p className="text-xs text-gray-500">
+                  <span className="font-medium">Student:</span> {artifact.studentName}
+                </p>
+                <p className="text-xs text-gray-500">
+                  <span className="font-medium">Subject:</span> {formatSubject(artifact.subject)}
+                </p>
+                <p className="text-xs text-gray-500">
+                  <span className="font-medium">Class:</span> {artifact.class}
+                </p>
+              </div>
+              
+              <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                <span className="text-xs text-gray-500">Last updated: {artifact.lastUpdated}</span>
+                <div className="flex gap-1">
+                  {artifact.status === ASSIGNMENT_STATUS.APPROVED && (
+                    <button
+                      className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+                      onClick={(e) => handleCopyLink(e, artifact)}
+                      aria-label={`Copy link for ${artifact.name}`}
+                    >
+                      <CopyIcon className="size-4 text-[#475467]" />
+                    </button>
+                  )}
+                  <button
+                    className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRowClick?.(artifact);
+                    }}
+                    aria-label={`Edit ${artifact.name}`}
+                  >
+                    <PencilIcon className="size-4 text-[#475467]" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Desktop table view
     return (
       <div
         className="border rounded-[6px] overflow-hidden bg-white w-full"

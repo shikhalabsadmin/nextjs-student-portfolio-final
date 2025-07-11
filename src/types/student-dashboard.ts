@@ -3,7 +3,7 @@ import { Subject, GradeLevel } from "@/constants/grade-subjects";
 import { StatusFilterKeys, SubjectFilterKeys } from "@/utils/type-utils";
 
 export interface StudentAssignment {
-  id: number;
+  id: string; // Changed from number to string to match Supabase's UUID format
   title: string;
   subject: Subject;
   grade: GradeLevel;

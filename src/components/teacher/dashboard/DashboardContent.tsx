@@ -140,35 +140,37 @@ const DashboardContent = ({ user }: TeacherDataProps) => {
           [8, 1],
         ]}
       />
-      {/* White header section */}
-      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5 md:gap-0 pt-6 md:pt-8 px-8 md:px-16">
-        <div className="space-y-2 md:space-y-4">
-          <span className="text-slate-700 text-lg font-normal">
-            {formattedDate}
-          </span>
-          <h1 className="text-black text-2xl md:text-[40px] font-bold">
-            Hello, {safeUser?.full_name || "Teacher"}
-          </h1>
+      {/* Compact header section with teacher info and status card */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 md:gap-3 pt-2 sm:pt-3 md:pt-4 px-4 sm:px-8 md:px-16 pb-2 border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          <div>
+            <span className="text-slate-700 text-sm font-normal block">
+              {formattedDate}
+            </span>
+            <h1 className="text-black text-xl sm:text-2xl font-bold">
+              Hello, {safeUser?.full_name || "Teacher"}
+            </h1>
+          </div>
         </div>
-        <div className="bg-white px-6 py-[19px] rounded-[11px] border border-[#E5E5E5] shadow-sm z-10 relative">
+        <div className="bg-white rounded-[8px] border border-[#E5E5E5] shadow-sm z-10 relative w-full sm:w-auto">
           <TeacherStatusCard artifactCount={uniquesStudentsCount || 0} />
         </div>
       </div>
 
       {/* Gray background section - fills remaining height */}
-      <div className="bg-[#F7F7F7] flex-1 w-full z-10 px-8 md:px-16 mt-4 flex flex-col gap-4">
-        <div className="flex flex-col py-4">
-          <h1 className="text-slate-900 text-xl font-semibold">
+      <div className="bg-[#F7F7F7] flex-1 w-full z-10 px-4 sm:px-8 md:px-16 pt-3 flex flex-col gap-2">
+        <div className="flex flex-col py-2">
+          <h1 className="text-slate-900 text-lg font-semibold">
             Work to review
           </h1>
-          <p className="text-slate-600 text-sm font-normal">
+          <p className="text-slate-600 text-xs sm:text-sm font-normal">
             Manage and track your academic portfolio
           </p>
         </div>
 
         {/* Fixed search and filter section */}
-        <div className="sticky top-0 z-20 bg-[#F7F7F7] bg-opacity-95 backdrop-blur-sm pt-2 pb-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="sticky top-0 z-20 bg-[#F7F7F7] bg-opacity-95 backdrop-blur-sm pt-1 pb-2">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
             <ArtifactTabFilter
               activeTab={activeTab}
               onTabChange={(tab) => {
@@ -190,7 +192,7 @@ const DashboardContent = ({ user }: TeacherDataProps) => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto mt-2">
+        <div className="flex-1 overflow-y-auto">
           {isLoading ? (
             <div className="flex justify-center items-center flex-1">
               <Loading
@@ -205,12 +207,12 @@ const DashboardContent = ({ user }: TeacherDataProps) => {
               searchQuery={searchQuery}
             />
           ) : (
-            <div className="flex flex-col flex-1 justify-center items-center text-center min-h-[300px]">
-              <SearchX className="h-12 w-12 text-gray-300 mb-2.5" />
-              <h3 className="text-lg font-medium text-gray-900">
+            <div className="flex flex-col flex-1 justify-center items-center text-center min-h-[200px] sm:min-h-[300px]">
+              <SearchX className="h-10 w-10 sm:h-12 sm:w-12 text-gray-300 mb-2 sm:mb-2.5" />
+              <h3 className="text-base sm:text-lg font-medium text-gray-900">
                 No artifacts found
               </h3>
-              <p className="mt-2.5 text-sm text-gray-500">
+              <p className="mt-2 sm:mt-2.5 text-xs sm:text-sm text-gray-500">
                 {searchQuery.length > 0
                   ? "Try adjusting your search or filters"
                   : "No artifacts match the current filter criteria."}

@@ -108,18 +108,18 @@ export function DashboardHeader({
   };
 
   return (
-    <div className="flex flex-row items-center justify-between gap-3">
-      <h1 className="text-2xl font-bold hidden md:block">My Works</h1>
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <h1 className="text-xl sm:text-2xl font-bold">My Works</h1>
       
-      <div className="flex items-center gap-3 flex-1 md:flex-none md:ml-auto">
+      <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto sm:flex-none sm:ml-auto">
         {/* Search Input */}
-        <div className="relative flex-1 md:w-80">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+        <div className="relative flex-1 sm:w-64 md:w-80">
+          <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
           <Input
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search by works name, subject"
-            className="pl-10 w-full"
+            placeholder="Search works"
+            className="pl-8 sm:pl-10 w-full h-9 sm:h-10 text-sm"
             aria-label="Search works"
           />
         </div>
@@ -130,11 +130,11 @@ export function DashboardHeader({
             <Tooltip>
               <TooltipTrigger asChild>
                 <DialogTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-2 h-10">
+                  <Button variant="outline" className="flex items-center gap-1 sm:gap-2 h-9 sm:h-10 px-2 sm:px-3 text-sm">
                     <Filter className="h-4 w-4" />
-                    Filter
+                    <span className="hidden sm:inline">Filter</span>
                     {activeFilterCount > 0 && (
-                      <span className="ml-1 bg-[#4F46E5] text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
+                      <span className="ml-0 sm:ml-1 bg-[#4F46E5] text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
                         {activeFilterCount}
                       </span>
                     )}
@@ -147,7 +147,7 @@ export function DashboardHeader({
             </Tooltip>
           </TooltipProvider>
           
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Filter work by status and subject</DialogTitle>
             </DialogHeader>
@@ -155,7 +155,7 @@ export function DashboardHeader({
               {/* Status Filters */}
               <div className="space-y-4">
                 <h3 className="font-medium text-gray-700">Status</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {Object.entries(ASSIGNMENT_STATUS).map(([key, value]) => (
                     <div key={key} className="flex items-center space-x-2">
                       <Checkbox 
@@ -173,7 +173,7 @@ export function DashboardHeader({
               <div className="space-y-4">
                 <h3 className="font-medium text-gray-700">Subject</h3>
                 {availableSubjects && availableSubjects.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {availableSubjects.map((subject) => (
                       <div key={subject} className="flex items-center space-x-2">
                         <Checkbox 
@@ -192,12 +192,12 @@ export function DashboardHeader({
             </div>
             
             {/* Filter Dialog Footer */}
-            <DialogFooter className="flex flex-row justify-between lg:justify-between items-center">
+            <DialogFooter className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleClearFilters}
-                className="w-[120px]"
+                className="w-full sm:w-[120px]"
               >
                 Clear All
               </Button>
@@ -205,7 +205,7 @@ export function DashboardHeader({
               <Button
                 type="button"
                 onClick={handleApplyFilters}
-                className="w-[120px]"
+                className="w-full sm:w-[120px]"
               >
                 Apply Filters
               </Button>
@@ -221,9 +221,9 @@ export function DashboardHeader({
                 onClick={handleAddAssignment}
                 variant="default"
                 size="icon"
-                className="bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-lg shadow-md h-10 w-10"
+                className="bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-lg shadow-md h-9 w-9 sm:h-10 sm:w-10"
               >
-                <Plus className="h-5 w-5" />
+                <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
                 <span className="sr-only">Add</span>
               </Button>
             </TooltipTrigger>
