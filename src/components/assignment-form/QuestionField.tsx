@@ -293,7 +293,7 @@ export const QuestionField = ({ question, value, onChange, uploadProgress = {}, 
   if (question.type === "textarea") {
     const wordCount = (value || "").trim().split(/\s+/).filter(Boolean).length;
     const maxWords = question.maxWords || 2000;
-    const suggestedMaxWords = question.maxWords && question.maxWords < 2000 ? question.maxWords : 200;
+    const suggestedMaxWords = question.maxWords && question.maxWords < 2000 ? question.maxWords : 1500;
     const isOverLimit = wordCount > suggestedMaxWords;
 
     return (

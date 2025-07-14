@@ -31,9 +31,13 @@ export function FormField({
   const formContext = useFormContext();
   const formState = formContext?.formState;
   
-  // Only show error if form was submitted or validation was explicitly triggered
-  const shouldShowError = error && (!formState || formState.isSubmitted || 
-    (name && Object.keys(formState.errors).length > 0 && formState.errors[name]));
+  // Only show error if field was touched or form was submitted
+  // This is an even stricter check than before
+  const shouldShowError = error && (
+    !formState || 
+    formState.isSubmitted || 
+    (name && formState.touchedFields[name as keyof typeof formState.touchedFields])
+  );
   
   return (
     <div className={cn("space-y-2", className)}>

@@ -3,7 +3,7 @@ interface WordCountProps {
   limit?: number;
 }
 
-export const WordCount = ({ text = "", limit = 200 }: WordCountProps) => {
+export const WordCount = ({ text = "", limit = 1500 }: WordCountProps) => {
   const wordCount = text.trim().split(/\s+/).length;
   return (
     <div className="mt-1.5 flex justify-end">

@@ -145,11 +145,14 @@ const FormMessage = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, children, ...props }, ref) => {
-  const { error, formMessageId } = useFormField()
+  const { error, formMessageId, name } = useFormField()
   const { formState } = useFormContext()
   
-  // Only show error if the form was submitted OR specific field was validated
-  const showError = error && (formState.isSubmitted || Object.keys(formState.errors).length > 0)
+  // Only show error if the form was submitted OR field was touched
+  const showError = error && (
+    formState.isSubmitted || 
+    (name && formState.touchedFields[name as keyof typeof formState.touchedFields])
+  )
   
   const body = showError ? String(error?.message) : children
 

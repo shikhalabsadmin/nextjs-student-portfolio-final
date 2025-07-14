@@ -33,7 +33,7 @@ export function PrideReason({ form }: PrideReasonProps) {
               required
               currentLength={field.value?.length || 0}
               maxLength={2000}
-              suggestedLength={200}
+              suggestedLength={1500}
             />
           </FormControl>
           <FormMessage />

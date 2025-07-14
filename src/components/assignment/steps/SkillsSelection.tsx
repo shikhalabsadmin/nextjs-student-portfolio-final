@@ -5,12 +5,24 @@ import type { UseFormReturn } from "react-hook-form";
 import type { AssignmentFormValues } from "@/lib/validations/assignment";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HelpCircle } from "lucide-react";
+import { useEffect } from "react";
 
 interface SkillsSelectionProps {
   form: UseFormReturn<AssignmentFormValues>;
 }
 
 export function SkillsSelection({ form }: SkillsSelectionProps) {
+  // Prevent validation on initial render
+  useEffect(() => {
+    // Clear errors for this field on first render to prevent premature validation
+    const errors = { ...form.formState.errors };
+    if (errors.selected_skills) {
+      delete errors.selected_skills;
+      // @ts-ignore - Manually setting errors
+      form.formState.errors = errors;
+    }
+  }, []);
+
   return (
     <TooltipProvider>
       <FormField

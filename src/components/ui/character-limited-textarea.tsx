@@ -9,7 +9,7 @@ interface CharacterLimitedTextareaProps extends React.TextareaHTMLAttributes<HTM
 }
 
 export const CharacterLimitedTextarea = forwardRef<HTMLTextAreaElement, CharacterLimitedTextareaProps>(
-  ({ maxLength = 2000, suggestedLength = 200, currentLength = 0, className, ...props }, ref) => {
+  ({ maxLength = 2000, suggestedLength = 1500, currentLength = 0, className, ...props }, ref) => {
     const isExceeded = currentLength > suggestedLength;
     
     return (

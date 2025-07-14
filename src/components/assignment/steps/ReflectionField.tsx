@@ -41,7 +41,7 @@ export function ReflectionField({
               required
               currentLength={currentLength}
               maxLength={2000}
-              suggestedLength={200}
+              suggestedLength={1500}
             />
           </FormControl>
           <FormMessage />
