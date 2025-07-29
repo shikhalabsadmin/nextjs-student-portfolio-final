@@ -1,11 +1,11 @@
 import type { UseFormReturn } from "react-hook-form";
-import type { AssignmentFormValues } from "@/lib/validations/assignment";
+import type { AssignmentFormValues, ExternalLink } from "@/lib/validations/assignment";
 import type { AssignmentFile } from "@/types/file";
 import { MONTHS } from "@/constants/months";
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useFileUpload } from "@/hooks/useFileUpload";
-import { useYoutubeLinks } from "@/hooks/useYoutubeLinks";
+import { useExternalLinks } from "@/hooks/useExternalLinks";
 import { useFileManagement } from "@/hooks/useFileManagement";
 import { FileIcon } from "@/components/ui/file-icon";
 import {
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { FileUploadSection, YoutubeLinksSection } from "./file-upload";
+import { FileUploadSection, ExternalLinksSection } from "./file-upload";
 import { GRADE_SUBJECTS, GradeLevel } from "@/constants/grade-subjects";
 import { DatePicker } from "@/components/ui/date-picker";
 import { ValidatedSelect } from "@/components/ui/validated-select";
@@ -58,7 +58,20 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
     })) as AssignmentFile[];
   }, [form]);
   
-  const getYoutubeLinks = useCallback(() => form.getValues("youtubelinks") ?? [], [form]);
+  const getExternalLinks = useCallback(() => {
+    // Check for externalLinks first (new format)
+    const externalLinks = form.getValues("externalLinks");
+    if (Array.isArray(externalLinks) && externalLinks.length > 0) {
+      return externalLinks;
+    }
+    
+    // Fallback to youtubelinks if no externalLinks (for backward compatibility)
+    const youtubeLinks = form.getValues("youtubelinks") ?? [];
+    return youtubeLinks.map(link => ({
+      ...link,
+      type: 'youtube' // Ensure type is set for YouTube links
+    }));
+  }, [form]);
   
   const setFiles = useCallback(async (files: AssignmentFile[], isTemporary?: boolean) => {
     form.setValue("files", files, { 
@@ -71,15 +84,57 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
     await form.trigger();
   }, [form]);
 
-  const setYoutubeLinks = useCallback(async (links: Array<{url?: string; title?: string}>) => {
-    form.setValue("youtubelinks", links, { 
+  const setExternalLinks = useCallback(async (links: ExternalLink[]) => {
+    // Set both fields for backward compatibility
+    form.setValue("externalLinks", links, { 
       shouldValidate: true,
       shouldDirty: true,
       shouldTouch: true
     });
+    
+    // Also update youtubelinks for backward compatibility
+    // Only include links that are YouTube links
+    const youtubeLinks = links.filter(link => link.type === 'youtube')
+      .map(link => ({
+        url: link.url,
+        title: link.title
+      }));
+    
+    form.setValue("youtubelinks", youtubeLinks, { 
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true
+    });
+    
+    await form.trigger("externalLinks");
     await form.trigger("youtubelinks");
     // Force a re-evaluation of form state
     await form.trigger();
+  }, [form]);
+  
+  // Migrate old youtubelinks data to externalLinks format on component mount
+  useEffect(() => {
+    const youtubeLinks = form.getValues("youtubelinks");
+    const externalLinks = form.getValues("externalLinks");
+    
+    // If we have youtubelinks but no externalLinks, migrate the data
+    if (Array.isArray(youtubeLinks) && youtubeLinks.length > 0 && 
+        (!Array.isArray(externalLinks) || externalLinks.length === 0)) {
+      
+      const newExternalLinks = youtubeLinks.map(link => ({
+        ...link,
+        type: 'youtube'
+      }));
+      
+      // Only update if we have valid links to migrate
+      if (newExternalLinks.some(link => link.url)) {
+        form.setValue("externalLinks", newExternalLinks, {
+          shouldValidate: false,
+          shouldDirty: false,
+          shouldTouch: false
+        });
+      }
+    }
   }, [form]);
 
   // Use custom hooks with adapters
@@ -88,11 +143,11 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
     setFiles,
     assignmentId,
     studentId: form.getValues("student_id"),
-      });
+  });
   
-  const { handleYoutubeUrl } = useYoutubeLinks({
-    getLinks: getYoutubeLinks,
-    setLinks: setYoutubeLinks
+  const { handleExternalUrl } = useExternalLinks({
+    getLinks: getExternalLinks,
+    setLinks: setExternalLinks
   });
   
   const { handleDeleteFile } = useFileManagement({
@@ -214,7 +269,7 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
               Upload your work <span className="text-red-500">*</span>
             </FormLabel>
             <FormDescription className="text-lg text-gray-600">
-              <strong>Upload files, add YouTube links, or both</strong> to continue to the next step. You must provide at least one item.
+              <strong>Upload files, add links, or both</strong> to continue to the next step. You must provide at least one item.
             </FormDescription>
             
             <FileUploadSection 
@@ -225,14 +280,14 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
                 file_type: file.file_type || "",
                 file_size: file.file_size || 0
               })) ?? []}
-              youtubeLinks={form.watch("youtubelinks") ?? []}
+              externalLinks={form.watch("externalLinks") ?? []}
               handleFiles={handleFiles}
-              handleYoutubeUrl={handleYoutubeUrl}
+              handleExternalUrl={handleExternalUrl}
               isMobile={isMobile}
             />
 
-            {(form.watch("files")?.length > 0 || form.watch("youtubelinks")?.some(link => link.url)) && (
-              <YoutubeLinksSection 
+            {(form.watch("files")?.length > 0 || form.watch("externalLinks")?.some(link => link.url)) && (
+              <ExternalLinksSection 
                 files={form.watch("files")?.map(file => ({
                   ...file,
                   file_url: file.file_url || "",
@@ -240,7 +295,7 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
                   file_type: file.file_type || "",
                   file_size: file.file_size || 0
                 })) ?? []}
-                youtubeLinks={form.watch("youtubelinks") ?? []}
+                externalLinks={form.watch("externalLinks") ?? []}
                 handleDeleteFile={handleDeleteFile}
                 form={form}
                 FileIcon={FileIcon}

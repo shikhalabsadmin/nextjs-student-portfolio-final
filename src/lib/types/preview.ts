@@ -31,6 +31,13 @@ export interface FileItem {
   is_process_documentation?: boolean;
 }
 
+export interface ExternalLink {
+  url?: string;
+  title?: string;
+  type?: string;
+}
+
+// Legacy type kept for backward compatibility
 export interface YoutubeLink {
   url?: string;
   title?: string;

@@ -1,30 +1,36 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, Youtube } from "lucide-react";
+import { Upload, LinkIcon } from "lucide-react";
 import type { AssignmentFile } from "@/types/file";
 import { Alert } from "@/components/ui/alert";
 
+interface ExternalLink {
+  url?: string;
+  title?: string;
+  type?: string;
+}
+
 interface FileUploadSectionProps {
   files: AssignmentFile[];
-  youtubeLinks: { url?: string; title?: string }[];
+  externalLinks: ExternalLink[];
   handleFiles: (files: FileList) => Promise<void>;
-  handleYoutubeUrl: (url: string) => Promise<boolean>;
+  handleExternalUrl: (url: string) => Promise<boolean>;
   isMobile: boolean;
 }
 
 export function FileUploadSection({
   files,
-  youtubeLinks,
+  externalLinks,
   handleFiles,
-  handleYoutubeUrl,
+  handleExternalUrl,
   isMobile
 }: FileUploadSectionProps) {
-  const [showYoutubeInput, setShowYoutubeInput] = useState(false);
-  const [youtubeInputValue, setYoutubeInputValue] = useState("");
+  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [linkInputValue, setLinkInputValue] = useState("");
   
-  // Check if either files or youtube links are present
-  const hasContent = files.length > 0 || youtubeLinks.some(link => link?.url && link.url.trim() !== "");
+  // Check if either files or external links are present
+  const hasContent = files.length > 0 || externalLinks.some(link => link?.url && link.url.trim() !== "");
   
   const handleFileSelect = () => {
     const input = document.createElement('input');
@@ -49,11 +55,11 @@ export function FileUploadSection({
     input.click();
   };
 
-  const handleYoutubeSubmit = async () => {
-    if (youtubeInputValue.trim()) {
-      if (await handleYoutubeUrl(youtubeInputValue)) {
-        setYoutubeInputValue("");
-        setShowYoutubeInput(false);
+  const handleLinkSubmit = async () => {
+    if (linkInputValue.trim()) {
+      if (await handleExternalUrl(linkInputValue)) {
+        setLinkInputValue("");
+        setShowLinkInput(false);
       }
     }
   };
@@ -62,7 +68,7 @@ export function FileUploadSection({
     <div className="space-y-4">
       {!hasContent && (
         <Alert className="bg-blue-50 border-blue-200 text-blue-800">
-          <p>You need to upload files, add YouTube links, or both to continue to the next step.</p>
+          <p>You need to upload files, add external links, or both to continue to the next step.</p>
         </Alert>
       )}
       
@@ -79,32 +85,32 @@ export function FileUploadSection({
             Upload Files
           </Button>
           
-          {!showYoutubeInput && (
+          {!showLinkInput && (
             <Button
               type="button"
               variant="outline"
               className="flex items-center gap-2 text-gray-600"
-              onClick={() => setShowYoutubeInput(true)}
+              onClick={() => setShowLinkInput(true)}
             >
-              <Youtube className="h-4 w-4" />
-              Add YouTube URL
+              <LinkIcon className="h-4 w-4" />
+              Add External Link
             </Button>
           )}
         </div>
         
-        {showYoutubeInput && (
+        {showLinkInput && (
           <div className="flex items-center gap-2">
             <Input
-              placeholder="Paste YouTube video URL here"
+              placeholder="Paste URL here (YouTube, Google Drive, Canva, etc.)"
               className="flex-1"
-              value={youtubeInputValue}
-              onChange={(e) => setYoutubeInputValue(e.target.value)}
+              value={linkInputValue}
+              onChange={(e) => setLinkInputValue(e.target.value)}
               onKeyDown={async (e) => {
                 if (e.key === 'Enter') {
-                  await handleYoutubeSubmit();
+                  await handleLinkSubmit();
                 } else if (e.key === 'Escape') {
-                  setShowYoutubeInput(false);
-                  setYoutubeInputValue("");
+                  setShowLinkInput(false);
+                  setLinkInputValue("");
                 }
               }}
               autoFocus
@@ -113,7 +119,7 @@ export function FileUploadSection({
               type="button"
               variant="outline"
               className="text-gray-600"
-              onClick={handleYoutubeSubmit}
+              onClick={handleLinkSubmit}
             >
               Add
             </Button>
@@ -122,8 +128,8 @@ export function FileUploadSection({
               variant="ghost"
               className="text-gray-600"
               onClick={() => {
-                setShowYoutubeInput(false);
-                setYoutubeInputValue("");
+                setShowLinkInput(false);
+                setLinkInputValue("");
               }}
             >
               Cancel

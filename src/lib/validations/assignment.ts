@@ -8,30 +8,37 @@ export const youtubeLinkSchema = z.object({
   title: z.string().optional().default("")
 }).strict();
 
+// Schema for external link objects
+export const externalLinkSchema = z.object({
+  url: z.string().optional().default(""),
+  title: z.string().optional().default(""),
+  type: z.string().optional().default("")
+}).strict();
+
+// Schema for feedback items
+export const feedbackItemSchema = z.object({
+  text: z.string().optional().default(""),
+  date: z.string().optional().default(() => new Date().toISOString()),
+  teacher_id: z.string().nullable().optional(),
+  selected_skills: z.array(z.string()).optional().default([]),
+  skills_justification: z.string().optional().default(""),
+}).strict();
+
 // Schema for assignment files
 export const assignmentFileSchema = z.object({
-  id: z.string().uuid().optional(),
-  assignment_id: z.string().optional(),
+  id: z.string().optional(),
+  student_id: z.string().optional().default(""),
+  assignment_id: z.string().optional().default(""),
   file_url: z.string().optional().default(""),
   file_name: z.string().optional().default(""),
   file_type: z.string().optional().default(""),
   file_size: z.number().optional().default(0),
   created_at: z.string().optional().default(() => new Date().toISOString()),
   updated_at: z.string().optional().default(() => new Date().toISOString()),
-  student_id: z.string().optional(),
-  is_process_documentation: z.boolean().optional()
+  is_process_documentation: z.boolean().optional().default(false),
+  uploadProgress: z.number().optional(),
 }).strict();
 
-// Schema for feedback items
-export const feedbackItemSchema = z.object({
-  selected_skills: z.array(z.string()).optional(),
-  skills_justification: z.string().optional(),
-  text: z.string().optional(),
-  date: z.string().optional().default(() => new Date().toISOString()),
-  teacher_id: z.string().nullable().optional()
-}).strict();
-
-export type FeedbackItem = z.infer<typeof feedbackItemSchema>;
 
 // Base schema for loading (permissive)
 export const baseAssignmentFormSchema = z.object({
@@ -62,6 +69,7 @@ export const baseAssignmentFormSchema = z.object({
   verified_at: z.string().nullable().optional().default(() => new Date().toISOString()),
   feedback: z.array(feedbackItemSchema).optional().default([]),
   youtubelinks: z.array(youtubeLinkSchema).optional().default([]),
+  externalLinks: z.array(externalLinkSchema).optional().default([]),
   files: z.array(assignmentFileSchema).optional().default([]),
   originality_explanation: z.string().optional().default(""),
 });
@@ -101,4 +109,9 @@ export const assignmentFormSchema = baseAssignmentFormSchema.extend({
   }
 });
 
-export type AssignmentFormValues = z.infer<typeof assignmentFormSchema>;
+// Type inference
+export type AssignmentFormValues = z.infer<typeof baseAssignmentFormSchema>;
+export type FeedbackItem = z.infer<typeof feedbackItemSchema>;
+export type AssignmentFile = z.infer<typeof assignmentFileSchema>;
+export type YoutubeLink = z.infer<typeof youtubeLinkSchema>;
+export type ExternalLink = z.infer<typeof externalLinkSchema>;

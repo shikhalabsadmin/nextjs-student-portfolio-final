@@ -33,11 +33,13 @@ const STEP_REQUIREMENTS: Record<AssignmentStep, StepRequirement> = {
   'basic-info': {
     fields: ['title', 'artifact_type', 'subject', 'month'],
     customCheck: (data: AssignmentFormValues) => {
-      // At least one of files or youtubelinks is required
+      // At least one of files, youtubelinks, or externalLinks is required
       const hasYoutubeLinks = Array.isArray(data.youtubelinks) && 
         data.youtubelinks.some(link => link?.url && link.url.trim().length > 0);
+      const hasExternalLinks = Array.isArray(data.externalLinks) && 
+        data.externalLinks.some(link => link?.url && link.url.trim().length > 0);
       const hasFiles = Array.isArray(data.files) && data.files.length > 0;
-      return hasYoutubeLinks || hasFiles;
+      return hasYoutubeLinks || hasExternalLinks || hasFiles;
     }
   },
   'role-originality': {

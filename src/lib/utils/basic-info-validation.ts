@@ -23,12 +23,15 @@ export function isBasicInfoComplete(formData: AssignmentFormValues): boolean {
     return false; // If field is undefined or null, it's not valid
   });
 
-  // Check if at least one of files or youtubelinks is present
+  // Check if at least one of files, youtubelinks, or externalLinks is present
   const hasYoutubeLinks = Array.isArray(formData.youtubelinks) && 
     formData.youtubelinks.some(link => link?.url && link.url.trim().length > 0);
     
+  const hasExternalLinks = Array.isArray(formData.externalLinks) && 
+    formData.externalLinks.some(link => link?.url && link.url.trim().length > 0);
+
   const hasFiles = Array.isArray(formData.files) && formData.files.length > 0;
   
-  // All required fields must be filled AND either files or youtubelinks must be present
-  return areRequiredFieldsFilled && (hasYoutubeLinks || hasFiles);
+  // All required fields must be filled AND either files, youtubelinks, or externalLinks must be present
+  return areRequiredFieldsFilled && (hasYoutubeLinks || hasExternalLinks || hasFiles);
 } 

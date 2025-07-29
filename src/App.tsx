@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from "react";
+import React, { lazy, Suspense, useEffect } from "react";
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -16,6 +16,7 @@ import { ROUTES } from "@/config/routes";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { queryClient } from "@/query-key/client";
 import { PortfolioPreviewProvider } from "@/contexts/PortfolioPreviewContext";
+import { migrateYoutubeLinksToExternalLinks } from "@/scripts/migrate-youtube-to-external-links";
 
 // Create module-specific logger
 const appLogger = logger.forModule("App");
@@ -48,6 +49,15 @@ const AppContent = () => {
   // Use our unified auth hook
   const { user, userRole, isLoading, error, signOut } = useAuthState();
   
+  // Run migrations when user is authenticated
+  useEffect(() => {
+    if (user) {
+      // This will automatically apply migrations to any assignment data
+      // the user loads, ensuring backward compatibility with YouTube links
+      appLogger.debug("User authenticated, assignment data migration will be applied automatically");
+    }
+  }, [user]);
+
   if (isLoading) {
     appLogger.debug("Auth loading, showing spinner");
     return <Loading fullScreen />;

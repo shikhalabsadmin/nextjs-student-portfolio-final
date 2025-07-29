@@ -3,15 +3,16 @@ import { getFileTypeCategory } from '@/lib/utils/file-type.utils';
 import { FileIcon } from './file-icon';
 import type { AssignmentFile } from '@/types/file';
 import { UploadProgress } from "@/components/ui/upload-progress";
+import { getUrlType, getYouTubeVideoId, getGDriveFileId, URL_TYPES } from '@/lib/utils/url-utils';
 
-type YouTubeLink = {
+type URLLink = {
   url?: string;
   title?: string;
   type?: string;
 };
 
 interface FilePreviewProps {
-  file: File | AssignmentFile | YouTubeLink;
+  file: File | AssignmentFile | URLLink;
   className?: string;
   showControls?: boolean;
   showDelete?: boolean;
@@ -22,18 +23,11 @@ export function FilePreview({ file, className = "", showControls = true, showDel
   // Get file type and URL
   let fileType: string, fileUrl: string, fileName: string;
   
-  // Extract YouTube video ID
-  const getYouTubeVideoId = (url: string): string | null => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-};
-
-  // Handle YouTube link type
+  // Handle URL link type
   if ('url' in file && file.url) {
-    fileType = file.type || 'youtube';
+    fileType = file.type || getUrlType(file.url);
     fileUrl = file.url;
-    fileName = file.title || 'YouTube Video';
+    fileName = file.title || 'Linked Resource';
   } else if (file instanceof File) {
     // Handle File type
     fileType = getFileTypeCategory(file.type);
@@ -92,55 +86,200 @@ export function FilePreview({ file, className = "", showControls = true, showDel
     return 0;
   };
 
-  // Special case for YouTube links
-  if (fileType === 'youtube') {
-    const videoId = getYouTubeVideoId(fileUrl);
-
-  return (
-      <div className={`${baseClasses} ${cardHeight} flex flex-col`}>
-        <div className={`${mediaContainerClass} flex-1 overflow-hidden`}>
-          {videoId ? (
-            <iframe 
-              src={`https://www.youtube.com/embed/${videoId}`}
-              className="w-full h-full border-0" 
-              title={fileName}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center p-4">
-              <FileIcon type="youtube" />
-              <p className="text-sm text-gray-500 mt-3">Unable to embed this YouTube video</p>
+  // Handle URL previews based on type
+  switch (fileType) {
+    // YouTube Video Preview
+    case URL_TYPES.YOUTUBE:
+      const videoId = getYouTubeVideoId(fileUrl);
+      return (
+        <div className={`${baseClasses} ${cardHeight} flex flex-col`}>
+          <div className={`${mediaContainerClass} flex-1 overflow-hidden`}>
+            {videoId ? (
+              <iframe 
+                src={`https://www.youtube.com/embed/${videoId}`}
+                className="w-full h-full border-0" 
+                title={fileName}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center p-4">
+                <FileIcon type="youtube" />
+                <p className="text-sm text-gray-500 mt-3">Unable to embed this YouTube video</p>
+              </div>
+            )}
+          </div>
+          {isUploading && (
+            <div className="px-3 py-2">
+              <UploadProgress 
+                fileName={fileName} 
+                progress={getUploadProgress()} 
+              />
+            </div>
+          )}
+          {showControls && (
+            <div className="p-2 bg-gray-50 flex items-center justify-between mt-auto">
+              <span className="text-sm text-gray-700 truncate">{fileName}</span>
+              <a 
+                href={fileUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-xs text-blue-600 hover:underline"
+              >
+                View on YouTube
+              </a>
             </div>
           )}
         </div>
-        {isUploading && (
-          <div className="px-3 py-2">
-            <UploadProgress 
-              fileName={fileName} 
-              progress={getUploadProgress()} 
-            />
-          </div>
-        )}
-        {showControls && (
-          <div className="p-2 bg-gray-50 flex items-center justify-between mt-auto">
-            <span className="text-sm text-gray-700 truncate">{fileName}</span>
-            <a 
-              href={fileUrl} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="text-xs text-blue-600 hover:underline"
-            >
-              View on YouTube
-            </a>
-          </div>
-        )}
-      </div>
-    );
-  }
+      );
 
-  // Render based on file type
-  switch (fileType) {
+    // Google Drive Preview
+    case URL_TYPES.GDRIVE:
+      const fileId = getGDriveFileId(fileUrl);
+      return (
+        <div className={`${baseClasses} ${cardHeight} flex flex-col`}>
+          <div className={`${mediaContainerClass} flex-1 overflow-hidden`}>
+            {fileId ? (
+              <iframe 
+                src={`https://drive.google.com/file/d/${fileId}/preview`}
+                className="w-full h-full border-0" 
+                title={fileName}
+                allow="autoplay"
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center p-4">
+                <FileIcon type="document" />
+                <p className="text-sm text-gray-500 mt-3">Google Drive document preview</p>
+              </div>
+            )}
+          </div>
+          {isUploading && (
+            <div className="px-3 py-2">
+              <UploadProgress 
+                fileName={fileName} 
+                progress={getUploadProgress()} 
+              />
+            </div>
+          )}
+          {showControls && (
+            <div className="p-2 bg-gray-50 flex items-center justify-between mt-auto">
+              <span className="text-sm text-gray-700 truncate">{fileName}</span>
+              <a 
+                href={fileUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-xs text-blue-600 hover:underline"
+              >
+                Open in Google Drive
+              </a>
+            </div>
+          )}
+        </div>
+      );
+
+    // Canva Preview
+    case URL_TYPES.CANVA:
+      return (
+        <div className={`${baseClasses} ${cardHeight} flex flex-col`}>
+          <div className={`${mediaContainerClass} flex-1 overflow-hidden`}>
+            <div className="w-full h-full flex flex-col items-center justify-center p-4">
+              <FileIcon type="design" />
+              <p className="text-sm text-gray-500 mt-3">Canva design (click link below to view)</p>
+            </div>
+          </div>
+          {isUploading && (
+            <div className="px-3 py-2">
+              <UploadProgress 
+                fileName={fileName} 
+                progress={getUploadProgress()} 
+              />
+            </div>
+          )}
+          {showControls && (
+            <div className="p-2 bg-gray-50 flex items-center justify-between mt-auto">
+              <span className="text-sm text-gray-700 truncate">{fileName}</span>
+              <a 
+                href={fileUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-xs text-blue-600 hover:underline"
+              >
+                Open in Canva
+              </a>
+            </div>
+          )}
+        </div>
+      );
+
+    // Figma Preview  
+    case URL_TYPES.FIGMA:
+      return (
+        <div className={`${baseClasses} ${cardHeight} flex flex-col`}>
+          <div className={`${mediaContainerClass} flex-1 overflow-hidden`}>
+            <div className="w-full h-full flex flex-col items-center justify-center p-4">
+              <FileIcon type="design" />
+              <p className="text-sm text-gray-500 mt-3">Figma design (click link below to view)</p>
+            </div>
+          </div>
+          {isUploading && (
+            <div className="px-3 py-2">
+              <UploadProgress 
+                fileName={fileName} 
+                progress={getUploadProgress()} 
+              />
+            </div>
+          )}
+          {showControls && (
+            <div className="p-2 bg-gray-50 flex items-center justify-between mt-auto">
+              <span className="text-sm text-gray-700 truncate">{fileName}</span>
+              <a 
+                href={fileUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-xs text-blue-600 hover:underline"
+              >
+                Open in Figma
+              </a>
+            </div>
+          )}
+        </div>
+      );
+
+    // Generic URL Preview
+    case URL_TYPES.GENERIC:
+      return (
+        <div className={`${baseClasses} ${cardHeight} flex flex-col`}>
+          <div className={`${mediaContainerClass} flex-1 overflow-hidden`}>
+            <div className="w-full h-full flex flex-col items-center justify-center p-4">
+              <FileIcon type="link" />
+              <p className="text-sm text-gray-500 mt-3">External resource (click link below to view)</p>
+              <p className="text-xs text-gray-400 mt-2 max-w-full overflow-hidden truncate">{fileUrl}</p>
+            </div>
+          </div>
+          {isUploading && (
+            <div className="px-3 py-2">
+              <UploadProgress 
+                fileName={fileName} 
+                progress={getUploadProgress()} 
+              />
+            </div>
+          )}
+          {showControls && (
+            <div className="p-2 bg-gray-50 flex items-center justify-between mt-auto">
+              <span className="text-sm text-gray-700 truncate">{fileName}</span>
+              <a 
+                href={fileUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-xs text-blue-600 hover:underline"
+              >
+                Open Link
+              </a>
+            </div>
+          )}
+        </div>
+      );
+
     case 'image':
       return (
         <div className={`${baseClasses} ${cardHeight} flex flex-col`}>

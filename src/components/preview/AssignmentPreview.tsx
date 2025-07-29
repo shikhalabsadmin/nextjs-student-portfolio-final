@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { PreviewField } from "./PreviewField";
 import { ArtifactPreview } from "./ArtifactPreview";
 import { YoutubeLinksPreview } from "./YoutubeLinksPreview";
+import { ExternalLinksPreview } from "./ExternalLinksPreview";
 import { AssignmentFormValues } from "@/lib/validations/assignment";
 import { useEffect, useMemo, useCallback, useState, memo } from "react";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/carousel";
 import { FilePreview } from "@/components/ui/file-preview";
 import { AssignmentFile } from "@/types/file";
+import { getUrlType } from "@/lib/utils/url-utils";
 
 // Format date from ISO string to "12 Jan 2024" format
 const formatDate = (dateString: string | undefined): string => {
@@ -53,10 +55,36 @@ const AssignmentPreview = memo(
     // Memoize derived values to prevent recalculations on re-renders
     const hasFiles = useMemo(() => values?.files?.length > 0, [values?.files]);
 
+    // Check for external links (new format)
+    const hasExternalLinks = useMemo(
+      () => values?.externalLinks?.some((link) => link?.url),
+      [values?.externalLinks]
+    );
+
+    // Check for YouTube links (legacy format)
     const hasYoutubeLinks = useMemo(
       () => values?.youtubelinks?.some((link) => link?.url),
       [values?.youtubelinks]
     );
+
+    // Combined external links - convert YouTube links to the external links format if needed
+    const externalLinks = useMemo(() => {
+      // Use external links if available
+      if (Array.isArray(values?.externalLinks) && values.externalLinks.some(link => link?.url)) {
+        return values.externalLinks;
+      }
+      
+      // Otherwise, convert YouTube links to the external format
+      if (Array.isArray(values?.youtubelinks) && values.youtubelinks.some(link => link?.url)) {
+        return values.youtubelinks.map(link => ({
+          url: link.url,
+          title: link.title,
+          type: 'youtube'
+        }));
+      }
+      
+      return [];
+    }, [values?.externalLinks, values?.youtubelinks]);
 
     // Get process documentation images
     const processImages = useMemo(
@@ -208,7 +236,7 @@ const AssignmentPreview = memo(
           />
 
           {/* Artifact Files */}
-          {(hasFiles || hasYoutubeLinks) && (
+          {(hasFiles || hasExternalLinks || hasYoutubeLinks) && (
             <div className="flex flex-col gap-2 sm:gap-3 md:gap-[18px]">
               <h2 className="text-base sm:text-lg md:text-xl font-semibold text-slate-900">
                 Attached article
@@ -239,16 +267,19 @@ const AssignmentPreview = memo(
                       </div>
                     ))}
 
-                {/* Display YouTube Links */}
-                {hasYoutubeLinks &&
-                  values?.youtubelinks
-                    ?.filter((link) => link?.url)
+                {/* Display External Links */}
+                {externalLinks.length > 0 &&
+                  externalLinks
+                    .filter((link) => link?.url)
                     .map((link, index) => (
-                      <div key={`youtube-${index}`} className="relative">
-                        <FilePreview file={{ ...link, type: "youtube" }} />
+                      <div key={`link-${index}`} className="relative">
+                        <FilePreview file={link} />
                       </div>
                     ))}
               </div>
+              
+              {/* Display External Links Preview (embedded iframes) */}
+              <ExternalLinksPreview links={externalLinks} />
             </div>
           )}
 

@@ -3,6 +3,7 @@ import type { AssignmentFormValues } from "@/lib/validations/assignment";
 import type { FileRecordData } from "@/types/file";
 import { getFileTypeCategory } from "@/lib/utils/file-type.utils";
 import { createDebugService } from "@/lib/utils/debug.service";
+import { migrateAssignmentData } from "@/lib/migrations/assignment-data-migration";
 
 const debug = createDebugService("Assignments API");
 
@@ -147,8 +148,9 @@ export const getAssignmentWithFiles = async (id?: string, userId?: string) => {
       filesCount: files?.length || 0
     });
 
-    // Return the assignment with files
-    return { ...(assignment ?? {}), files: files ?? [] };
+    // Return the assignment with files and apply data migration
+    const assignmentWithFiles = { ...(assignment ?? {}), files: files ?? [] };
+    return migrateAssignmentData(assignmentWithFiles);
   } catch (error) {
     console.error("[getAssignmentWithFiles] Error:", error);
     debug.error("Failed to fetch assignment with files", { id, error });
