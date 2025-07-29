@@ -34,6 +34,7 @@ interface FileRecord {
   file_type: string;
   file_url: string;
   id: number;
+  is_process_documentation?: boolean;
 }
 
 // Error type for better error handling
@@ -74,7 +75,11 @@ export function useStudentAssignments(
     const imageMap = new Map<string, string>();
     
     if (files && files.length > 0) {
-      files?.forEach(file => {
+      // First filter out process documentation files
+      const nonProcessFiles = files.filter(file => !file.is_process_documentation);
+      
+      // Then set image URLs, ensuring we only use main links from basic info
+      nonProcessFiles?.forEach(file => {
         if (
           file?.file_type?.startsWith("image") && 
           !imageMap.has(file.assignment_id) &&
