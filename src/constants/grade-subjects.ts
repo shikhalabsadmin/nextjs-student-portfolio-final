@@ -297,7 +297,29 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
 
 // Helper function to get subjects for a specific grade
 export function getSubjectsForGrade(grade?: GradeLevel): Subject[] {
-  return GRADE_SUBJECTS[grade as GradeLevel] ?? [];
+  if (!grade) {
+    return [];
+  }
+  
+  // First try exact match
+  if (GRADE_SUBJECTS[grade as GradeLevel]) {
+    return GRADE_SUBJECTS[grade as GradeLevel];
+  }
+  
+  // Handle legacy grade formats - if grade is "1", try to find "1A" (first option for that grade)
+  const fallbackMapping: Record<string, GradeLevel> = {
+    '1': GRADE_LEVELS.GRADE_1A,
+    '2': GRADE_LEVELS.GRADE_2A,
+    '3': GRADE_LEVELS.GRADE_3A,
+    '4': GRADE_LEVELS.GRADE_4A,
+    '6': GRADE_LEVELS.GRADE_6A,
+  };
+  
+  if (fallbackMapping[grade]) {
+    return GRADE_SUBJECTS[fallbackMapping[grade]];
+  }
+  
+  return [];
 }
 
 // Helper function to check if a subject is available for a grade

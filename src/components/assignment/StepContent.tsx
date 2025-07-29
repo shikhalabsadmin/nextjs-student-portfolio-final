@@ -4,6 +4,7 @@ import { type AssignmentStep } from "@/types/assignment";
 import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
 import { createContext, useContext, lazy, Suspense } from "react";
 import { Loading } from "@/components/ui/loading";
+import { StepFooter } from "./StepFooter";
 
 // Lazy load all step components
 const BasicInfoStep = lazy(() => import("@/components/assignment/steps/BasicInfoStep").then(mod => ({ default: mod.BasicInfoStep })));
@@ -26,9 +27,12 @@ export const useFormState = () => useContext(FormStateContext);
 type StepContentProps = {
   step: AssignmentStep;
   form: UseFormReturn<AssignmentFormValues>;
+  onContinue: () => void;
+  disabled: boolean;
+  areAllStepsComplete?: boolean;
 };
 
-export function StepContent({ step, form }: StepContentProps) {
+export function StepContent({ step, form, onContinue, disabled, areAllStepsComplete }: StepContentProps) {
   // Check if the assignment is in SUBMITTED status and should be readonly
   const assignmentStatus = form.getValues().status;
   const isReadOnly = assignmentStatus === ASSIGNMENT_STATUS.SUBMITTED;
@@ -39,6 +43,16 @@ export function StepContent({ step, form }: StepContentProps) {
         <Suspense fallback={<Loading text="Loading step..." />}>
           {renderStepContent(step, form)}
         </Suspense>
+        
+        {/* Add StepFooter at the bottom of each step */}
+        {!isReadOnly && (
+          <StepFooter
+            step={step}
+            onContinue={onContinue}
+            disabled={disabled}
+            areAllStepsComplete={areAllStepsComplete}
+          />
+        )}
       </div>
     </FormStateContext.Provider>
   );

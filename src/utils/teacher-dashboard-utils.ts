@@ -1,6 +1,7 @@
 import { Artifact } from "@/components/teacher/dashboard/ArtifactTable";
 import { TeacherDashboardFilters, TeachingSubject } from "@/types/teacher-dashboard";
 import { ASSIGNMENT_STATUS, AssignmentStatus } from "@/constants/assignment-status";
+import { getMonthNameFromDate } from "@/constants/months-filter";
 
 /**
  * Gets unique subjects from teaching subjects array
@@ -108,7 +109,10 @@ export function initializeTeacherFilters(teachingSubjects?: TeachingSubject[]): 
   return { 
     status: statusFilters,
     subjects: subjectFilters,
-    grades: gradeFilters
+    grades: gradeFilters,
+    dateRange: undefined,
+    timePeriod: undefined,
+    months: undefined
   };
 }
 
@@ -195,6 +199,43 @@ export function matchesGradeFilters(
 }
 
 /**
+ * Checks if an artifact matches the date range filter
+ */
+function matchesDateRangeFilter(artifact: Artifact, filters: TeacherDashboardFilters): boolean {
+  if (!filters.dateRange) return true;
+  
+  const { from, to } = filters.dateRange;
+  if (!from && !to) return true;
+  
+  // Use created or lastUpdated for date comparison
+  const artifactDate = new Date(artifact.created || artifact.lastUpdated || '');
+  if (isNaN(artifactDate.getTime())) return true; // Invalid date, include by default
+  
+  if (from && artifactDate < from) return false;
+  if (to && artifactDate > to) return false;
+  
+  return true;
+}
+
+/**
+ * Checks if an artifact matches the month filter
+ */
+function matchesMonthFilter(artifact: Artifact, filters: TeacherDashboardFilters): boolean {
+  if (!filters.months) return true;
+  
+  // Check if any months are selected
+  const selectedMonths = Object.entries(filters.months).filter(([_, isSelected]) => isSelected).map(([month]) => month);
+  if (selectedMonths.length === 0) return true;
+  
+  // Use created or lastUpdated for date comparison
+  const artifactDate = new Date(artifact.created || artifact.lastUpdated || '');
+  if (isNaN(artifactDate.getTime())) return true; // Invalid date, include by default
+  
+  const artifactMonth = getMonthNameFromDate(artifactDate);
+  return selectedMonths.includes(artifactMonth);
+}
+
+/**
  * Filters artifacts based on search query and filters
  */
 export function filterArtifacts(
@@ -215,8 +256,50 @@ export function filterArtifacts(
     matchesSearch(artifact, query) &&
     matchesStatusFilters(artifact, filters) &&
     matchesSubjectFilters(artifact, filters, teachingSubjects) &&
-    matchesGradeFilters(artifact, filters, teachingSubjects)
+    matchesGradeFilters(artifact, filters, teachingSubjects) &&
+    matchesDateRangeFilter(artifact, filters) &&
+    matchesMonthFilter(artifact, filters)
   );
+}
+
+/**
+ * Gets the count of active teacher filters
+ * @param filters - The filters to count
+ * @returns Number of active filters
+ */
+export function getActiveTeacherFilterCount(filters?: TeacherDashboardFilters): number {
+  if (!filters) return 0;
+  
+  let count = 0;
+  
+  // Count boolean filters (status, subject, and grade filters)
+  ['status', 'subjects', 'grades'].forEach(filterType => {
+    const filterGroup = filters[filterType as keyof TeacherDashboardFilters] as Record<string, boolean>;
+    if (filterGroup) {
+      count += Object.values(filterGroup).filter(Boolean).length;
+    }
+  });
+  
+  // Count time-based filters
+  if (filters.timePeriod) {
+    count++;
+  }
+  
+  // Count month filters
+  if (filters.months) {
+    count += Object.values(filters.months).filter(Boolean).length;
+  }
+  
+  return count;
+}
+
+/**
+ * Checks if any teacher filters are active
+ * @param filters - The filters to check
+ * @returns Boolean indicating if any filters are active
+ */
+export function hasActiveTeacherFilters(filters?: TeacherDashboardFilters): boolean {
+  return getActiveTeacherFilterCount(filters) > 0;
 }
 
 /**
@@ -248,14 +331,8 @@ export function matchesSearch(artifact: Artifact, searchQuery: string): boolean 
  * Gets the count of active filters
  */
 export function getActiveFilterCount(filters: TeacherDashboardFilters): number {
-  // Safety checks
-  if (!filters) return 0;
-  
-  const activeStatusCount = Object.values(filters.status || {}).filter(Boolean).length;
-  const activeSubjectCount = Object.values(filters.subjects || {}).filter(Boolean).length;
-  const activeGradeCount = Object.values(filters.grades || {}).filter(Boolean).length;
-  
-  return activeStatusCount + activeSubjectCount + activeGradeCount;
+  // Use the new helper function
+  return getActiveTeacherFilterCount(filters);
 }
 
 /**

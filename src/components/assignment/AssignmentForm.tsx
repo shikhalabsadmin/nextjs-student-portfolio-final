@@ -341,7 +341,13 @@ function AssignmentForm({ user }: AssignmentFormProps) {
               {/* Form */}
               <Form {...form}>
                 <form className="p-3 sm:p-6">
-                  <StepContent step={currentStep as AssignmentStep} form={form} />
+                  <StepContent 
+                    step={currentStep as AssignmentStep} 
+                    form={form}
+                    onContinue={handleSaveAndContinueClick}
+                    disabled={isContinueDisabled}
+                    areAllStepsComplete={areAllStepsComplete}
+                  />
                 </form>
               </Form>
             </div>

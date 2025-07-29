@@ -2,6 +2,7 @@ import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
 import { Subject, GradeLevel } from "@/constants/grade-subjects";
 import { StudentAssignment, StudentDashboardFilters } from "@/types/student-dashboard";
 import { pascalToCamelCase, spacesToCamelCase } from "./string-utils";
+import { getMonthNameFromDate } from "@/constants/months-filter";
 
 /**
  * Creates initial student dashboard filters with all options set to false
@@ -91,6 +92,43 @@ export function matchesStudentSubjectFilters(
 }
 
 /**
+ * Checks if an assignment matches the date range filter
+ */
+function matchesStudentDateRangeFilter(assignment: StudentAssignment, filters: StudentDashboardFilters): boolean {
+  if (!filters.dateRange) return true;
+  
+  const { from, to } = filters.dateRange;
+  if (!from && !to) return true;
+  
+  // Use dueDate for comparison
+  const assignmentDate = new Date(assignment.dueDate || '');
+  if (isNaN(assignmentDate.getTime())) return true; // Invalid date, include by default
+  
+  if (from && assignmentDate < from) return false;
+  if (to && assignmentDate > to) return false;
+  
+  return true;
+}
+
+/**
+ * Checks if an assignment matches the month filter
+ */
+function matchesStudentMonthFilter(assignment: StudentAssignment, filters: StudentDashboardFilters): boolean {
+  if (!filters.months) return true;
+  
+  // Check if any months are selected
+  const selectedMonths = Object.entries(filters.months).filter(([_, isSelected]) => isSelected).map(([month]) => month);
+  if (selectedMonths.length === 0) return true;
+  
+  // Use dueDate for comparison
+  const assignmentDate = new Date(assignment.dueDate || '');
+  if (isNaN(assignmentDate.getTime())) return true; // Invalid date, include by default
+  
+  const assignmentMonth = getMonthNameFromDate(assignmentDate);
+  return selectedMonths.includes(assignmentMonth);
+}
+
+/**
  * Filters student assignments based on search query and filters
  * @param assignments - Array of assignments to filter
  * @param searchQuery - Text-based search query
@@ -113,7 +151,11 @@ export function filterStudentAssignments(
     // Apply status-based filters
     matchesStudentStatusFilters(assignment, selectedFilters) &&
     // Apply subject-based filters
-    matchesStudentSubjectFilters(assignment, selectedFilters, availableSubjects || [])
+    matchesStudentSubjectFilters(assignment, selectedFilters, availableSubjects || []) &&
+    // Apply date range filters
+    matchesStudentDateRangeFilter(assignment, selectedFilters) &&
+    // Apply month filters
+    matchesStudentMonthFilter(assignment, selectedFilters)
   );
 }
 
@@ -123,7 +165,28 @@ export function filterStudentAssignments(
  * @returns Number of active (true) filters
  */
 export function getActiveStudentFilterCount(filters?: StudentDashboardFilters): number {
-  return Object.values(filters || {}).filter(Boolean).length;
+  if (!filters) return 0;
+  
+  let count = 0;
+  
+  // Count boolean filters (status and subject filters)
+  Object.entries(filters).forEach(([key, value]) => {
+    if (key !== 'dateRange' && key !== 'timePeriod' && key !== 'months' && value === true) {
+      count++;
+    }
+  });
+  
+  // Count time-based filters
+  if (filters.timePeriod) {
+    count++;
+  }
+  
+  // Count month filters
+  if (filters.months) {
+    count += Object.values(filters.months).filter(Boolean).length;
+  }
+  
+  return count;
 }
 
 /**
@@ -132,7 +195,7 @@ export function getActiveStudentFilterCount(filters?: StudentDashboardFilters): 
  * @returns Boolean indicating if any filters are active
  */
 export function hasActiveStudentFilters(filters?: StudentDashboardFilters): boolean {
-  return Object.values(filters || {}).some(Boolean);
+  return getActiveStudentFilterCount(filters) > 0;
 }
 
 /**

@@ -90,8 +90,8 @@ export default function StudentDashboard({ user }: { user: EnhancedUser }) {
   // ===== Navigation =====
   const navigate = useNavigate();
 
-  // Default to grade 9 if no grade is provided
-  const userGrade = useMemo(() => user?.grades as GradeLevel, [user?.grades]);
+  // Get user's grade with proper handling
+  const userGrade = useMemo(() => user?.grade as GradeLevel, [user?.grade]);
 
   // ===== Subject and Filter Management =====
   // Get available subjects for the current grade
