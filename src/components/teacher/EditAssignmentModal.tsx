@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { DbClient } from '@/types/supabase';
-import { Assignment, AssignmentWithRelations } from '@/types/assignments';
+import { Assignment } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { RichTextEditor } from "@/components/RichTextEditor";
 
 const editAssignmentSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -34,7 +35,7 @@ const editAssignmentSchema = z.object({
 type EditAssignmentFormData = z.infer<typeof editAssignmentSchema>;
 
 interface Props {
-  assignment: Assignment | AssignmentWithRelations;
+  assignment: Assignment;
   isOpen?: boolean;
   onClose: () => void;
   onSuccess?: () => void;
@@ -182,11 +183,10 @@ export function EditAssignmentModal({
               name="description"
               control={control}
               render={({ field }) => (
-                <Textarea
-                  {...field}
+                <RichTextEditor
+                  value={field.value || ""}
+                  onChange={field.onChange}
                   placeholder="Describe the assignment"
-                  className="mt-1"
-                  rows={4}
                 />
               )}
             />

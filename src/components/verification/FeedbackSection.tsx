@@ -1,13 +1,14 @@
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/RichTextEditor";
 
 interface FeedbackSectionProps {
   feedback: string;
-  setFeedback: (feedback: string) => void;
+  setFeedback: (value: string) => void;
   skillsJustification: string;
-  setSkillsJustification: (justification: string) => void;
+  setSkillsJustification: (value: string) => void;
   remarks: string;
-  setRemarks: (remarks: string) => void;
+  setRemarks: (value: string) => void;
 }
 
 export const FeedbackSection = ({
@@ -24,12 +25,10 @@ export const FeedbackSection = ({
         <Label htmlFor="feedback" className="text-sm font-medium text-gray-900">
           General Feedback
         </Label>
-        <Textarea
-          id="feedback"
+        <RichTextEditor
           value={feedback}
-          onChange={(e) => setFeedback(e.target.value)}
+          onChange={setFeedback}
           placeholder="Provide general feedback about the assignment..."
-          className="min-h-[100px] resize-none"
         />
       </div>
 
@@ -37,12 +36,10 @@ export const FeedbackSection = ({
         <Label htmlFor="skills-justification" className="text-sm font-medium text-gray-900">
           Skills Justification
         </Label>
-        <Textarea
-          id="skills-justification"
+        <RichTextEditor
           value={skillsJustification}
-          onChange={(e) => setSkillsJustification(e.target.value)}
+          onChange={setSkillsJustification}
           placeholder="Explain why you selected these skills..."
-          className="min-h-[100px] resize-none"
         />
       </div>
 
@@ -50,12 +47,10 @@ export const FeedbackSection = ({
         <Label htmlFor="remarks" className="text-sm font-medium text-gray-900">
           Additional Remarks
         </Label>
-        <Textarea
-          id="remarks"
+        <RichTextEditor
           value={remarks}
-          onChange={(e) => setRemarks(e.target.value)}
+          onChange={setRemarks}
           placeholder="Any additional comments or suggestions..."
-          className="min-h-[100px] resize-none"
         />
       </div>
     </div>

@@ -2,9 +2,15 @@ import { cn } from "@/lib/utils";
 import { PreviewFieldProps } from "@/lib/types/preview";
 import { BadgeCheck } from "lucide-react";
 import { memo } from "react";
+import { HtmlContent } from "@/components/ui/html-content";
 
 const PreviewField = memo(({ label = "", value, className = "" }: PreviewFieldProps) => {
   if (value === undefined || value === null) return null;
+
+  // Function to detect if a string contains HTML
+  const containsHtml = (str: string) => {
+    return /<\/?[a-z][\s\S]*>/i.test(str);
+  };
 
   return (
     <div className={cn("space-y-1.5 sm:space-y-2", className)}>
@@ -34,6 +40,8 @@ const PreviewField = memo(({ label = "", value, className = "" }: PreviewFieldPr
             <span className="text-base sm:text-lg text-slate-500 italic">None selected</span>
           )}
         </div>
+      ) : typeof value === "string" && containsHtml(value) ? (
+        <HtmlContent html={value} className="text-slate-700" />
       ) : (
         <p className="text-base sm:text-lg text-slate-700 whitespace-pre-wrap break-words max-w-full overflow-hidden font-normal">
           {String(value) || ""}

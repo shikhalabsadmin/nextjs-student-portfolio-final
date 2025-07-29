@@ -1,5 +1,5 @@
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
-import { CharacterLimitedTextarea } from "@/components/ui/character-limited-textarea";
+import { RichCharacterLimitedTextarea } from "@/components/ui/rich-character-limited-textarea";
 import type { UseFormReturn } from "react-hook-form";
 import type { AssignmentFormValues } from "@/lib/validations/assignment";
 
@@ -31,13 +31,12 @@ export function ReflectionField({
           </FormLabel>
           <FormDescription>{description}</FormDescription>
           <FormControl>
-            <CharacterLimitedTextarea
+            <RichCharacterLimitedTextarea
               placeholder={placeholder}
               value={(field.value as string) || ""}
               onChange={field.onChange}
               onBlur={field.onBlur}
               name={field.name}
-              ref={field.ref}
               required
               currentLength={currentLength}
               maxLength={2000}

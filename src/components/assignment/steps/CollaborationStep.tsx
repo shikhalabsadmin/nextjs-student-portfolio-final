@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import { cn } from "@/lib/utils"; // Assuming cn is available for className merging
 
 // Define field names for type safety
@@ -99,12 +100,10 @@ function ConditionalTextarea({ form, toggleName, textareaName, label, placeholde
         <FormItem className="pb-1 sm:pb-2">
           <FormLabel className="text-lg">{label}</FormLabel>
           <FormControl>
-            <Textarea
+            <RichTextEditor
+              value={field.value || ""}
+              onChange={field.onChange}
               placeholder={placeholder}
-              className="min-h-[80px] sm:min-h-[100px] resize-y"
-              {...field}
-              value={field.value ?? ""}
-              aria-label={label}
             />
           </FormControl>
           <FormMessage />

@@ -1,5 +1,5 @@
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
-import { CharacterLimitedTextarea } from "@/components/ui/character-limited-textarea";
+import { RichCharacterLimitedTextarea } from "@/components/ui/rich-character-limited-textarea";
 import type { UseFormReturn } from "react-hook-form";
 import type { AssignmentFormValues } from "@/lib/validations/assignment";
 import { SKILLS } from "@/constants";
@@ -49,13 +49,12 @@ export function SkillsJustification({ form }: SkillsJustificationProps) {
           )}
           
           <FormControl>
-            <CharacterLimitedTextarea
+            <RichCharacterLimitedTextarea
               placeholder="How did each skill help you in creating this work?"
               value={field.value || ""}
               onChange={field.onChange}
               onBlur={field.onBlur}
               name={field.name}
-              ref={field.ref}
               required
               currentLength={field.value?.length || 0}
               maxLength={2000}

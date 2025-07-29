@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { RichTextEditor } from '@/components/RichTextEditor';
+import { CheckIcon } from 'lucide-react';
 
 interface VerificationFormData {
   meetsRequirements: boolean;
@@ -220,12 +222,10 @@ export function AssignmentVerificationView() {
                 
                 <div>
                   <Label>Comments</Label>
-                  <Textarea
+                  <RichTextEditor
                     value={feedback}
-                    onChange={(e) => setFeedback(e.target.value)}
+                    onChange={setFeedback}
                     placeholder="Provide feedback on the assignment..."
-                    className="mt-1"
-                    rows={4}
                   />
                 </div>
 
@@ -233,16 +233,17 @@ export function AssignmentVerificationView() {
                   <Label>Suggestions for Improvement</Label>
                   {suggestions.map((suggestion, index) => (
                     <div key={index} className="flex gap-2 mt-2">
-                      <Textarea
-                        value={suggestion}
-                        onChange={(e) => {
-                          const newSuggestions = [...suggestions];
-                          newSuggestions[index] = e.target.value;
-                          setSuggestions(newSuggestions);
-                        }}
-                        placeholder="Add a suggestion..."
-                        className="flex-1"
-                      />
+                      <div className="flex-1">
+                        <RichTextEditor
+                          value={suggestion}
+                          onChange={(value) => {
+                            const newSuggestions = [...suggestions];
+                            newSuggestions[index] = value;
+                            setSuggestions(newSuggestions);
+                          }}
+                          placeholder="Add a suggestion..."
+                        />
+                      </div>
                       <Button
                         type="button"
                         variant="outline"

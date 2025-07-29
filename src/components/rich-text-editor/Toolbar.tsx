@@ -6,16 +6,12 @@ import {
 } from 'lucide-react';
 import { ToolbarButton } from './ToolbarButton';
 import { LinkDialog } from './LinkDialog';
-import { ImageDialog } from './ImageDialog';
 
 interface ToolbarProps {
   editor: Editor;
   linkUrl: string;
   setLinkUrl: (url: string) => void;
   addLink: () => void;
-  imageUrl: string;
-  setImageUrl: (url: string) => void;
-  addImage: () => void;
 }
 
 export const Toolbar = ({
@@ -23,9 +19,6 @@ export const Toolbar = ({
   linkUrl,
   setLinkUrl,
   addLink,
-  imageUrl,
-  setImageUrl,
-  addImage,
 }: ToolbarProps) => (
   <div className="border-b bg-gray-50 p-2 flex flex-wrap gap-2">
     <div className="flex gap-1 border-r pr-2">
@@ -90,11 +83,6 @@ export const Toolbar = ({
         linkUrl={linkUrl}
         setLinkUrl={setLinkUrl}
         addLink={addLink}
-      />
-      <ImageDialog
-        imageUrl={imageUrl}
-        setImageUrl={setImageUrl}
-        addImage={addImage}
       />
     </div>
 

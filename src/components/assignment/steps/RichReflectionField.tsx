@@ -3,34 +3,42 @@ import { RichCharacterLimitedTextarea } from "@/components/ui/rich-character-lim
 import type { UseFormReturn } from "react-hook-form";
 import type { AssignmentFormValues } from "@/lib/validations/assignment";
 
-interface PrideReasonProps {
+interface RichReflectionFieldProps {
   form: UseFormReturn<AssignmentFormValues>;
+  name: keyof AssignmentFormValues;
+  label: string;
+  description: string;
+  placeholder: string;
+  currentLength: number;
 }
 
-export function PrideReason({ form }: PrideReasonProps) {
+export function RichReflectionField({
+  form,
+  name,
+  label,
+  description,
+  placeholder,
+  currentLength,
+}: RichReflectionFieldProps) {
   return (
     <FormField
       control={form.control}
-      name="pride_reason"
+      name={name}
       render={({ field }) => (
         <FormItem>
           <FormLabel className="text-lg font-medium">
-            Why are you proud of this artifact? <span className="text-red-500">*</span>
+            {label} <span className="text-red-500">*</span>
           </FormLabel>
-          <FormDescription>
-            Did it challenge you in a new way, showcase your creativity, or
-            reflect your best effort? Describe the moments that made you feel
-            proud.
-          </FormDescription>
+          <FormDescription>{description}</FormDescription>
           <FormControl>
             <RichCharacterLimitedTextarea
-              placeholder="What makes this work special or meaningful to you?"
-              value={field.value || ""}
+              placeholder={placeholder}
+              value={(field.value as string) || ""}
               onChange={field.onChange}
               onBlur={field.onBlur}
               name={field.name}
               required
-              currentLength={field.value?.length || 0}
+              currentLength={currentLength}
               maxLength={2000}
               suggestedLength={1500}
             />

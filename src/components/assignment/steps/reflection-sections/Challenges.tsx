@@ -1,4 +1,4 @@
-import { ReflectionField } from "../ReflectionField";
+import { RichReflectionField } from "../RichReflectionField";
 import type { UseFormReturn } from "react-hook-form";
 import type { AssignmentFormValues } from "@/lib/validations/assignment";
 
@@ -9,7 +9,7 @@ interface ChallengesProps {
 
 export function Challenges({ form, currentLength }: ChallengesProps) {
   return (
-    <ReflectionField
+    <RichReflectionField
       form={form}
       name="challenges"
       label="Your challenges"

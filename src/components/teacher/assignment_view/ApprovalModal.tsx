@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { RichTextEditor } from "@/components/RichTextEditor";
 
 // Define skills list as a constant for reuse
 const SKILLS = [
@@ -297,11 +298,10 @@ const ApprovalModal = memo(
                           Justify the skills selection
                         </FormLabel>
                         <FormControl>
-                          <Textarea
-                            {...field}
+                          <RichTextEditor
+                            value={field.value || ""}
+                            onChange={field.onChange}
                             placeholder="Explain why these skills were demonstrated..."
-                            className="min-h-[60px] sm:min-h-[80px] resize-y w-full border border-slate-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md text-xs sm:text-sm"
-                            disabled={isSubmitting}
                           />
                         </FormControl>
                         <FormMessage className="text-red-500 text-xs sm:text-sm" />
@@ -324,11 +324,10 @@ const ApprovalModal = memo(
                           Additional feedback (optional)
                         </FormLabel>
                         <FormControl>
-                          <Textarea
-                            {...field}
+                          <RichTextEditor
+                            value={field.value || ""}
+                            onChange={field.onChange}
                             placeholder="Add any additional comments..."
-                            className="min-h-[60px] sm:min-h-[80px] resize-y w-full border border-slate-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md text-xs sm:text-sm"
-                            disabled={isSubmitting}
                           />
                         </FormControl>
                         <FormMessage className="text-red-500 text-xs sm:text-sm" />

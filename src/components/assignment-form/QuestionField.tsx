@@ -306,18 +306,12 @@ export const QuestionField = ({ question, value, onChange, uploadProgress = {}, 
           </ul>
         )}
         <div className="relative">
-          <textarea
+          <RichTextEditor
             value={value || ""}
-            onChange={(e) => {
-              const newValue = e.target.value;
-              onChange(newValue);
-            }}
-            className={`w-full min-h-[120px] p-3 rounded-lg border focus:border-[#62C59F] focus:ring-1 focus:ring-[#62C59F] ${
-              isOverLimit ? "border-red-500" : ""
-            }`}
+            onChange={onChange}
             placeholder={question.hint}
           />
-          <div className="absolute top-0 right-0 mt-2 mr-2">
+          <div className="mt-2 flex justify-end">
             <span className={`text-base ${isOverLimit ? "text-red-500" : "text-gray-400"}`}>
               {wordCount}/{suggestedMaxWords} suggested words
             </span>

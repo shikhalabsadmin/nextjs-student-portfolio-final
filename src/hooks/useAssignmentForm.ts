@@ -31,6 +31,12 @@ const AUTO_SAVE_DELAY = 5000;
 const toast = new ToastService();
 const steps = new StepService(STEPS);
 const formLogger = logger.forModule("useAssignmentForm");
+const DEBUG = true;
+function debugLog(...args: any[]) {
+  if (DEBUG) {
+    console.log("[AssignmentForm Debug]", ...args);
+  }
+}
 
 /**
  * Hook for managing the multi-step assignment form
@@ -329,6 +335,7 @@ function useAssignmentForm({ user }: { user: User }) {
     (stepId: AssignmentStep) => {
       const isValid = steps.validateStep(stepId, form.getValues());
       formLogger.debug("Validating step", { step: stepId, isValid });
+      debugLog("Validating step", { step: stepId, isValid, formData: form.getValues() });
       return isValid;
     },
     [form]
@@ -347,10 +354,12 @@ function useAssignmentForm({ user }: { user: User }) {
   // Handle save and navigation to next step
   const handleSaveAndContinue = useCallback(async () => {
     formLogger.info("Save and continue initiated", { currentStep });
+    debugLog("Save and continue initiated", { currentStep, formData: form.getValues() });
 
     const data = form.getValues();
     if (!data.id) {
       formLogger.error("Save and continue attempted without assignment ID");
+      debugLog("ERROR: Save attempted without ID", data);
       return;
     }
     await handleAdvanceToNextStep(data);
@@ -398,16 +407,36 @@ function useAssignmentForm({ user }: { user: User }) {
   // Save and advance to next step
   const handleAdvanceToNextStep = async (data: AssignmentFormValues) => {
     formLogger.debug("Saving and advancing to next step", { currentStep });
-    await saveData(data.id, data);
-
-    const next = steps.getNextStep(currentStep, data);
-    if (next) {
-      formLogger.info("Advancing to next step", {
-        from: currentStep,
-        to: next,
-      });
-      setCurrentStep(next);
-      toast.success("Saved and continued");
+    debugLog("Saving and advancing to next step", { currentStep, data });
+    
+    try {
+      debugLog("Attempting to save data", { id: data.id });
+      await saveData(data.id, data);
+      debugLog("Data saved successfully");
+      
+      const next = steps.getNextStep(currentStep, data);
+      debugLog("Next step calculation", { current: currentStep, next, data });
+      
+      if (next) {
+        formLogger.info("Advancing to next step", {
+          from: currentStep,
+          to: next,
+        });
+        setCurrentStep(next);
+        toast.success("Saved and continued");
+      } else {
+        debugLog("No next step available");
+      }
+    } catch (error) {
+      console.error("Error saving or advancing step:", error);
+      debugLog("ERROR in handleAdvanceToNextStep", { error, data });
+      // Preserve form data in local storage as backup
+      try {
+        localStorage.setItem('assignmentFormBackup', JSON.stringify(data));
+        debugLog("Form data backed up to localStorage");
+      } catch (e) {
+        console.error("Failed to backup form data:", e);
+      }
     }
   };
 

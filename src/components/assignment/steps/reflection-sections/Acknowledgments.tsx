@@ -1,4 +1,4 @@
-import { ReflectionField } from "../ReflectionField";
+import { RichReflectionField } from "../RichReflectionField";
 import type { UseFormReturn } from "react-hook-form";
 import type { AssignmentFormValues } from "@/lib/validations/assignment";
 
@@ -9,7 +9,7 @@ interface AcknowledgmentsProps {
 
 export function Acknowledgments({ form, currentLength }: AcknowledgmentsProps) {
   return (
-    <ReflectionField
+    <RichReflectionField
       form={form}
       name="acknowledgments"
       label="Your gratitude"

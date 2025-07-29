@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { User } from "@supabase/supabase-js";
 import { useParams } from "react-router-dom";
 import { Form } from "@/components/ui/form";
@@ -47,6 +47,7 @@ function AssignmentForm({ user }: AssignmentFormProps) {
   // State management
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const { toast } = useToast();
+  const backupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Form and assignment state from custom hook
   const {
@@ -110,7 +111,90 @@ function AssignmentForm({ user }: AssignmentFormProps) {
     [setCurrentStep]
   );
 
+  // Add this effect to restore form data from backup if needed
+  useEffect(() => {
+    // Wait for form to be initialized with an ID before attempting restore
+    const currentId = form.getValues().id;
+    if (!currentId || isLoading) return;
+
+    const backupData = localStorage.getItem('assignmentFormBackup');
+    if (backupData) {
+      try {
+        console.log("Found backup form data, attempting to restore...");
+        const parsedData = JSON.parse(backupData);
+        
+        // Only restore if we have an ID and it matches the current form
+        if (parsedData && parsedData.id && parsedData.id === currentId) {
+          console.log("Restoring form data from backup");
+          
+          // Restore all form fields
+          Object.keys(parsedData).forEach(key => {
+            if (key !== 'id') { // Don't overwrite ID
+              form.setValue(key as any, parsedData[key]);
+            }
+          });
+          
+          toast({
+            title: "Data Restored",
+            description: "Your unsaved changes have been restored",
+          });
+          
+          // Clear backup after successful restore
+          localStorage.removeItem('assignmentFormBackup');
+        } else {
+          console.log("Backup form data does not match current form, ignoring");
+          localStorage.removeItem('assignmentFormBackup');
+        }
+      } catch (error) {
+        console.error("Error restoring form data:", error);
+        localStorage.removeItem('assignmentFormBackup');
+      }
+    }
+  }, [form, isLoading, form.watch("id")]);
+
+  // Create a backup of form data before unloading page AND on every form change
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const formData = form.getValues();
+      if (formData.id) {
+        localStorage.setItem('assignmentFormBackup', JSON.stringify(formData));
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [form]);
+
+  // Backup form data on every change (debounced)
+  useEffect(() => {
+    const subscription = form.watch(() => {
+      const formData = form.getValues();
+      if (formData.id) {
+        // Debounced backup - don't backup too frequently
+        if (backupTimeoutRef.current) {
+          clearTimeout(backupTimeoutRef.current);
+        }
+        backupTimeoutRef.current = setTimeout(() => {
+          localStorage.setItem('assignmentFormBackup', JSON.stringify(formData));
+          console.log("Form data backed up automatically");
+        }, 2000);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      if (backupTimeoutRef.current) {
+        clearTimeout(backupTimeoutRef.current);
+      }
+    };
+  }, [form]);
+
+  // Modify the existing save function to backup data after save success
   const handleSaveAndContinueClick = useCallback(async () => {
+    console.log("Save and continue clicked - current step:", currentStep);
+    
     if (currentStep === "review-submit") {
       // Only show confirmation modal if all steps are complete
       if (areAllStepsComplete) {
@@ -126,35 +210,53 @@ function AssignmentForm({ user }: AssignmentFormProps) {
       return;
     }
     
-    // For other steps, trigger validation for the current step's fields
-    const stepConfig = STEPS.find(step => step.id === currentStep);
-    if (stepConfig) {
-      // Get the fields for the current step from STEP_REQUIREMENTS
-      const stepFields = getStepRequiredFields(currentStep as AssignmentStep);
-      
-      // Only trigger validation when user attempts to proceed to next step
-      const isStepValid = await form.trigger(stepFields as any);
-      
-      if (isStepValid) {
-        // If valid, save and continue
-        handleSaveAndContinue();
-      } else {
-        // If invalid, show toast with clear indication of what needs to be fixed
-        toast({
-          title: "Missing Required Fields",
-          description: "Please fill in all required fields highlighted in red.",
-          variant: "destructive",
-        });
-        // Focus on the first field with an error
-        const firstErrorField = Object.keys(form.formState.errors)[0];
-        if (firstErrorField) {
-          const element = document.getElementsByName(firstErrorField)[0];
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            element.focus();
+    try {
+      // For other steps, trigger validation for the current step's fields
+      const stepConfig = STEPS.find(step => step.id === currentStep);
+      if (stepConfig) {
+        // Get the fields for the current step from STEP_REQUIREMENTS
+        const stepFields = getStepRequiredFields(currentStep as AssignmentStep);
+        
+        console.log("Validating step fields:", stepFields);
+        
+        // Only trigger validation when user attempts to proceed to next step
+        const isStepValid = await form.trigger(stepFields as any);
+        console.log("Step validation result:", isStepValid);
+        
+        // Create a backup before attempting to save
+        const formData = form.getValues();
+        if (formData.id) {
+          localStorage.setItem('assignmentFormBackup_' + currentStep, JSON.stringify(formData));
+          console.log("Form data backed up for step:", currentStep);
+        }
+        
+        if (isStepValid) {
+          // If valid, save and continue
+          await handleSaveAndContinue();
+          
+          // Clear backup after successful save
+          localStorage.removeItem('assignmentFormBackup_' + currentStep);
+          localStorage.removeItem('assignmentFormBackup');
+        } else {
+          // If invalid, show toast with clear indication of what needs to be fixed
+          toast({
+            title: "Missing Required Fields",
+            description: "Please fill in all required fields highlighted in red.",
+            variant: "destructive",
+          });
+          // Focus on the first field with an error
+          const firstErrorField = Object.keys(form.formState.errors)[0];
+          if (firstErrorField) {
+            const element = document.getElementsByName(firstErrorField)[0];
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              element.focus();
+            }
           }
         }
       }
+    } catch (error) {
+      console.error("Error in save and continue:", error);
     }
   }, [currentStep, handleSaveAndContinue, areAllStepsComplete, toast, form]);
 

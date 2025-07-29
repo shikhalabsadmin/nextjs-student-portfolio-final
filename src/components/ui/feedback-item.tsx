@@ -1,6 +1,7 @@
 import React from 'react';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { formatDate } from "@/utils/teacher-feedback-date-utils";
+import { HtmlContent } from "@/components/ui/html-content";
 
 interface TeacherFeedbackData {
   teacher_name?: string;
@@ -64,7 +65,7 @@ const FeedbackItem = ({
         </h3>
         <div className="bg-transparent text-slate-600 text-sm font-normal text-wrap">
           {feedback?.text ? (
-            feedback.text
+            <HtmlContent html={feedback.text} />
           ) : (
             <span className="text-slate-400 italic">
               No feedback provided

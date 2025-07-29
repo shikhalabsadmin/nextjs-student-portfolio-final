@@ -33,6 +33,7 @@ import SCHOOL_OPTIONS from "@/constants/student_profile_school_options";
 import { getProfileInfo } from "@/api/profiles";
 import { Loading } from "@/components/ui/loading";
 import { DEFAULT_STUDENT_BIO, DEFAULT_STUDENT_SCHOOL } from "@/constants/student-profile-defaults";
+import { RichTextEditor } from "@/components/RichTextEditor";
 
 // Define maximum file size (1GB)
 const MAX_FILE_SIZE = 1024 * 1024 * 1024;
@@ -721,10 +722,10 @@ export const StudentProfile = ({
                     </FormDescription>
                   </div>
                   <FormControl>
-                    <Textarea
-                      {...field}
+                    <RichTextEditor
+                      value={field.value || ""}
+                      onChange={field.onChange}
                       placeholder="Tell us about yourself, your interests, and what you hope to achieve..."
-                      className="min-h-[120px] resize-y bg-gray-50/50 border-gray-200 focus:border-primary/50 focus:ring-primary/20 rounded-lg shadow-sm"
                     />
                   </FormControl>
                   <FormMessage />

@@ -23,6 +23,14 @@ const isRestrictedStatus = (status: AssignmentStatus): boolean => {
   return RESTRICTED_STATUSES.includes(status as (typeof RESTRICTED_STATUSES)[number]);
 };
 
+// Add at the top of the file after imports
+const DEBUG = true;
+function debugLog(...args: any[]) {
+  if (DEBUG) {
+    console.log("[StepService Debug]", ...args);
+  }
+}
+
 // Logger instance
 const stepLogger = logger.forModule("StepService");
 
@@ -131,39 +139,49 @@ export class StepService {
     // Validate step ID
     if (!this.isValidStep(stepId)) {
       stepLogger.error(`Unknown step ID: ${stepId}`);
+      debugLog("Invalid step ID", stepId);
       return false;
     }
     
     // Special case for review-submit - only valid when status is SUBMITTED
     if (stepId === 'review-submit') {
+      debugLog("Review step validation", { isSubmitted: formData.status === ASSIGNMENT_STATUS.SUBMITTED });
       return formData.status === ASSIGNMENT_STATUS.SUBMITTED;
     }
 
     // Special case for teacher-feedback - only valid when status is APPROVED
     if (stepId === 'teacher-feedback') {
+      debugLog("Teacher feedback step validation", { isApproved: formData.status === ASSIGNMENT_STATUS.APPROVED });
       return formData.status === ASSIGNMENT_STATUS.APPROVED;
     }
     
     const requirements = STEP_REQUIREMENTS[stepId];
+    debugLog("Step requirements", { stepId, requirements });
     
     // Skip validation for steps marked as always valid
     if (requirements.alwaysValid) {
+      debugLog(`Step ${stepId} is always valid`);
       return true;
     }
     
     // Handle steps that depend on previous steps
     if (requirements.dependsOnPrevious) {
-      return this.validatePreviousSteps(stepId, formData);
+      const result = this.validatePreviousSteps(stepId, formData);
+      debugLog(`Step ${stepId} depends on previous steps. Result: ${result}`);
+      return result;
     }
     
     // Validate required fields
     const fieldsValid = this.validateFields(requirements.fields, formData);
+    debugLog("Required fields validation", { stepId, fieldsValid, fields: requirements.fields });
     
     // Run custom validation if provided
     const customValid = requirements.customCheck ? requirements.customCheck(formData) : true;
+    debugLog("Custom validation", { stepId, customValid, hasCustomCheck: !!requirements.customCheck });
     
     const isValid = fieldsValid && customValid;
     stepLogger.debug(`Step ${stepId} validation result: ${isValid}`);
+    debugLog(`Step ${stepId} final validation result: ${isValid}`);
     
     return isValid;
   }
@@ -195,19 +213,37 @@ export class StepService {
    * @returns Boolean indicating if all required fields are valid
    */
   private validateFields(fields: (keyof AssignmentFormValues)[], formData: AssignmentFormValues): boolean {
-    return fields.every(field => {
+    const results = fields.map(field => {
       const value = formData[field];
+      let isValid = false;
       
       if (Array.isArray(value)) {
-        return value.length > 0;
+        isValid = value.length > 0;
+        debugLog(`Field validation (array)`, { field, value, isValid });
+      } else if (typeof value === 'boolean') {
+        isValid = value !== undefined && value !== null;
+        debugLog(`Field validation (boolean)`, { field, value, isValid });
+      } else if (typeof value === 'string' && value.includes('<')) {
+        // Handle HTML content from rich text editors
+        const textContent = value.replace(/<[^>]*>/g, '').trim();
+        isValid = textContent !== '';
+        debugLog(`Field validation (rich text)`, { field, textContent, isValid });
+      } else {
+        isValid = value != null && value !== '';
+        debugLog(`Field validation (string)`, { field, value, isValid });
       }
       
-      if (typeof value === 'boolean') {
-        return value !== undefined && value !== null;
-      }
-      
-      return value != null && value !== '';
+      return { field, isValid };
     });
+    
+    const allValid = results.every(r => r.isValid);
+    
+    if (!allValid) {
+      const invalidFields = results.filter(r => !r.isValid).map(r => r.field);
+      debugLog("Invalid fields found:", invalidFields);
+    }
+    
+    return allValid;
   }
   
   /**

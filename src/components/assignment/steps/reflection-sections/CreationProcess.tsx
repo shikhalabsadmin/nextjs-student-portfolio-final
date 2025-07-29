@@ -1,4 +1,4 @@
-import { ReflectionField } from "../ReflectionField";
+import { RichReflectionField } from "../RichReflectionField";
 import type { UseFormReturn } from "react-hook-form";
 import type { AssignmentFormValues } from "@/lib/validations/assignment";
 
@@ -9,7 +9,7 @@ interface CreationProcessProps {
 
 export function CreationProcess({ form, currentLength }: CreationProcessProps) {
   return (
-    <ReflectionField
+    <RichReflectionField
       form={form}
       name="creation_process"
       label="Describe the process you used to create it"

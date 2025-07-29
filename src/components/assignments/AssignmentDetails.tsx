@@ -3,6 +3,7 @@ import { PreviewSection, PreviewField } from '@/components/ui/preview-section';
 import { FileText } from 'lucide-react';
 import { SKILLS } from '@/constants';
 import { INITIAL_QUESTIONS } from '@/components/assignment-form/QuestionTypes';
+import { HtmlContent } from "@/components/ui/html-content";
 
 interface AssignmentDetailsProps {
   assignment: Assignment;
@@ -66,6 +67,11 @@ export function AssignmentDetails({ assignment, mode = 'student' }: AssignmentDe
     const question = INITIAL_QUESTIONS.find(q => q.id === questionId);
     if (!question) return null;
 
+    // Function to detect if a string contains HTML
+    const containsHtml = (str: string) => {
+      return typeof str === 'string' && /<\/?[a-z][\s\S]*>/i.test(str);
+    };
+
     return (
       <div className="space-y-2">
         <h4 className="text-base font-semibold text-gray-800">{question.label}</h4>
@@ -86,6 +92,8 @@ export function AssignmentDetails({ assignment, mode = 'student' }: AssignmentDe
           <div className="text-sm font-medium text-gray-500">Student's Response:</div>
           {question.type === 'boolean' ? (
             <p className="text-sm text-gray-800">{answer ? 'Yes' : 'No'}</p>
+          ) : containsHtml(answer) ? (
+            <HtmlContent html={answer} className="text-sm text-gray-800" />
           ) : (
             <p className="text-sm text-gray-800 whitespace-pre-wrap">{answer}</p>
           )}

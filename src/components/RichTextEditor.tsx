@@ -1,8 +1,8 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
-import Image from '@tiptap/extension-image';
-import { useState } from 'react';
+import Placeholder from '@tiptap/extension-placeholder';
+import { useState, useEffect } from 'react';
 import { Toolbar } from './rich-text-editor/Toolbar';
 
 interface RichTextEditorProps {
@@ -13,7 +13,25 @@ interface RichTextEditorProps {
 
 export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorProps) => {
   const [linkUrl, setLinkUrl] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  
+  useEffect(() => {
+    // Add global styles for placeholder
+    const style = document.createElement('style');
+    style.textContent = `
+      .is-editor-empty:first-child::before {
+        content: attr(data-placeholder);
+        float: left;
+        color: #adb5bd;
+        pointer-events: none;
+        height: 0;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
   
   const editor = useEditor({
     extensions: [
@@ -24,10 +42,9 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
           class: 'text-blue-500 hover:underline cursor-pointer',
         },
       }),
-      Image.configure({
-        HTMLAttributes: {
-          class: 'max-w-full h-auto rounded-lg',
-        },
+      Placeholder.configure({
+        placeholder: placeholder || 'Write something...',
+        emptyEditorClass: 'is-editor-empty',
       }),
     ],
     content: value,
@@ -52,13 +69,6 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
     }
   };
 
-  const addImage = () => {
-    if (imageUrl) {
-      editor.chain().focus().setImage({ src: imageUrl }).run();
-      setImageUrl('');
-    }
-  };
-
   return (
     <div className="border rounded-md overflow-hidden">
       <Toolbar
@@ -66,9 +76,6 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
         linkUrl={linkUrl}
         setLinkUrl={setLinkUrl}
         addLink={addLink}
-        imageUrl={imageUrl}
-        setImageUrl={setImageUrl}
-        addImage={addImage}
       />
       <EditorContent editor={editor} className="p-4" />
     </div>

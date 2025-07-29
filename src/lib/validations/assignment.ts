@@ -74,6 +74,14 @@ export const baseAssignmentFormSchema = z.object({
   originality_explanation: z.string().optional().default(""),
 });
 
+// Helper function to check HTML content
+const isHtmlContentValid = (content: string | undefined | null): boolean => {
+  if (!content) return false;
+  // Remove HTML tags and check if there's actual text content
+  const textContent = content.replace(/<[^>]*>/g, '').trim();
+  return textContent.length > 0;
+};
+
 // Strict schema for submission
 export const assignmentFormSchema = baseAssignmentFormSchema.extend({
   title: z.string().min(1, "Title is required").max(255, "Title must be 255 characters or less"),
@@ -82,16 +90,23 @@ export const assignmentFormSchema = baseAssignmentFormSchema.extend({
   artifact_type: z.string().min(1, "Type of work is required"),
   month: z.string().optional(),
   selected_skills: z.array(z.string()).min(1, "Select at least one skill"),
-  skills_justification: z.string().min(1, "Skill justification is required").max(2000, "Must be 2000 characters or less"),
-  pride_reason: z.string().min(1, "This field is required").max(2000, "Must be 2000 characters or less"),
-  creation_process: z.string().min(1, "This field is required").max(2000, "Must be 2000 characters or less"),
-  learnings: z.string().min(1, "This field is required").max(2000, "Must be 2000 characters or less"),
-  challenges: z.string().min(1, "This field is required").max(2000, "Must be 2000 characters or less"),
-  improvements: z.string().min(1, "This field is required").max(2000, "Must be 2000 characters or less"),
-  acknowledgments: z.string().min(1, "This field is required").max(2000, "Must be 2000 characters or less"),
+  skills_justification: z.string().max(10000, "Content is too long")
+    .refine(isHtmlContentValid, "Skill justification is required"),
+  pride_reason: z.string().max(10000, "Content is too long")
+    .refine(isHtmlContentValid, "This field is required"),
+  creation_process: z.string().max(10000, "Content is too long")
+    .refine(isHtmlContentValid, "This field is required"),
+  learnings: z.string().max(10000, "Content is too long")
+    .refine(isHtmlContentValid, "This field is required"),
+  challenges: z.string().max(10000, "Content is too long")
+    .refine(isHtmlContentValid, "This field is required"),
+  improvements: z.string().max(10000, "Content is too long")
+    .refine(isHtmlContentValid, "This field is required"),
+  acknowledgments: z.string().max(10000, "Content is too long")
+    .refine(isHtmlContentValid, "This field is required"),
 }).superRefine((data, ctx) => {
   // Validate team contribution is provided if team work is selected
-  if (data.is_team_work && (!data.team_contribution || data.team_contribution.trim() === "")) {
+  if (data.is_team_work && data.team_contribution && !isHtmlContentValid(data.team_contribution)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Team contribution is required for team work",
@@ -100,7 +115,7 @@ export const assignmentFormSchema = baseAssignmentFormSchema.extend({
   }
   
   // Validate originality explanation is provided if original work is selected
-  if (data.is_original_work && (!data.originality_explanation || data.originality_explanation.trim() === "")) {
+  if (data.is_original_work && data.originality_explanation && !isHtmlContentValid(data.originality_explanation)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Please explain what makes your work original",

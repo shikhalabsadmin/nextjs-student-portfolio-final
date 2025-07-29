@@ -1,7 +1,7 @@
 import { useEffect, memo } from "react";
 import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -99,11 +99,10 @@ export const RevisionModal = memo(
                           Clearly explain what needs improvement.
                         </FormLabel>
                         <FormControl>
-                          <Textarea
-                            {...field}
+                          <RichTextEditor
+                            value={field.value}
+                            onChange={field.onChange}
                             placeholder="Eg: Clarify Skills Used, Expand Reflection"
-                            className="min-h-[100px] sm:min-h-[120px] resize-y w-full border border-slate-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md text-xs sm:text-sm"
-                            disabled={isSubmitting}
                           />
                         </FormControl>
                         <FormMessage className="text-red-500 text-xs sm:text-sm" />
