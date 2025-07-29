@@ -61,7 +61,10 @@ const DashboardContent = ({ user }: TeacherDataProps) => {
   const { artifacts, isLoading, error, refetch } =
     useTeacherArtifacts(safeUser);
 
-  const unApprovedArtifacts = useMemo(() => artifacts?.filter((artifact) => artifact?.status !== ASSIGNMENT_STATUS.APPROVED), [artifacts]);
+  const unApprovedArtifacts = useMemo(() => 
+    artifacts?.filter((artifact) => 
+      artifact?.status === ASSIGNMENT_STATUS.SUBMITTED
+    ), [artifacts]);
   const uniquesStudentsCount = useMemo(() => new Set(unApprovedArtifacts?.map((artifact) => artifact?.student_id)).size, [unApprovedArtifacts]);
 
   // Memoize filtered artifacts for better performance

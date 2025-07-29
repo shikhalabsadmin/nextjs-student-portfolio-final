@@ -20,7 +20,7 @@ export const TeacherStatusCard = memo(
           </div>
           
           <p className="text-sm font-medium text-slate-800 mt-1">
-            <span className="text-green-600 font-semibold">{artifactCount}</span> student works to review
+            <span className="text-green-600 font-semibold">{artifactCount}</span> student {artifactCount === 1 ? 'work' : 'works'} waiting for review
           </p>
         </div>
 
@@ -34,7 +34,7 @@ export const TeacherStatusCard = memo(
             </div>
           </div>
           <p className="text-base font-medium text-slate-800">
-            <span className="text-green-600 font-semibold">{artifactCount}</span> student works to review
+            <span className="text-green-600 font-semibold">{artifactCount}</span> student {artifactCount === 1 ? 'work' : 'works'} waiting for review
           </p>
         </div>
       </Card>
