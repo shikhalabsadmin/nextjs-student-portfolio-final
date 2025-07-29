@@ -18,7 +18,7 @@ interface FileUploadProps {
 export function FileUpload({
   value = [],
   onChange,
-  maxSize = 10 * 1024 * 1024, // 10MB
+  maxSize = 1024 * 1024 * 1024, // 1GB
   accept,
 }: FileUploadProps) {
   const onDrop = useCallback(
@@ -95,7 +95,7 @@ export function FileUpload({
           <p className="text-xs text-gray-400">
             Supported formats: Images, PDF, DOC, PPT, Videos
           </p>
-          <p className="text-xs text-gray-400">Max size: 10MB</p>
+          <p className="text-xs text-gray-400">Max size: 1GB</p>
         </div>
       </div>
 

@@ -34,8 +34,8 @@ import { getProfileInfo } from "@/api/profiles";
 import { Loading } from "@/components/ui/loading";
 import { DEFAULT_STUDENT_BIO, DEFAULT_STUDENT_SCHOOL } from "@/constants/student-profile-defaults";
 
-// Define maximum file size (5MB)
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+// Define maximum file size (1GB)
+const MAX_FILE_SIZE = 1024 * 1024 * 1024;
 const ACCEPTED_IMAGE_TYPES = [
   "image/jpeg",
   "image/png",
@@ -476,7 +476,7 @@ export const StudentProfile = ({
         );
         toast({
           title: "File too large",
-          description: "Maximum file size is 5MB",
+          description: "Maximum file size is 1GB",
           variant: "destructive",
         });
         return;
@@ -617,7 +617,7 @@ export const StudentProfile = ({
                 <div className="flex items-center gap-2 mt-3 text-xs text-gray-500">
                   <Info className="w-4 h-4 text-gray-400" />
                   <span>
-                    Max file size: 5MB. Supported formats: JPG, PNG, WebP
+                    Max file size: 1GB. Supported formats: JPG, PNG, WebP
                   </span>
                 </div>
               </div>

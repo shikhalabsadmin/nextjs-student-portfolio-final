@@ -6,12 +6,12 @@ export function validateFileType(file: File): boolean {
     fileType.startsWith("image/") ||
     fileType.startsWith("video/") ||
     fileType.startsWith("audio/") ||
-    fileType === "application/pdf"
+    fileType.startsWith("application/pdf")
   );
 }
 
-// Maximum file size of 250MB
-export function validateFileSize(file: File, maxSizeMB: number = 250): boolean {
+// Maximum file size of 1GB
+export function validateFileSize(file: File, maxSizeMB: number = 1024): boolean {
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
   return file.size <= maxSizeBytes;
 }

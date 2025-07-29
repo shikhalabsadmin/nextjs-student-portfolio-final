@@ -105,10 +105,10 @@ export function useFileUpload(options: FileUploadOptions): FileUploadHookReturn 
       }
       
       if (invalidSizeFiles.length > 0) {
-        errorMessage += `Files exceeding 250MB: ${invalidSizeNames}. `;
+        errorMessage += `Files exceeding 1GB: ${invalidSizeNames}. `;
       }
       
-      errorMessage += "Files must be images, videos, audio, or PDFs and under 250MB.";
+      errorMessage += "Files must be images, videos, audio, or PDFs and under 1GB.";
       
       toast({
         title: "Invalid files",

@@ -104,11 +104,11 @@ export function CreationProcessImages({ form }: CreationProcessImagesProps) {
         const filesArray = Array.from(files);
         
         // Validate file sizes
-        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+        const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1GB
         const oversizedFiles = filesArray.filter(file => file.size > MAX_FILE_SIZE);
         
         if (oversizedFiles.length > 0) {
-          toast.error(`${oversizedFiles.length} file(s) exceed the 5MB size limit and will be skipped.`);
+          toast.error(`${oversizedFiles.length} file(s) exceed the 1GB size limit and will be skipped.`);
         }
         
         // Filter out oversized files

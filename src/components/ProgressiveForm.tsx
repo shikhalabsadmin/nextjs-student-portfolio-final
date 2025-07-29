@@ -213,7 +213,7 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
         }
 
     // Validate file types and sizes
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1GB
     const ALLOWED_TYPES = [
       // Images
       'image/jpeg', 'image/png', 'image/gif', 'image/webp',
@@ -231,7 +231,7 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
       if (file.size > MAX_FILE_SIZE) {
         toast({
           title: "Error",
-          description: `${file.name} is too large. Maximum size is 10MB.`,
+          description: `${file.name} is too large. Maximum size is 1GB.`,
           variant: "destructive"
         });
         return true;
