@@ -14,6 +14,8 @@ export const subjectDisplayMap: Record<string, string> = {
   'media_studies': 'Media Studies',
   'travel_tourism': 'Travel and Tourism',
   'business': 'Business',
+  'enterprise': 'Enterprise',
+  'humanities': 'Humanities',
   // Keep additional subjects for backward compatibility
   'hist': 'History',
   'geo': 'Geography',

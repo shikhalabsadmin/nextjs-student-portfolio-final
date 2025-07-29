@@ -14,7 +14,9 @@ export const ALL_SUBJECTS = {
   DESIGN_TECH: 'Design and Tech',
   MEDIA_STUDIES: 'Media Studies',
   TRAVEL_TOURISM: 'Travel and Tourism',
-  BUSINESS: 'Business'
+  BUSINESS: 'Business',
+  ENTERPRISE: 'Enterprise',
+  HUMANITIES: 'Humanities'
 } as const;
 
 export type Subject = typeof ALL_SUBJECTS[keyof typeof ALL_SUBJECTS];
@@ -57,7 +59,8 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
     ALL_SUBJECTS.MARATHI,
     ALL_SUBJECTS.GP,
     ALL_SUBJECTS.CS,
-    ALL_SUBJECTS.ART
+    ALL_SUBJECTS.ART,
+    ALL_SUBJECTS.HUMANITIES
   ],
   [GRADE_LEVELS.GRADE_1B]: [
     ALL_SUBJECTS.ENGLISH,
@@ -67,7 +70,8 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
     ALL_SUBJECTS.MARATHI,
     ALL_SUBJECTS.GP,
     ALL_SUBJECTS.CS,
-    ALL_SUBJECTS.ART
+    ALL_SUBJECTS.ART,
+    ALL_SUBJECTS.HUMANITIES
   ],
   [GRADE_LEVELS.GRADE_1C]: [
     ALL_SUBJECTS.ENGLISH,
@@ -77,7 +81,8 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
     ALL_SUBJECTS.MARATHI,
     ALL_SUBJECTS.GP,
     ALL_SUBJECTS.CS,
-    ALL_SUBJECTS.ART
+    ALL_SUBJECTS.ART,
+    ALL_SUBJECTS.HUMANITIES
   ],
   [GRADE_LEVELS.GRADE_1D]: [
     ALL_SUBJECTS.ENGLISH,
@@ -87,7 +92,8 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
     ALL_SUBJECTS.MARATHI,
     ALL_SUBJECTS.GP,
     ALL_SUBJECTS.CS,
-    ALL_SUBJECTS.ART
+    ALL_SUBJECTS.ART,
+    ALL_SUBJECTS.HUMANITIES
   ],
   // Grades 2A-2C have the same subjects
   [GRADE_LEVELS.GRADE_2A]: [
@@ -98,7 +104,8 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
     ALL_SUBJECTS.MARATHI,
     ALL_SUBJECTS.GP,
     ALL_SUBJECTS.CS,
-    ALL_SUBJECTS.ART
+    ALL_SUBJECTS.ART,
+    ALL_SUBJECTS.HUMANITIES
   ],
   [GRADE_LEVELS.GRADE_2B]: [
     ALL_SUBJECTS.ENGLISH,
@@ -108,7 +115,8 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
     ALL_SUBJECTS.MARATHI,
     ALL_SUBJECTS.GP,
     ALL_SUBJECTS.CS,
-    ALL_SUBJECTS.ART
+    ALL_SUBJECTS.ART,
+    ALL_SUBJECTS.HUMANITIES
   ],
   [GRADE_LEVELS.GRADE_2C]: [
     ALL_SUBJECTS.ENGLISH,
@@ -118,7 +126,8 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
     ALL_SUBJECTS.MARATHI,
     ALL_SUBJECTS.GP,
     ALL_SUBJECTS.CS,
-    ALL_SUBJECTS.ART
+    ALL_SUBJECTS.ART,
+    ALL_SUBJECTS.HUMANITIES
   ],
   // Grades 3A-3C have the same subjects
   [GRADE_LEVELS.GRADE_3A]: [
@@ -129,7 +138,8 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
     ALL_SUBJECTS.MARATHI,
     ALL_SUBJECTS.GP,
     ALL_SUBJECTS.CS,
-    ALL_SUBJECTS.ART
+    ALL_SUBJECTS.ART,
+    ALL_SUBJECTS.HUMANITIES
   ],
   [GRADE_LEVELS.GRADE_3B]: [
     ALL_SUBJECTS.ENGLISH,
@@ -139,7 +149,8 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
     ALL_SUBJECTS.MARATHI,
     ALL_SUBJECTS.GP,
     ALL_SUBJECTS.CS,
-    ALL_SUBJECTS.ART
+    ALL_SUBJECTS.ART,
+    ALL_SUBJECTS.HUMANITIES
   ],
   [GRADE_LEVELS.GRADE_3C]: [
     ALL_SUBJECTS.ENGLISH,
@@ -149,7 +160,8 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
     ALL_SUBJECTS.MARATHI,
     ALL_SUBJECTS.GP,
     ALL_SUBJECTS.CS,
-    ALL_SUBJECTS.ART
+    ALL_SUBJECTS.ART,
+    ALL_SUBJECTS.HUMANITIES
   ],
   // Grades 4A-4C have the same subjects
   [GRADE_LEVELS.GRADE_4A]: [
@@ -160,7 +172,8 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
     ALL_SUBJECTS.MARATHI,
     ALL_SUBJECTS.GP,
     ALL_SUBJECTS.CS,
-    ALL_SUBJECTS.ART
+    ALL_SUBJECTS.ART,
+    ALL_SUBJECTS.HUMANITIES
   ],
   [GRADE_LEVELS.GRADE_4B]: [
     ALL_SUBJECTS.ENGLISH,
@@ -170,7 +183,8 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
     ALL_SUBJECTS.MARATHI,
     ALL_SUBJECTS.GP,
     ALL_SUBJECTS.CS,
-    ALL_SUBJECTS.ART
+    ALL_SUBJECTS.ART,
+    ALL_SUBJECTS.HUMANITIES
   ],
   [GRADE_LEVELS.GRADE_4C]: [
     ALL_SUBJECTS.ENGLISH,
@@ -180,7 +194,8 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
     ALL_SUBJECTS.MARATHI,
     ALL_SUBJECTS.GP,
     ALL_SUBJECTS.CS,
-    ALL_SUBJECTS.ART
+    ALL_SUBJECTS.ART,
+    ALL_SUBJECTS.HUMANITIES
   ],
   // Grade 5
   [GRADE_LEVELS.GRADE_5]: [
@@ -191,7 +206,8 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
     ALL_SUBJECTS.MARATHI,
     ALL_SUBJECTS.GP,
     ALL_SUBJECTS.CS,
-    ALL_SUBJECTS.ART
+    ALL_SUBJECTS.ART,
+    ALL_SUBJECTS.HUMANITIES
   ],
   // Grades 6A-6B have the same subjects with BEE added
   [GRADE_LEVELS.GRADE_6A]: [
@@ -203,7 +219,8 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
     ALL_SUBJECTS.GP,
     ALL_SUBJECTS.BEE,
     ALL_SUBJECTS.CS,
-    ALL_SUBJECTS.ART
+    ALL_SUBJECTS.ART,
+    ALL_SUBJECTS.HUMANITIES
   ],
   [GRADE_LEVELS.GRADE_6B]: [
     ALL_SUBJECTS.ENGLISH,
@@ -214,9 +231,10 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
     ALL_SUBJECTS.GP,
     ALL_SUBJECTS.BEE,
     ALL_SUBJECTS.CS,
-    ALL_SUBJECTS.ART
+    ALL_SUBJECTS.ART,
+    ALL_SUBJECTS.HUMANITIES
   ],
-  // Grades 7-10 have the same subjects with BEE
+  // Grades 7-8 have the same subjects with BEE and Humanities
   [GRADE_LEVELS.GRADE_7]: [
     ALL_SUBJECTS.ENGLISH,
     ALL_SUBJECTS.MATHEMATICS,
@@ -226,7 +244,8 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
     ALL_SUBJECTS.GP,
     ALL_SUBJECTS.BEE,
     ALL_SUBJECTS.CS,
-    ALL_SUBJECTS.ART
+    ALL_SUBJECTS.ART,
+    ALL_SUBJECTS.HUMANITIES
   ],
   [GRADE_LEVELS.GRADE_8]: [
     ALL_SUBJECTS.ENGLISH,
@@ -237,8 +256,10 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
     ALL_SUBJECTS.GP,
     ALL_SUBJECTS.BEE,
     ALL_SUBJECTS.CS,
-    ALL_SUBJECTS.ART
+    ALL_SUBJECTS.ART,
+    ALL_SUBJECTS.HUMANITIES
   ],
+  // Grades 9-10 have Enterprise instead of BEE
   [GRADE_LEVELS.GRADE_9]: [
     ALL_SUBJECTS.ENGLISH,
     ALL_SUBJECTS.MATHEMATICS,
@@ -246,7 +267,7 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
     ALL_SUBJECTS.HINDI,
     ALL_SUBJECTS.MARATHI,
     ALL_SUBJECTS.GP,
-    ALL_SUBJECTS.BEE,
+    ALL_SUBJECTS.ENTERPRISE,
     ALL_SUBJECTS.CS,
     ALL_SUBJECTS.ART
   ],
@@ -257,7 +278,7 @@ export const GRADE_SUBJECTS: Record<GradeLevel, Subject[]> = {
     ALL_SUBJECTS.HINDI,
     ALL_SUBJECTS.MARATHI,
     ALL_SUBJECTS.GP,
-    ALL_SUBJECTS.BEE,
+    ALL_SUBJECTS.ENTERPRISE,
     ALL_SUBJECTS.CS,
     ALL_SUBJECTS.ART
   ],
