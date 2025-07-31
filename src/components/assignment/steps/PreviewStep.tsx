@@ -107,9 +107,10 @@ export function PreviewStep({ form }: PreviewStepProps) {
                 <div className="text-sm font-medium text-amber-800 mb-2">
                   📝 {getQuestionLabel(questionId)}
                 </div>
-                <div className="text-gray-700 text-sm bg-gray-50 p-3 rounded border">
-                  {comment.comment}
-                </div>
+                <div 
+                  className="text-gray-700 text-sm bg-gray-50 p-3 rounded border prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: comment.comment }}
+                />
                 <div className="text-xs text-amber-600 mt-2">
                   Teacher feedback • {new Date(comment.timestamp).toLocaleDateString()} at{' '}
                   {new Date(comment.timestamp).toLocaleTimeString([], { 

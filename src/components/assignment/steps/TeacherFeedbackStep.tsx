@@ -105,9 +105,10 @@ const QuestionCommentsCard = memo(({ questionComments }: { questionComments: Rec
             <div className="text-sm font-medium text-blue-800 mb-2">
               📝 {getQuestionLabel(questionId)}
             </div>
-            <div className="text-gray-700 text-sm mb-2 bg-gray-50 p-3 rounded border">
-              {comment.comment}
-            </div>
+            <div 
+              className="text-gray-700 text-sm mb-2 bg-gray-50 p-3 rounded border prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: comment.comment }}
+            />
             <div className="text-xs text-blue-600">
               Teacher feedback • {new Date(comment.timestamp).toLocaleDateString()} at{' '}
               {new Date(comment.timestamp).toLocaleTimeString([], { 
