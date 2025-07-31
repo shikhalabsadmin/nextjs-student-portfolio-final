@@ -600,14 +600,21 @@ function useAssignmentForm({ user }: { user: User }) {
         newStatus: ASSIGNMENT_STATUS.SUBMITTED
       });
 
-      // Step 4: Success feedback and reload
-      formLogger.info("Step 5: Reloading page and showing success message", { id: data.id });
-      toast.success("Assignment submitted successfully");
+      // Step 4: Success feedback and update form state
+      formLogger.info("Step 4: Assignment submission SUCCESS", { 
+        id: data.id,
+        newStatus: ASSIGNMENT_STATUS.SUBMITTED
+      });
       
-      // Add a small delay to ensure toast is visible before reload
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      // Update form with new status immediately
+      form.setValue("status", ASSIGNMENT_STATUS.SUBMITTED);
+      
+      // Invalidate React Query cache to refetch fresh data
+      queryClient.invalidateQueries({
+        queryKey: ASSIGNMENT_KEYS.detail(data.id),
+      });
+      
+      toast.success("Assignment submitted successfully");
       
     } catch (error) {
       formLogger.error("SUBMISSION PROCESS FAILED", {
