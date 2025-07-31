@@ -18,8 +18,9 @@ export function getFilteredSteps(steps: StepConfig[], status: AssignmentStatus, 
   // ✅ CLEAN LOGIC: Only show post-submission steps when assignment is truly submitted AND complete
   
   if (status === ASSIGNMENT_STATUS.NEEDS_REVISION) {
-    // Special case: Show only teacher feedback for revision requests
-    const filteredSteps = steps.filter(step => step.id === 'teacher-feedback');
+    // Show all work steps AND teacher feedback for revision requests
+    // Students need to see feedback AND be able to edit their work
+    const filteredSteps = steps.filter(step => step.id !== 'assignment-preview');
     console.log("✅ FILTERED STEPS (NEEDS_REVISION):", filteredSteps.map(s => s.id));
     return filteredSteps;
   }

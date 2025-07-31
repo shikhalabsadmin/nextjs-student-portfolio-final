@@ -106,13 +106,8 @@ function AssignmentForm({ user }: AssignmentFormProps) {
     // ✅ CRITICAL FIX: Pass actual completion state to prevent showing submitted/feedback steps for incomplete work
     const steps = getFilteredSteps(STEPS, assignmentStatus, areAllStepsComplete);
     
-    // Auto-navigate to teacher-feedback for revision requests
-    if (assignmentStatus === ASSIGNMENT_STATUS.NEEDS_REVISION) {
-      setCurrentStep("teacher-feedback");
-    }
-    
     return steps;
-  }, [assignmentStatus, areAllStepsComplete, setCurrentStep]);
+  }, [assignmentStatus, areAllStepsComplete]);
 
   // Event handlers
   const handleSetCurrentStep = useCallback(
