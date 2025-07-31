@@ -32,7 +32,13 @@ export function PreviewStep({ form }: PreviewStepProps) {
     });
 
     if (Array.isArray(values?.feedback) && values?.feedback.length > 0) {
-      console.log("🔍 COMMENTS DEBUG - PreviewStep feedback items:", values?.feedback.map((item, index) => ({ index, ...item })));
+      console.log("🔍 COMMENTS DEBUG - PreviewStep feedback items detailed:", values?.feedback.map((item, index) => ({ 
+        index, 
+        keys: Object.keys(item),
+        hasQuestionComments: !!item.question_comments,
+        questionCommentsKeys: item.question_comments ? Object.keys(item.question_comments) : 'none',
+        questionCommentsValue: item.question_comments || 'NOT_FOUND'
+      })));
     }
 
     if (values?.status !== ASSIGNMENT_STATUS.NEEDS_REVISION) {
