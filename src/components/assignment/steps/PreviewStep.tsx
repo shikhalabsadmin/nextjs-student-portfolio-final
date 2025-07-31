@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AssignmentPreview } from "@/components/preview";
 import { getQuestionLabel } from "@/lib/utils/question-mapping";
+import { getLatestQuestionComments } from "@/lib/utils/feedback-compatibility";
 
 export function PreviewStep({ form }: PreviewStepProps) {
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
@@ -22,17 +23,27 @@ export function PreviewStep({ form }: PreviewStepProps) {
 
   // Extract teacher question comments for revision mode
   const questionComments = useMemo(() => {
-    if (values?.status !== ASSIGNMENT_STATUS.NEEDS_REVISION) return null;
+    console.log("🔍 PreviewStep: Checking for question comments", {
+      status: values?.status,
+      isRevisionStatus: values?.status === ASSIGNMENT_STATUS.NEEDS_REVISION,
+      feedback: values?.feedback,
+      feedbackType: Array.isArray(values?.feedback) ? 'array' : typeof values?.feedback,
+      feedbackLength: Array.isArray(values?.feedback) ? values?.feedback.length : 'not array'
+    });
     
-    const feedback = values?.feedback;
-    if (Array.isArray(feedback) && feedback.length > 0) {
-      const latestFeedback = feedback[0];
-      const comments = latestFeedback?.question_comments || {};
-      const commentEntries = Object.entries(comments);
-      
-      return commentEntries.length > 0 ? commentEntries : null;
+    if (values?.status !== ASSIGNMENT_STATUS.NEEDS_REVISION) {
+      console.log("🔍 PreviewStep: Not revision status, no comments to show");
+      return null;
     }
-    return null;
+    
+    // Use the proper utility function to extract question comments
+    const comments = getLatestQuestionComments(values?.feedback);
+    console.log("🔍 PreviewStep: Question comments from utility:", comments);
+    
+    const commentEntries = Object.entries(comments);
+    console.log("🔍 PreviewStep: Comment entries:", commentEntries);
+    
+    return commentEntries.length > 0 ? commentEntries : null;
   }, [values?.feedback, values?.status]);
 
   // Get the latest image file where is_process_documentation is false to use as banner
