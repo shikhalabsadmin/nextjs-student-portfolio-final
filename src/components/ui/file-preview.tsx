@@ -57,30 +57,20 @@ export function FilePreview({ file, className = "", showControls = true, showDel
                      'uploadProgress' in file && 
                      typeof file.uploadProgress === 'number';
   
-  // For debugging - log file info with progress state
-  if (!('url' in file) && !(file instanceof File) && 'file_name' in file) {
-    console.log(`[DEBUG PROGRESS BAR] FilePreview for ${(file as AssignmentFile).file_name}:`, {
-      isUploading,
-      hasUploadProgress: 'uploadProgress' in file,
-      progressValue: (file as AssignmentFile).uploadProgress
-    });
-  }
+
 
   // Get the upload progress value with proper bounds
   const getUploadProgress = (): number => {
     if (!('url' in file) && !(file instanceof File) && 'uploadProgress' in file) {
       const rawProgress = (file as AssignmentFile).uploadProgress;
-      console.log(`[DEBUG PROGRESS BAR] Raw progress for ${(file as AssignmentFile).file_name}: ${rawProgress}`);
       
       // Handle undefined, null or NaN cases
       if (rawProgress === undefined || rawProgress === null || isNaN(rawProgress)) {
-        console.warn(`[DEBUG PROGRESS BAR] Invalid progress value (${rawProgress}) for ${(file as AssignmentFile).file_name}`);
         return 0;
       }
       
       // Ensure progress is between 0-100
       const safeProgress = Math.max(0, Math.min(100, Math.round(rawProgress)));
-      console.log(`[DEBUG PROGRESS BAR] Normalized progress for ${(file as AssignmentFile).file_name}: ${safeProgress}%`);
       return safeProgress;
     }
     return 0;

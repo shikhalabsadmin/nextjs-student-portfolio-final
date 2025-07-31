@@ -11,20 +11,13 @@ export function UploadProgress({ fileName, progress }: UploadProgressProps) {
   
   // Log the progress value for debugging
   useEffect(() => {
-    console.log(`[DEBUG PROGRESS BAR] UploadProgress component received progress: ${progress} for ${fileName}`);
-    
-    // Debug when progress is stuck at 0
-    if (progress === 0 && displayProgress === 0) {
-      console.log(`[DEBUG PROGRESS BAR] Progress is at 0 for ${fileName} - checking if this updates`);
-    }
+  
     
     // Smoothly update the progress
     if (progress > displayProgress) {
-      console.log(`[DEBUG PROGRESS BAR] Animating progress from ${displayProgress} to ${progress} for ${fileName}`);
       const timer = setTimeout(() => {
         setDisplayProgress(prev => {
           const newValue = Math.min(progress, prev + 1);
-          console.log(`[DEBUG PROGRESS BAR] Updated display progress: ${prev} → ${newValue} for ${fileName}`);
           return newValue;
         });
       }, 20);

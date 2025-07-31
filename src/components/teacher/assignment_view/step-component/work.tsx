@@ -59,16 +59,15 @@ const Work: React.FC<WorkProps> = ({ form, initialStep = 0, onQuestionCommentsCh
   // Get existing question comments from form data
   const existingComments = useMemo(() => {
     const feedback = form?.getValues("feedback");
-    console.log('[Work] Getting existing comments from feedback:', feedback);
+
     
     if (Array.isArray(feedback) && feedback.length > 0) {
       // Get the most recent feedback item that has question comments
       const latestFeedback = feedback[0];
-      console.log('[Work] Latest feedback:', latestFeedback);
-      console.log('[Work] Question comments from feedback:', latestFeedback?.question_comments);
+      
       return latestFeedback?.question_comments || {};
     }
-    console.log('[Work] No feedback found, returning empty comments');
+    
     return {};
   }, [form]);
 
@@ -77,7 +76,7 @@ const Work: React.FC<WorkProps> = ({ form, initialStep = 0, onQuestionCommentsCh
     teacherId: user?.id || "",
     existingComments,
     onCommentsChange: (comments) => {
-      console.log('[Work] Question comments changed:', comments);
+  
       onQuestionCommentsChange?.(comments);
     },
   });

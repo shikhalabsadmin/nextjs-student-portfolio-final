@@ -1,278 +1,228 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { MessageCircle, Check, Edit2, X } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-interface QuestionComment {
-  id: string;
-  questionId: string;
-  comment: string;
-  timestamp: string;
-}
+import { useState, useRef, useEffect } from "react";
+import { MessageCircle, X, Edit2, Check, Trash2 } from "lucide-react";
+import { Button } from "./button";
+import { Popover, PopoverContent, PopoverTrigger } from "./popover";
+import { Badge } from "./badge";
+import { Textarea } from "./textarea";
 
 interface QuestionCommentWidgetProps {
   questionId: string;
-  existingComment?: QuestionComment;
-  onCommentSave?: (questionId: string, comment: string) => void;
-  onCommentDelete?: (questionId: string) => void;
-  className?: string;
+  existingComment?: { comment: string; timestamp: string; teacher_id: string } | null;
+  onCommentChange: (questionId: string, comment: string | null) => void;
+  disabled?: boolean;
 }
 
-export const QuestionCommentWidget = ({
+export function QuestionCommentWidget({
   questionId,
   existingComment,
-  onCommentSave,
-  onCommentDelete,
-  className
-}: QuestionCommentWidgetProps) => {
-  console.log("[QuestionCommentWidget] Rendered with:", { questionId, existingComment });
-
+  onCommentChange,
+  disabled = false,
+}: QuestionCommentWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(!existingComment);
   const [comment, setComment] = useState(existingComment?.comment || "");
-  
-  const popoverRef = useRef<HTMLDivElement>(null);
+  const [isEditing, setIsEditing] = useState(!existingComment);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Handle escape key to close
+  // Handle escape key
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isOpen) {
-        console.log("[QuestionCommentWidget] Escape pressed, closing");
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) {
         setIsOpen(false);
       }
     };
 
     if (isOpen) {
-      console.log("[QuestionCommentWidget] Adding escape key listener");
-      document.addEventListener('keydown', handleKeyDown);
-      return () => {
-        console.log("[QuestionCommentWidget] Removing escape key listener");
-        document.removeEventListener('keydown', handleKeyDown);
-      };
+      document.addEventListener("keydown", handleEscape);
+      return () => document.removeEventListener("keydown", handleEscape);
     }
   }, [isOpen]);
 
-  const handleClose = () => {
-    console.log("[QuestionCommentWidget] Explicitly closing popover");
-    setIsOpen(false);
-  };
-
-  // Auto-focus textarea when editing
+  // Auto-focus when editing starts
   useEffect(() => {
     if (isEditing && textareaRef.current) {
-      console.log("[QuestionCommentWidget] Auto-focusing textarea");
-      textareaRef.current.focus();
+      const timer = setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [isEditing]);
 
+  const handleClose = () => {
+    setIsOpen(false);
+  };
+
   const handleOpen = () => {
-    console.log("[QuestionCommentWidget] Opening popover");
     setIsOpen(true);
-    // If opening in edit mode, focus the textarea
     if (!existingComment) {
       setTimeout(() => {
-        if (textareaRef.current) {
-          console.log("[QuestionCommentWidget] Auto-focusing textarea on open");
-          textareaRef.current.focus();
-        }
+        textareaRef.current?.focus();
       }, 100);
     }
   };
 
   const handleEdit = () => {
-    console.log("[QuestionCommentWidget] Starting edit mode");
     setIsEditing(true);
-    // Force focus after a small delay
     setTimeout(() => {
-      if (textareaRef.current) {
-        console.log("[QuestionCommentWidget] Manually focusing textarea");
-        textareaRef.current.focus();
-      }
-    }, 100);
+      textareaRef.current?.focus();
+    }, 50);
   };
 
   const handleSave = () => {
-    console.log("[QuestionCommentWidget] Saving comment:", comment);
-    if (comment.trim() && onCommentSave) {
-      onCommentSave(questionId, comment.trim());
+    if (comment.trim()) {
+      onCommentChange(questionId, comment.trim());
       setIsEditing(false);
-      setIsOpen(false);
+    } else {
+      handleDelete();
     }
   };
 
   const handleCancel = () => {
-    console.log("[QuestionCommentWidget] Canceling edit");
     setComment(existingComment?.comment || "");
-    setIsEditing(!existingComment);
+    setIsEditing(false);
     if (!existingComment) {
       setIsOpen(false);
     }
   };
 
   const handleDelete = () => {
-    console.log("[QuestionCommentWidget] Deleting comment");
-    if (onCommentDelete) {
-      onCommentDelete(questionId);
-      setIsOpen(false);
-    }
+    setComment("");
+    onCommentChange(questionId, null);
+    setIsEditing(false);
+    setIsOpen(false);
   };
 
-  const hasComment = existingComment && existingComment.comment.trim();
+  const hasComment = !!existingComment?.comment;
 
   return (
-    <div style={{ position: 'relative' }}>
-      {/* Trigger Button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleOpen}
-        className={cn(
-          "h-8 w-8 p-0 rounded-full transition-colors relative",
-          hasComment 
-            ? "text-blue-600 hover:text-blue-700 hover:bg-blue-50" 
-            : "text-slate-400 hover:text-slate-600 hover:bg-slate-50",
-          className
-        )}
-        title={hasComment ? "View/Edit Comment" : "Add Comment"}
-      >
-        <MessageCircle className="h-4 w-4" />
-        {hasComment && (
-          <div className="absolute -top-1 -right-1 h-2 w-2 bg-blue-500 rounded-full" />
-        )}
-      </Button>
-
-      {/* Simple Popover */}
-      {isOpen && (
-        <div
-          ref={popoverRef}
-          className="absolute top-8 right-0 w-80 bg-white border border-slate-200 rounded-lg shadow-lg z-10"
-          style={{
-            maxHeight: '40vh',
-            overflow: 'hidden',
-            pointerEvents: 'auto'
-          }}
-          onClick={(e) => {
-            console.log("[QuestionCommentWidget] Popover clicked");
-            e.stopPropagation();
-          }}
+    <div className="flex items-center">
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant={hasComment ? "default" : "outline"}
+            size="sm"
+            className={`
+              relative h-6 w-6 p-0 rounded-full shrink-0
+              ${hasComment 
+                ? "bg-blue-500 hover:bg-blue-600 text-white border-blue-500" 
+                : "bg-transparent hover:bg-gray-100 text-gray-400 hover:text-gray-600 border-gray-300"
+              }
+              ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+            `}
+            onClick={handleOpen}
+            disabled={disabled}
+          >
+            <MessageCircle className="h-3 w-3" />
+            {hasComment && (
+              <Badge 
+                className="absolute -top-1 -right-1 h-3 w-3 p-0 text-[8px] bg-red-500 text-white border-white"
+              >
+                1
+              </Badge>
+            )}
+          </Button>
+        </PopoverTrigger>
+        
+        <PopoverContent 
+          className="w-80 p-3"
+          onClick={(e) => e.stopPropagation()}
         >
           <div 
-            className="p-4 space-y-3"
-            onClick={(e) => {
-              console.log("[QuestionCommentWidget] Content div clicked");
-            }}
+            className="space-y-3"
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <div className="flex items-center justify-between">
-              <h4 className="font-medium text-sm text-slate-900">
-                Question Comment
-              </h4>
-              <div className="flex items-center gap-1">
-                {hasComment && !isEditing && (
-                  <>
+              <h4 className="text-sm font-medium text-gray-900">Teacher Comment</h4>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 hover:bg-gray-100"
+                onClick={handleClose}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+
+            {isEditing ? (
+              <>
+                <Textarea
+                  ref={textareaRef}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  onFocus={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  placeholder="Add a comment for this question..."
+                  className="min-h-[80px] text-sm resize-none"
+                  maxLength={500}
+                />
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-gray-500">
+                    {comment.length}/500 characters
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCancel}
+                      className="h-7 px-2 text-xs"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={handleSave}
+                      className="h-7 px-2 text-xs bg-blue-500 hover:bg-blue-600"
+                    >
+                      <Check className="h-3 w-3 mr-1" />
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              </>
+            ) : existingComment ? (
+              <>
+                <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded border">
+                  {existingComment.comment}
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-gray-500">
+                    {new Date(existingComment.timestamp).toLocaleDateString()} at{' '}
+                    {new Date(existingComment.timestamp).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </div>
+                  <div className="flex gap-2">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={handleEdit}
-                      className="h-7 w-7 p-0 text-slate-500 hover:text-slate-700"
+                      className="h-7 px-2 text-xs"
                     >
-                      <Edit2 className="h-3 w-3" />
+                      <Edit2 className="h-3 w-3 mr-1" />
+                      Edit
                     </Button>
-                    {onCommentDelete && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleDelete}
-                        className="h-7 w-7 p-0 text-red-500 hover:text-red-700"
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </>
-                )}
-                {/* Always show close button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClose}
-                  className="h-7 w-7 p-0 text-slate-400 hover:text-slate-600"
-                  title="Close (Esc)"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-
-                          {/* Content */}
-              {isEditing ? (
-                <div className="space-y-3">
-                  <div className="text-xs text-slate-600">
-                    Click in the text area below to start typing:
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleDelete}
+                      className="h-7 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Delete
+                    </Button>
                   </div>
-                              <Textarea
-                ref={textareaRef}
-                value={comment}
-                onChange={(e) => {
-                  console.log("[QuestionCommentWidget] Textarea value changed:", e.target.value);
-                  setComment(e.target.value);
-                }}
-                onClick={(e) => {
-                  console.log("[QuestionCommentWidget] Textarea clicked");
-                  e.stopPropagation();
-                }}
-                onFocus={(e) => {
-                  console.log("[QuestionCommentWidget] Textarea focused");
-                }}
-                onMouseDown={(e) => {
-                  console.log("[QuestionCommentWidget] Textarea mouse down");
-                  e.stopPropagation();
-                }}
-                placeholder="Add your comment about this question..."
-                className="min-h-[80px] resize-none text-sm"
-                maxLength={500}
-                style={{
-                  pointerEvents: 'auto',
-                  zIndex: 1
-                }}
-              />
-                <div className="text-xs text-slate-500 text-right">
-                  {comment.length}/500
                 </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCancel}
-                    className="h-8 px-3 text-xs"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleSave}
-                    disabled={!comment.trim()}
-                    className="h-8 px-3 text-xs bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Check className="h-3 w-3 mr-1" />
-                    Save
-                  </Button>
-                </div>
-                </div>
+              </>
             ) : (
-              <div className="space-y-3">
-                <div className="text-sm text-slate-700 bg-slate-50 p-3 rounded-md">
-                  {existingComment?.comment}
-                </div>
-                <div className="text-xs text-slate-500">
-                  Added {existingComment?.timestamp && new Date(existingComment.timestamp).toLocaleDateString()}
-                </div>
+              <div className="text-sm text-gray-500 italic">
+                No comment added yet.
               </div>
             )}
           </div>
-        </div>
-      )}
+        </PopoverContent>
+      </Popover>
     </div>
   );
-}; 
+} 

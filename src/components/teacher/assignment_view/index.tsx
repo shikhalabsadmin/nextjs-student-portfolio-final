@@ -21,8 +21,7 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
-  console.log("[TeacherAssignmentView] Component mounted with ID param:", id);
-  console.log("[TeacherAssignmentView] ID type:", typeof id);
+
   
   const [activeStep, setActiveStep] = useState(0);
   const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
@@ -53,7 +52,7 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
 
   // Log assignment data when it changes
   useEffect(() => {
-    console.log("[TeacherAssignmentView] Assignment data:", assignment);
+
   }, [assignment]);
 
   // Set initial modal values based on skills assessment and latest feedback
@@ -71,7 +70,7 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
   useEffect(() => {
     const latestFeedback = getCurrentTeacherLatestFeedback();
     if (latestFeedback?.question_comments) {
-      console.log('[TeacherAssignmentView] Loading question comments from latest feedback:', latestFeedback.question_comments);
+
       setModalDefaultValues(prev => ({
         ...prev,
         questionComments: latestFeedback.question_comments || {}
@@ -112,9 +111,7 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
 
   // Handle form data change
   const handleFormDataChange = (formData: any) => {
-    console.log("[TeacherAssignmentView] Form data changed:", formData);
-    console.log("[TeacherAssignmentView] Question comments in form data:", formData?.questionComments);
-    console.log("[TeacherAssignmentView] Question comments keys:", formData?.questionComments ? Object.keys(formData.questionComments) : 'none');
+
     if (formData) {
       setSkillsAssessment({
         selected_skills: formData.selectedSkills || [],
@@ -130,8 +127,7 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
           feedback: formData.feedback || prev.feedback,
           questionComments: formData.questionComments || prev.questionComments
         };
-        console.log("[TeacherAssignmentView] Updated modal default values:", newModalValues);
-        console.log("[TeacherAssignmentView] Updated question comments:", newModalValues.questionComments);
+
         return newModalValues;
       });
     }
@@ -139,21 +135,19 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
 
   // Handle approve action
   const handleApprove = () => {
-    console.log("[TeacherAssignmentView] Approve button clicked");
+
     openApprovalModal();
   };
 
   // Handle request revision action
   const handleRequestRevision = () => {
-    console.log("[TeacherAssignmentView] Request revision button clicked");
+
     openRevisionModal();
   };
 
   // Handle approval submission
   const handleApprovalSubmit = async (formData: any) => {
-    console.log("[TeacherAssignmentView] Approving with data:", formData);
-    console.log("[TeacherAssignmentView] Modal default values:", modalDefaultValues);
-    console.log("[TeacherAssignmentView] Question comments from modal defaults:", modalDefaultValues?.questionComments);
+
     await updateAssignmentStatus(
       {
         selectedSkills: formData?.selectedSkills || [],
@@ -168,9 +162,7 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
 
   // Handle revision submission for ApprovalModal (wrapper)
   const handleRevisionFromApprovalModal = async (formData: any) => {
-    console.log("[TeacherAssignmentView] Requesting revision from approval modal with data:", formData);
-    console.log("[TeacherAssignmentView] Modal default values:", modalDefaultValues);
-    console.log("[TeacherAssignmentView] Question comments from modal defaults:", modalDefaultValues?.questionComments);
+
     await updateAssignmentStatus(
       {
         selectedSkills: formData?.selectedSkills || [],
@@ -185,9 +177,7 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
 
   // Handle revision submission for RevisionModal
   const handleRevisionSubmit = async (feedback: string) => {
-    console.log("[TeacherAssignmentView] Requesting revision with feedback:", feedback);
-    console.log("[TeacherAssignmentView] Modal default values:", modalDefaultValues);
-    console.log("[TeacherAssignmentView] Question comments from modal defaults:", modalDefaultValues?.questionComments);
+
     await updateAssignmentStatus(
       {
         selectedSkills: modalDefaultValues.selectedSkills || [],
@@ -201,7 +191,7 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
   };
 
   if (isLoading || isRefetching) {
-    console.log("[TeacherAssignmentView] Loading state:", { isLoading, isRefetching });
+
     return (
       <div className="flex items-center justify-center h-screen">
         <Loading />
