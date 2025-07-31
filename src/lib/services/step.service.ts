@@ -395,17 +395,23 @@ export class StepService {
    * @returns Step ID of the first incomplete step, or review step if all complete
    */
   getNextIncompleteStep(formData: AssignmentFormValues): AssignmentStep {
-    // If status is not editable, go to feedback
-    if (!this.isEditable(formData.status)) {
+    // Special handling for different statuses
+    if (formData.status === ASSIGNMENT_STATUS.SUBMITTED || formData.status === ASSIGNMENT_STATUS.APPROVED) {
+      // For submitted/approved assignments, show assignment preview
+      return 'assignment-preview';
+    }
+    
+    if (formData.status === ASSIGNMENT_STATUS.NEEDS_REVISION) {
+      // For revision requests, go to teacher feedback to see what needs to be changed
       return 'teacher-feedback';
     }
     
-    // Find the first incomplete step
+    // For draft assignments, find the first incomplete step
     for (const step of this.steps) {
       const stepId = step.id;
       
-      // Skip teacher feedback as it's completed by someone else
-      if (stepId === 'teacher-feedback') continue;
+      // Skip teacher feedback and assignment preview as they're for submitted assignments
+      if (stepId === 'teacher-feedback' || stepId === 'assignment-preview') continue;
       
       if (!this.validateStep(stepId, formData)) {
         stepLogger.debug(`Found incomplete step: ${stepId}`);
@@ -413,7 +419,7 @@ export class StepService {
       }
     }
     
-    // If all steps are complete, go to review
+    // If all work steps are complete, go to review
     return 'review-submit';
   }
   
