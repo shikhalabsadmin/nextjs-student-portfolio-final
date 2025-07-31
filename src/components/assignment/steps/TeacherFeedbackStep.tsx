@@ -185,7 +185,12 @@ NoFeedback.displayName = "NoFeedback";
 // Have Feedback Component (Memoized)
 const HaveFeedback = memo(
   ({ form }: { form: UseFormReturn<AssignmentFormValues> }) => {
-    console.log("[DEBUG] feedback", form.getValues().feedback);
+    const feedback = form.getValues().feedback;
+    console.log("🔍 COMMENTS DEBUG - TeacherFeedbackStep feedback structure:", feedback);
+    if (Array.isArray(feedback) && feedback.length > 0) {
+      console.log("🔍 COMMENTS DEBUG - First feedback item:", feedback[0]);
+      console.log("🔍 COMMENTS DEBUG - All feedback items:", feedback.map((item, index) => ({ index, ...item })));
+    }
     const [isLoading, setIsLoading] = useState(false);
     const { user } = useAuthState();
     

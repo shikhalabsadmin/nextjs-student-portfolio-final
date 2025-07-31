@@ -23,23 +23,28 @@ export function PreviewStep({ form }: PreviewStepProps) {
 
   // Extract teacher question comments for revision mode
   const questionComments = useMemo(() => {
-    console.log("🔍 COMMENTS DEBUG - PreviewStep:", {
+        console.log("🔍 COMMENTS DEBUG - PreviewStep:", {
       status: values?.status,
       isRevisionStatus: values?.status === ASSIGNMENT_STATUS.NEEDS_REVISION,
       feedback: values?.feedback,
       feedbackType: Array.isArray(values?.feedback) ? 'array' : typeof values?.feedback,
       feedbackLength: Array.isArray(values?.feedback) ? values?.feedback.length : 'not array'
     });
-    
+
+    if (Array.isArray(values?.feedback) && values?.feedback.length > 0) {
+      console.log("🔍 COMMENTS DEBUG - PreviewStep feedback items:", values?.feedback.map((item, index) => ({ index, ...item })));
+    }
+
     if (values?.status !== ASSIGNMENT_STATUS.NEEDS_REVISION) {
       console.log("🔍 COMMENTS DEBUG - Not revision status, no comments to show");
       return null;
     }
-    
+
     // Use the proper utility function to extract question comments
     const comments = getLatestQuestionComments(values?.feedback);
     console.log("🔍 COMMENTS DEBUG - Question comments from utility:", comments);
-    
+    console.log("🔍 COMMENTS DEBUG - Input to utility function:", values?.feedback);
+
     const commentEntries = Object.entries(comments);
     console.log("🔍 COMMENTS DEBUG - Comment entries:", commentEntries);
     
