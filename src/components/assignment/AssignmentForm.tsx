@@ -65,7 +65,8 @@ function AssignmentForm({ user }: AssignmentFormProps) {
   } = useAssignmentForm({ user });
 
   // Derived state - moved up to be available for other useMemo hooks
-  const assignmentStatus = form.getValues().status || ASSIGNMENT_STATUS.DRAFT;
+  // Use form.watch to make this reactive to status changes after submission
+  const assignmentStatus = form.watch("status") || ASSIGNMENT_STATUS.DRAFT;
 
   // Check if basic info is complete
   const basicInfoTabNotComplete = useMemo(() => {
