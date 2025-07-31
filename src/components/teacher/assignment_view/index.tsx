@@ -113,6 +113,8 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
   // Handle form data change
   const handleFormDataChange = (formData: any) => {
     console.log("[TeacherAssignmentView] Form data changed:", formData);
+    console.log("[TeacherAssignmentView] Question comments in form data:", formData?.questionComments);
+    console.log("[TeacherAssignmentView] Question comments keys:", formData?.questionComments ? Object.keys(formData.questionComments) : 'none');
     if (formData) {
       setSkillsAssessment({
         selected_skills: formData.selectedSkills || [],
@@ -120,13 +122,18 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
       });
       
       // Update modal default values to include question comments
-      setModalDefaultValues(prev => ({
-        ...prev,
-        selectedSkills: formData.selectedSkills || prev.selectedSkills,
-        justification: formData.justification || prev.justification,
-        feedback: formData.feedback || prev.feedback,
-        questionComments: formData.questionComments || prev.questionComments
-      }));
+      setModalDefaultValues(prev => {
+        const newModalValues = {
+          ...prev,
+          selectedSkills: formData.selectedSkills || prev.selectedSkills,
+          justification: formData.justification || prev.justification,
+          feedback: formData.feedback || prev.feedback,
+          questionComments: formData.questionComments || prev.questionComments
+        };
+        console.log("[TeacherAssignmentView] Updated modal default values:", newModalValues);
+        console.log("[TeacherAssignmentView] Updated question comments:", newModalValues.questionComments);
+        return newModalValues;
+      });
     }
   };
 
@@ -145,6 +152,8 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
   // Handle approval submission
   const handleApprovalSubmit = async (formData: any) => {
     console.log("[TeacherAssignmentView] Approving with data:", formData);
+    console.log("[TeacherAssignmentView] Modal default values:", modalDefaultValues);
+    console.log("[TeacherAssignmentView] Question comments from modal defaults:", modalDefaultValues?.questionComments);
     await updateAssignmentStatus(
       {
         selectedSkills: formData?.selectedSkills || [],
@@ -160,6 +169,8 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
   // Handle revision submission for ApprovalModal (wrapper)
   const handleRevisionFromApprovalModal = async (formData: any) => {
     console.log("[TeacherAssignmentView] Requesting revision from approval modal with data:", formData);
+    console.log("[TeacherAssignmentView] Modal default values:", modalDefaultValues);
+    console.log("[TeacherAssignmentView] Question comments from modal defaults:", modalDefaultValues?.questionComments);
     await updateAssignmentStatus(
       {
         selectedSkills: formData?.selectedSkills || [],
@@ -175,11 +186,14 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
   // Handle revision submission for RevisionModal
   const handleRevisionSubmit = async (feedback: string) => {
     console.log("[TeacherAssignmentView] Requesting revision with feedback:", feedback);
+    console.log("[TeacherAssignmentView] Modal default values:", modalDefaultValues);
+    console.log("[TeacherAssignmentView] Question comments from modal defaults:", modalDefaultValues?.questionComments);
     await updateAssignmentStatus(
       {
         selectedSkills: modalDefaultValues.selectedSkills || [],
         justification: modalDefaultValues.justification || "",
         feedback: feedback,
+        questionComments: modalDefaultValues?.questionComments || {},
       },
       ASSIGNMENT_STATUS.NEEDS_REVISION
     );
