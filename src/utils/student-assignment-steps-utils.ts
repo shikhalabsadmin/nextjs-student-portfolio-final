@@ -9,8 +9,9 @@ import { ASSIGNMENT_STATUS, AssignmentStatus } from "@/constants/assignment-stat
  * @returns Filtered array of steps
  */
 export function getFilteredSteps(steps: StepConfig[], status: AssignmentStatus, isActuallyComplete: boolean = false): StepConfig[] {
-  console.log("🔄 STEP FILTERING:", {
+  console.log("🔍 COMMENTS DEBUG - STEP FILTERING:", {
     status,
+    isRevisionStatus: status === ASSIGNMENT_STATUS.NEEDS_REVISION,
     isActuallyComplete,
     availableSteps: steps.map(s => s.id)
   });
@@ -21,13 +22,13 @@ export function getFilteredSteps(steps: StepConfig[], status: AssignmentStatus, 
     // Show all work steps AND teacher feedback for revision requests
     // Students need to see feedback AND be able to edit their work
     const filteredSteps = steps.filter(step => step.id !== 'assignment-preview');
-    console.log("✅ FILTERED STEPS (NEEDS_REVISION):", filteredSteps.map(s => s.id));
+    console.log("🔍 COMMENTS DEBUG - FILTERED STEPS (NEEDS_REVISION):", filteredSteps.map(s => s.id));
     return filteredSteps;
   }
   
   if ((status === ASSIGNMENT_STATUS.SUBMITTED || status === ASSIGNMENT_STATUS.APPROVED) && isActuallyComplete) {
     // Only show ALL steps (including assignment-preview & teacher-feedback) when truly submitted AND complete
-    console.log("✅ FILTERED STEPS (TRULY SUBMITTED & COMPLETE):", steps.map(s => s.id));
+    console.log("🔍 COMMENTS DEBUG - FILTERED STEPS (TRULY SUBMITTED & COMPLETE):", steps.map(s => s.id));
     return steps;
   }
   
@@ -37,6 +38,6 @@ export function getFilteredSteps(steps: StepConfig[], status: AssignmentStatus, 
     step.id !== 'teacher-feedback' && 
     step.id !== 'assignment-preview'
   );
-  console.log("✅ FILTERED STEPS (WORK ONLY):", workSteps.map(s => s.id));
+  console.log("🔍 COMMENTS DEBUG - FILTERED STEPS (WORK ONLY):", workSteps.map(s => s.id));
   return workSteps;
 }

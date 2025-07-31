@@ -23,15 +23,7 @@ export function StepContent({ step, form, onContinue, disabled, areAllStepsCompl
   const logKey = `${step}-${form.getValues().id}`;
   const lastLoggedRef = useRef<string>('');
   
-  if (lastLoggedRef.current !== logKey) {
-    console.log("StepContent step changed:", { 
-      step, 
-      disabled, 
-      areAllStepsComplete,
-      formId: form.getValues().id,
-    });
-    lastLoggedRef.current = logKey;
-  }
+  lastLoggedRef.current = logKey;
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -43,8 +35,6 @@ export function StepContent({ step, form, onContinue, disabled, areAllStepsCompl
 }
 
 function renderStepContent(step: AssignmentStep, form: UseFormReturn<AssignmentFormValues>) {
-  // Only log when step actually changes
-  console.log("Rendering step content for:", step);
   
   switch (step) {
     case "basic-info":

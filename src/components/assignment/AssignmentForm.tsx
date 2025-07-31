@@ -82,19 +82,10 @@ function AssignmentForm({ user }: AssignmentFormProps) {
       step.id !== 'teacher-feedback'
     );
     
-    console.log("STEP VALIDATION: Checking all work steps", {
-      currentStep,
-      stepsToValidate: workStepsToValidate.map(s => s.id),
-      status: assignmentStatus
-    });
-    
     const allComplete = workStepsToValidate.every(step => {
       const isValid = validateStep(step.id);
-      console.log(`STEP VALIDATION: Step ${step.id} is ${isValid ? 'valid' : 'invalid'}`);
       return isValid;
     });
-    
-    console.log("STEP VALIDATION: Overall result:", { allComplete, assignmentStatus });
     return allComplete;
   }, [validateStep, form.formState.isDirty, currentStep, assignmentStatus]);
 
@@ -113,18 +104,8 @@ function AssignmentForm({ user }: AssignmentFormProps) {
   // Event handlers
   const handleSetCurrentStep = useCallback(
     (stepId: string) => {
-      console.log('[AssignmentForm Debug] handleSetCurrentStep called:', {
-        stepId,
-        filteredStepsIds: filteredSteps.map(s => s.id),
-        currentStep,
-        assignmentStatus
-      });
-      
       if (filteredSteps.some((step) => step.id === stepId)) {
-        console.log('[AssignmentForm Debug] Setting current step to:', stepId);
         setCurrentStep(stepId as AssignmentStep);
-      } else {
-        console.log('[AssignmentForm Debug] Step not found in filtered steps:', stepId);
       }
     },
     [setCurrentStep, filteredSteps, currentStep, assignmentStatus]
@@ -135,7 +116,6 @@ function AssignmentForm({ user }: AssignmentFormProps) {
     // Try to restore data on mount if needed
     const formId = form.getValues().id;
     if (formId && !isLoading) {
-      console.log("AssignmentForm mounted with ID:", formId);
       // The restore logic is now handled in useAssignmentForm
     }
   }, [form, isLoading]);
@@ -165,24 +145,8 @@ function AssignmentForm({ user }: AssignmentFormProps) {
     }
     
     try {
-      // Get current form data for debugging
+      // Get current form data
       const formData = form.getValues();
-      console.log("STEP CLICK: Current form data", {
-        id: formData.id,
-        title: formData.title,
-        step: currentStep,
-        hasBasicInfo: !!(formData.title && formData.artifact_type && formData.subject),
-        hasRoleInfo: !!(formData.is_team_work !== undefined && formData.is_original_work !== undefined),
-        // Add skills-reflection specific debugging
-        hasSkillsInfo: currentStep === 'skills-reflection' ? {
-          selected_skills: formData.selected_skills,
-          skills_justification: formData.skills_justification,
-          pride_reason: formData.pride_reason,
-          hasSelectedSkills: Array.isArray(formData.selected_skills) && formData.selected_skills.length > 0,
-          hasSkillsJustification: Boolean(formData.skills_justification?.trim()),
-          hasPrideReason: Boolean(formData.pride_reason?.trim())
-        } : undefined
-      });
       
       // For other steps, trigger validation for the current step's fields
       const stepConfig = STEPS.find(step => step.id === currentStep);
@@ -190,23 +154,14 @@ function AssignmentForm({ user }: AssignmentFormProps) {
         // Get the fields for the current step from STEP_REQUIREMENTS
         const stepFields = getStepRequiredFields(currentStep as AssignmentStep);
         
-        console.log("STEP CLICK: Validating step fields", { step: currentStep, fields: stepFields });
-        
         // Check current step validation BEFORE form.trigger
         const currentStepValid = validateStep(currentStep);
-        console.log("STEP CLICK: Current step validation result", { 
-          step: currentStep, 
-          isValid: currentStepValid,
-          formErrors: form.formState.errors
-        });
         
         // ENHANCED: Trigger validation for specific fields and set custom errors
         const isStepValid = await form.trigger(stepFields as any);
-        console.log("STEP CLICK: Form trigger validation result", { step: currentStep, isValid: isStepValid });
         
         // ENHANCED: If validation fails, set specific field errors for visual feedback
         if (!isStepValid || !currentStepValid) {
-          console.log("STEP CLICK: Validation failed, setting field-specific errors");
           
           // Set specific field errors for better visual feedback
           if (currentStep === 'skills-reflection') {
@@ -322,7 +277,6 @@ function AssignmentForm({ user }: AssignmentFormProps) {
         
         // If validation passes, clear any existing errors and proceed
         form.clearErrors();
-        console.log("STEP CLICK: Step valid, proceeding to save and continue");
         await handleSaveAndContinue();
       }
     } catch (error) {

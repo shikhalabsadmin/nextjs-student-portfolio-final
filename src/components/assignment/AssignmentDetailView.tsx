@@ -35,7 +35,6 @@ export function AssignmentDetailView() {
       assignment &&
       assignment.status !== ASSIGNMENT_STATUS.APPROVED
     ) {
-      console.log("Assignment is not approved, redirecting");
       navigate("/not-found", { replace: true });
     }
   }, [assignment, isLoading, navigate]);

@@ -128,14 +128,7 @@ export function StepFooter({
   }
 
   // Debug logging to help identify button visibility issues
-  console.log("StepFooter render:", {
-    step,
-    assignmentStatus,
-    areAllStepsComplete,
-    disabled,
-    isCompleteAndApproved,
-    isSubmittedButIncomplete
-  });
+
 
   return (
     <div className={cn("flex flex-col sm:flex-row justify-between items-center gap-3 pt-6 pb-4 border-t border-gray-100 mt-8", className)}>
