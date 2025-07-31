@@ -49,7 +49,8 @@ export function PreviewStep({ form }: PreviewStepProps) {
     // Use the proper utility function to extract question comments
     const comments = getLatestQuestionComments(values?.feedback);
     console.log("🔍 COMMENTS DEBUG - Question comments from utility:", comments);
-    console.log("🔍 COMMENTS DEBUG - Input to utility function:", values?.feedback);
+    console.log("🔍 COMMENTS DEBUG - Is question_comments empty?", Object.keys(comments).length === 0);
+    console.log("🔍 COMMENTS DEBUG - This means teacher did not add any question-specific comments, only general feedback");
 
     const commentEntries = Object.entries(comments);
     console.log("🔍 COMMENTS DEBUG - Comment entries:", commentEntries);

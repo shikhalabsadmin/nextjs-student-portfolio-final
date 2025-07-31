@@ -77,9 +77,16 @@ export const TeacherFeedbackCard = ({
             <div className="text-xs text-slate-500 font-medium">
               {feedback.date ? formatDate(feedback.date) : ''}
             </div>
-            <div className="px-3 py-2 rounded-md border border-slate-200 bg-slate-50 text-slate-600 text-sm font-normal">
-              {feedback.text || <span className="text-slate-400 italic">No feedback text</span>}
-            </div>
+            {feedback.text ? (
+              <div 
+                className="px-3 py-2 rounded-md border border-slate-200 bg-slate-50 text-slate-600 text-sm font-normal prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: feedback.text }}
+              />
+            ) : (
+              <div className="px-3 py-2 rounded-md border border-slate-200 bg-slate-50 text-slate-600 text-sm font-normal">
+                <span className="text-slate-400 italic">No feedback text</span>
+              </div>
+            )}
           </div>
         ))}
       </div>
