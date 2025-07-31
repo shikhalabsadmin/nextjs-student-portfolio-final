@@ -160,13 +160,13 @@ export class StepService {
       hasId: !!formData.id
     });
     
-    // Special case for review-submit - only valid when status is SUBMITTED or later
+    // Special case for review-submit - only valid when status is SUBMITTED or APPROVED
+    // NOT for NEEDS_REVISION because student needs to submit again
     if (stepId === 'review-submit') {
-      const isSubmittedOrLater = formData.status === ASSIGNMENT_STATUS.SUBMITTED || 
-        formData.status === ASSIGNMENT_STATUS.APPROVED || 
-        formData.status === ASSIGNMENT_STATUS.NEEDS_REVISION;
-      debugLog("VALIDATION: Review step validation", { isSubmittedOrLater, status: formData.status });
-      return isSubmittedOrLater;
+      const isActuallySubmitted = formData.status === ASSIGNMENT_STATUS.SUBMITTED || 
+        formData.status === ASSIGNMENT_STATUS.APPROVED;
+      debugLog("VALIDATION: Review step validation", { isActuallySubmitted, status: formData.status });
+      return isActuallySubmitted;
     }
 
     // Special case for assignment-preview - only valid when status is SUBMITTED or later
