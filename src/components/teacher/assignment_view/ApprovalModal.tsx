@@ -17,6 +17,9 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import { QuestionComment } from "@/lib/validations/assignment";
+import { MessageCircle } from "lucide-react";
+import { getQuestionLabel } from "@/lib/utils/question-mapping";
 
 // Define skills list as a constant for reuse
 const SKILLS = [
@@ -60,6 +63,9 @@ const useApprovalForm = (defaultValues: Omit<FormValues, 'isRevision'>) => {
       ...defaultValues,
       isRevision: false
     },
+    mode: "onChange", // Enable real-time validation
+    criteriaMode: "all",
+    shouldFocusError: true,
   });
 };
 
@@ -72,6 +78,7 @@ interface ApprovalModalProps {
     selectedSkills?: string[];
     justification?: string;
     feedback?: string;
+    questionComments?: Record<string, QuestionComment>;
   };
   onFormDataChange: (formData: FormValues) => void;
 }
@@ -115,9 +122,33 @@ const ApprovalModal = memo(
 
     const form = useApprovalForm(defaultFormValues);
 
-    // Reset form when modal is opened or closed
+    // Watch form values for validation
+    const selectedSkills = form.watch("selectedSkills");
+    const justification = form.watch("justification");
+    const feedback = form.watch("feedback");
+
+    // Validation logic for button states
+    const isApprovalValid = useMemo(() => {
+      return (
+        selectedSkills?.length > 0 &&
+        selectedSkills.length <= 3 &&
+        justification?.trim().length > 0 &&
+        justification.length <= 200
+      );
+    }, [selectedSkills, justification]);
+
+    const isRevisionValid = useMemo(() => {
+      return (
+        isApprovalValid &&
+        feedback?.trim().length > 0
+      );
+    }, [isApprovalValid, feedback]);
+
+    // Debug logging
     useEffect(() => {
       if (isOpen) {
+        console.log('[ApprovalModal] Modal opened with defaultStates:', defaultStates);
+        console.log('[ApprovalModal] Question comments:', defaultStates.questionComments);
         // Reset with provided defaults when modal opens
         form.reset(defaultFormValues);
       }
@@ -250,145 +281,270 @@ const ApprovalModal = memo(
     );
 
     return (
-      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogPortal>
-          <DialogOverlay className="fixed inset-0 z-50 bg-black/80" />
-          <div className="fixed left-[50%] top-[50%] z-50 grid w-[95vw] max-w-[20rem] sm:max-w-[24rem] md:max-w-3xl translate-x-[-50%] translate-y-[-50%] bg-white px-3 py-4 sm:px-5 sm:py-7 md:px-10 md:py-[56px] shadow-lg border border-slate-200 rounded-[6px] max-h-[90vh] overflow-y-auto">
-            <div className="space-y-2 sm:space-y-5 md:space-y-10">
-              {/* Title */}
-              <div className="space-y-1 sm:space-y-2">
-                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900">
+      <>
+        {isOpen && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}>
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '8px',
+              width: '100%',
+              maxWidth: '800px',
+              height: '80vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}>
+              {/* Header */}
+              <div style={{
+                padding: '24px',
+                borderBottom: '1px solid #e5e7eb'
+              }}>
+                <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0, marginBottom: '8px' }}>
                   Approve Assignment
                 </h2>
-                <p className="text-xs sm:text-sm md:text-base text-slate-600 font-normal">
+                <p style={{ color: '#6b7280', margin: 0 }}>
                   Evaluate the student's work before approving.
                 </p>
               </div>
 
-              <Form {...form}>
-                <form className="space-y-4 sm:space-y-6">
-                  {/* Skills Selection */}
-                  <FormField
-                    control={form.control}
-                    name="selectedSkills"
-                    render={({ field }) => (
-                      <FormItem className="space-y-[6px]">
-                        <FormLabel className="block text-xs sm:text-sm font-medium text-slate-900">
-                          Select up to 3 skills demonstrated
-                        </FormLabel>
-                        <FormControl>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
-                            {SKILLS.map((skill) =>
-                              renderSkillCheckbox(skill, field)
+              {/* Scrollable Content */}
+              <div style={{
+                flex: 1,
+                overflow: 'auto',
+                padding: '24px'
+              }}>
+                <Form {...form}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    {/* Skills Selection */}
+                    <FormField
+                      control={form.control}
+                      name="selectedSkills"
+                      render={({ field }) => (
+                        <FormItem className="space-y-[6px]">
+                          <FormLabel className="block text-xs sm:text-sm font-medium text-slate-900">
+                            Select up to 3 skills demonstrated
+                          </FormLabel>
+                          <FormControl>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+                              {SKILLS.map((skill) =>
+                                renderSkillCheckbox(skill, field)
+                              )}
+                            </div>
+                          </FormControl>
+                          <FormMessage className="text-red-500 text-xs sm:text-sm" />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Skills Justification */}
+                    <FormField
+                      control={form.control}
+                      name="justification"
+                      render={({ field }) => (
+                        <FormItem className="space-y-[6px]">
+                          <FormLabel className="block text-xs sm:text-sm font-medium text-slate-900">
+                            Justify the skills selection
+                          </FormLabel>
+                          <FormControl>
+                            <RichTextEditor
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              placeholder="Explain why these skills were demonstrated..."
+                            />
+                          </FormControl>
+                          <FormMessage className="text-red-500 text-xs sm:text-sm" />
+                          <FormDescription className="text-slate-500 text-xs sm:text-sm font-normal">
+                            <span className="text-slate-400">
+                              {field.value?.length || 0}/200
+                            </span>
+                          </FormDescription>
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Question Comments Summary */}
+                    {defaultStates.questionComments && Object.keys(defaultStates.questionComments).length > 0 && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-md p-4 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <MessageCircle className="h-4 w-4 text-blue-600" />
+                          <h4 className="text-sm font-medium text-blue-900">
+                            Question Comments ({Object.keys(defaultStates.questionComments).length})
+                          </h4>
+                        </div>
+                        <div className="space-y-3">
+                          {Object.entries(defaultStates.questionComments).map(([questionId, comment]) => (
+                            <div key={questionId} className="bg-white border border-blue-200 rounded-md p-3">
+                              <div className="text-xs font-medium text-blue-800 mb-1">
+                                Question: {getQuestionLabel(questionId)}
+                              </div>
+                              <div className="text-sm text-gray-700 mb-2">
+                                {comment.comment}
+                              </div>
+                              <div className="text-xs text-blue-600">
+                                {new Date(comment.timestamp).toLocaleDateString()} at{' '}
+                                {new Date(comment.timestamp).toLocaleTimeString([], { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="text-xs text-blue-700 bg-blue-100 p-2 rounded">
+                          💡 These question-specific comments will be included in your feedback to the student
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Feedback Field with Conditional Validation */}
+                    <FormField
+                      control={form.control}
+                      name="feedback"
+                      render={({ field }) => (
+                        <FormItem className="space-y-[6px]">
+                          <FormLabel className="block text-xs sm:text-sm font-medium text-slate-900">
+                            Additional feedback 
+                            <span className="text-red-500"> (required for revision)</span>
+                          </FormLabel>
+                          <FormControl>
+                            <RichTextEditor
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              placeholder="Add specific feedback for what needs to be revised..."
+                            />
+                          </FormControl>
+                          <FormMessage className="text-red-500 text-xs sm:text-sm" />
+                          <FormDescription className="text-slate-500 text-xs sm:text-sm font-normal">
+                            {!isRevisionValid && feedback?.trim().length === 0 && (
+                              <span className="text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                                💡 Feedback is required to send for revision
+                              </span>
                             )}
-                          </div>
-                        </FormControl>
-                        <FormMessage className="text-red-500 text-xs sm:text-sm" />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Skills Justification */}
-                  <FormField
-                    control={form.control}
-                    name="justification"
-                    render={({ field }) => (
-                      <FormItem className="space-y-[6px]">
-                        <FormLabel className="block text-xs sm:text-sm font-medium text-slate-900">
-                          Justify the skills selection
-                        </FormLabel>
-                        <FormControl>
-                          <RichTextEditor
-                            value={field.value || ""}
-                            onChange={field.onChange}
-                            placeholder="Explain why these skills were demonstrated..."
-                          />
-                        </FormControl>
-                        <FormMessage className="text-red-500 text-xs sm:text-sm" />
-                        <FormDescription className="text-slate-500 text-xs sm:text-sm font-normal">
-                          <span className="text-slate-400">
-                            {field.value?.length || 0}/200
-                          </span>
-                        </FormDescription>
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Optional Feedback */}
-                  <FormField
-                    control={form.control}
-                    name="feedback"
-                    render={({ field }) => (
-                      <FormItem className="space-y-[6px]">
-                        <FormLabel className="block text-xs sm:text-sm font-medium text-slate-900">
-                          Additional feedback (optional)
-                        </FormLabel>
-                        <FormControl>
-                          <RichTextEditor
-                            value={field.value || ""}
-                            onChange={field.onChange}
-                            placeholder="Add any additional comments..."
-                          />
-                        </FormControl>
-                        <FormMessage className="text-red-500 text-xs sm:text-sm" />
-                      </FormItem>
-                    )}
-                  />
-
-                  {form.formState.errors.root && (
-                    <p className="text-red-500 text-xs sm:text-sm">
-                      {form.formState.errors.root.message}
-                    </p>
-                  )}
-
-                  {/* Action buttons */}
-                  <div className="flex flex-col sm:flex-row justify-start gap-2 sm:gap-6">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={onClose}
-                      disabled={isSubmitting}
-                      className="w-full sm:w-auto px-3 py-2 font-medium text-xs sm:text-sm rounded-[6px] border-slate-300 text-slate-800"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={handleRevision}
-                      disabled={isSubmitting}
-                      className="w-full sm:w-auto px-3 py-2 font-medium text-xs sm:text-sm rounded-[6px] bg-amber-500 hover:bg-amber-600 text-white"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                          Sending...
-                        </>
-                      ) : (
-                        "Send for Revision"
+                          </FormDescription>
+                        </FormItem>
                       )}
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={form.handleSubmit(handleSubmitForm)}
-                      disabled={isSubmitting}
-                      className="w-full sm:w-auto px-3 py-2 font-medium text-xs sm:text-sm rounded-[6px] bg-indigo-500 hover:bg-indigo-600 text-white"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                          Approving...
-                        </>
-                      ) : (
-                        "Approve"
-                      )}
-                    </Button>
+                    />
+
+
+
+                    {/* Validation Summary */}
+                    {(!isApprovalValid || !isRevisionValid) && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 space-y-2">
+                        <h4 className="text-sm font-medium text-yellow-800">
+                          Please complete the following:
+                        </h4>
+                        <ul className="text-xs sm:text-sm text-yellow-700 space-y-1">
+                          {selectedSkills?.length === 0 && (
+                            <li className="flex items-center gap-2">
+                              <span className="w-2 h-2 bg-yellow-400 rounded-full"></span>
+                              Select at least one skill (up to 3)
+                            </li>
+                          )}
+                          {!justification?.trim() && (
+                            <li className="flex items-center gap-2">
+                              <span className="w-2 h-2 bg-yellow-400 rounded-full"></span>
+                              Provide justification for selected skills
+                            </li>
+                          )}
+                          {justification && justification.length > 200 && (
+                            <li className="flex items-center gap-2">
+                              <span className="w-2 h-2 bg-yellow-400 rounded-full"></span>
+                              Justification must be 200 characters or less
+                            </li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+
+                    {form.formState.errors.root && (
+                      <p className="text-red-500 text-xs sm:text-sm">
+                        {form.formState.errors.root.message}
+                      </p>
+                    )}
                   </div>
-                </form>
-              </Form>
+                </Form>
+              </div>
+
+              {/* Footer */}
+              <div style={{
+                borderTop: '1px solid #e5e7eb',
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}>
+                {/* Button Status Indicators */}
+                {(!isApprovalValid || !isRevisionValid) && (
+                  <div className="text-xs text-gray-600 bg-gray-50 p-3 rounded-md">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-medium">Button Status:</span>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${isApprovalValid ? 'bg-green-400' : 'bg-gray-400'}`}></span>
+                        <span className={isApprovalValid ? 'text-green-700' : 'text-gray-500'}>
+                          Approve: {isApprovalValid ? 'Ready' : 'Complete skills and justification'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${isRevisionValid ? 'bg-green-400' : 'bg-gray-400'}`}></span>
+                        <span className={isRevisionValid ? 'text-green-700' : 'text-gray-500'}>
+                          Send for Revision: {isRevisionValid ? 'Ready' : 'Complete all fields including feedback'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: '12px'
+                }}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onClose}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleRevision}
+                    disabled={isSubmitting || !isRevisionValid}
+                    className="bg-amber-500 hover:bg-amber-600 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    title={!isRevisionValid ? "Complete all required fields to send for revision" : ""}
+                  >
+                    {isSubmitting ? "Sending..." : "Send for Revision"}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={form.handleSubmit(handleSubmitForm)}
+                    disabled={isSubmitting || !isApprovalValid}
+                    className="bg-indigo-500 hover:bg-indigo-600 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    title={!isApprovalValid ? "Complete skills selection and justification to approve" : ""}
+                  >
+                    {isSubmitting ? "Approving..." : "Approve"}
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
-        </DialogPortal>
-      </Dialog>
+        )}
+      </>
     );
   }
 );

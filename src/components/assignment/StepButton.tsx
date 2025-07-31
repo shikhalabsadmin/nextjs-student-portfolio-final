@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { type StepConfig } from "@/types/assignment";
 import { StepIndicator } from "@/components/assignment/StepIndicator";
+import { ASSIGNMENT_STATUS, type AssignmentStatus } from "@/constants/assignment-status";
 
 interface StepButtonProps {
   step: StepConfig;
@@ -8,6 +9,7 @@ interface StepButtonProps {
   isComplete: boolean;
   onClick: () => void;
   disabled?: boolean;
+  status?: AssignmentStatus;
 }
 
 /**
@@ -18,14 +20,29 @@ export function StepButton({
   isCurrent, 
   isComplete, 
   onClick,
-  disabled = false 
+  disabled = false,
+  status = ASSIGNMENT_STATUS.DRAFT
 }: StepButtonProps) {
-  // Disable all steps except the first one (basic-info) when disabled is true
-  const isDisabled = disabled && step.id !== 'basic-info';
+  // For submitted/approved assignments, only allow clicking on preview and feedback steps
+  let isDisabled = false;
+  
+  if (status === ASSIGNMENT_STATUS.SUBMITTED || status === ASSIGNMENT_STATUS.APPROVED) {
+    // For submitted assignments: only assignment-preview and teacher-feedback are clickable
+    isDisabled = !(step.id === 'assignment-preview' || step.id === 'teacher-feedback');
+  } else {
+    // For draft assignments: standard disabled logic
+    isDisabled = disabled && step.id !== 'basic-info';
+  }
+
+  const handleClick = () => {
+    if (!isDisabled) {
+      onClick();
+    }
+  };
   
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
       className={cn(
         "flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors w-full text-left",
         isCurrent 

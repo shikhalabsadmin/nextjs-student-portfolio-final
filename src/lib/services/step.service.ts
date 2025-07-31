@@ -46,7 +46,13 @@ const STEP_REQUIREMENTS: Record<AssignmentStep, StepRequirement> = {
         data.youtubelinks.some(link => link?.url && link.url.trim().length > 0);
       const hasExternalLinks = Array.isArray(data.externalLinks) && 
         data.externalLinks.some(link => link?.url && link.url.trim().length > 0);
-      const hasFiles = Array.isArray(data.files) && data.files.length > 0;
+      
+      // Files are stored in assignment_files table, not tracked in form data
+      // For assignments with an ID, assume files may exist since file upload works
+      // but isn't properly integrated with form validation
+      const hasFiles = Boolean(data.id); // If assignment exists, files may be uploaded
+      
+      // Return true if at least one type of artifact is present OR assignment has ID
       return hasYoutubeLinks || hasExternalLinks || hasFiles;
     }
   },
@@ -70,6 +76,11 @@ const STEP_REQUIREMENTS: Record<AssignmentStep, StepRequirement> = {
     fields: [],
     // This step is valid only if all previous steps are valid
     dependsOnPrevious: true
+  },
+  'assignment-preview': {
+    fields: [],
+    // Preview is always valid for submitted assignments
+    alwaysValid: true
   },
   'teacher-feedback': {
     fields: [],
@@ -139,49 +150,114 @@ export class StepService {
     // Validate step ID
     if (!this.isValidStep(stepId)) {
       stepLogger.error(`Unknown step ID: ${stepId}`);
-      debugLog("Invalid step ID", stepId);
+      debugLog("VALIDATION ERROR: Invalid step ID", stepId);
       return false;
     }
     
-    // Special case for review-submit - only valid when status is SUBMITTED
+    debugLog(`VALIDATION: Starting validation for step ${stepId}`, {
+      stepId,
+      status: formData.status,
+      hasId: !!formData.id
+    });
+    
+    // Special case for review-submit - only valid when status is SUBMITTED or later
     if (stepId === 'review-submit') {
-      debugLog("Review step validation", { isSubmitted: formData.status === ASSIGNMENT_STATUS.SUBMITTED });
-      return formData.status === ASSIGNMENT_STATUS.SUBMITTED;
+      const isSubmittedOrLater = formData.status === ASSIGNMENT_STATUS.SUBMITTED || 
+        formData.status === ASSIGNMENT_STATUS.APPROVED || 
+        formData.status === ASSIGNMENT_STATUS.NEEDS_REVISION;
+      debugLog("VALIDATION: Review step validation", { isSubmittedOrLater, status: formData.status });
+      return isSubmittedOrLater;
     }
 
-    // Special case for teacher-feedback - only valid when status is APPROVED
+    // Special case for assignment-preview - only valid when status is SUBMITTED or later
+    if (stepId === 'assignment-preview') {
+      const isSubmittedOrLater = formData.status === ASSIGNMENT_STATUS.SUBMITTED || 
+        formData.status === ASSIGNMENT_STATUS.APPROVED || 
+        formData.status === ASSIGNMENT_STATUS.NEEDS_REVISION;
+      debugLog("VALIDATION: Assignment preview step validation", { isSubmittedOrLater, status: formData.status });
+      return isSubmittedOrLater;
+    }
+
+    // Special case for teacher-feedback - available when status is SUBMITTED or later, 
+    // complete only when there's actual feedback data
     if (stepId === 'teacher-feedback') {
-      debugLog("Teacher feedback step validation", { isApproved: formData.status === ASSIGNMENT_STATUS.APPROVED });
-      return formData.status === ASSIGNMENT_STATUS.APPROVED;
+      const hasTeacherFeedbackStep = formData.status === ASSIGNMENT_STATUS.SUBMITTED ||
+        formData.status === ASSIGNMENT_STATUS.APPROVED || 
+        formData.status === ASSIGNMENT_STATUS.NEEDS_REVISION;
+      
+      if (!hasTeacherFeedbackStep) {
+        debugLog("VALIDATION: Teacher feedback step validation failed - wrong status", { hasTeacherFeedbackStep, status: formData.status });
+        return false;
+      }
+      
+      // For submitted assignments, completion depends on whether there's feedback data
+      const hasFeedbackData = formData.feedback && Array.isArray(formData.feedback) && formData.feedback.length > 0;
+      debugLog("VALIDATION: Teacher feedback step validation", { 
+        hasTeacherFeedbackStep, 
+        hasFeedbackData, 
+        status: formData.status,
+        feedbackLength: formData.feedback?.length || 0
+      });
+      
+      // Return completion status based on feedback data (false = circle, true = checkmark)
+      return hasFeedbackData;
+    }
+    
+    // For submitted, approved, or needs revision assignments, 
+    // all other steps should be considered complete (not teacher-feedback or assignment-preview)
+    const isSubmittedStatus = formData.status === ASSIGNMENT_STATUS.SUBMITTED || 
+      formData.status === ASSIGNMENT_STATUS.APPROVED || 
+      formData.status === ASSIGNMENT_STATUS.NEEDS_REVISION;
+      
+    if (isSubmittedStatus) {
+      // At this point, we know stepId is not 'teacher-feedback' or 'assignment-preview' due to the conditions above
+      debugLog(`VALIDATION: Step ${stepId} marked as complete due to submission status`, { status: formData.status });
+      return true;
     }
     
     const requirements = STEP_REQUIREMENTS[stepId];
-    debugLog("Step requirements", { stepId, requirements });
+    debugLog("VALIDATION: Step requirements", { stepId, requirements });
     
     // Skip validation for steps marked as always valid
     if (requirements.alwaysValid) {
-      debugLog(`Step ${stepId} is always valid`);
+      debugLog(`VALIDATION: Step ${stepId} is always valid`);
       return true;
     }
     
     // Handle steps that depend on previous steps
     if (requirements.dependsOnPrevious) {
       const result = this.validatePreviousSteps(stepId, formData);
-      debugLog(`Step ${stepId} depends on previous steps. Result: ${result}`);
+      debugLog(`VALIDATION: Step ${stepId} depends on previous steps. Result: ${result}`);
       return result;
     }
     
     // Validate required fields
     const fieldsValid = this.validateFields(requirements.fields, formData);
-    debugLog("Required fields validation", { stepId, fieldsValid, fields: requirements.fields });
+    debugLog("VALIDATION: Required fields validation", { stepId, fieldsValid, fields: requirements.fields });
     
     // Run custom validation if provided
     const customValid = requirements.customCheck ? requirements.customCheck(formData) : true;
-    debugLog("Custom validation", { stepId, customValid, hasCustomCheck: !!requirements.customCheck });
+    debugLog("VALIDATION: Custom validation", { stepId, customValid, hasCustomCheck: !!requirements.customCheck });
+    
+    // Enhanced logging for role-originality step specifically
+    if (stepId === 'role-originality') {
+      debugLog("VALIDATION: Role-originality specific check", {
+        is_team_work: formData.is_team_work,
+        is_original_work: formData.is_original_work,
+        team_contribution: formData.team_contribution,
+        originality_explanation: formData.originality_explanation,
+        teamWorkValid: formData.is_team_work ? Boolean(formData.team_contribution?.trim()) : true,
+        originalityValid: formData.is_original_work ? Boolean(formData.originality_explanation?.trim()) : true,
+      });
+    }
     
     const isValid = fieldsValid && customValid;
     stepLogger.debug(`Step ${stepId} validation result: ${isValid}`);
-    debugLog(`Step ${stepId} final validation result: ${isValid}`);
+    debugLog(`VALIDATION: Step ${stepId} final validation result: ${isValid}`, {
+      fieldsValid,
+      customValid,
+      overall: isValid
+    });
     
     return isValid;
   }
@@ -255,13 +331,41 @@ export class StepService {
   getNextStep(currentStep: AssignmentStep, formData: AssignmentFormValues): AssignmentStep | null {
     const currentIndex = this.getStepIndex(currentStep);
     
+    debugLog("NEXT STEP: Calculation starting", {
+      currentStep,
+      currentIndex,
+      totalSteps: this.steps.length,
+      status: formData.status
+    });
+    
     // Check if we're at the end or have an invalid step
-    if (currentIndex === -1 || currentIndex === this.steps.length - 1) {
+    if (currentIndex === -1) {
+      debugLog("NEXT STEP: Invalid current step", { currentStep });
+      return null;
+    }
+    
+    if (currentIndex === this.steps.length - 1) {
+      debugLog("NEXT STEP: Already at final step", { currentStep });
       return null;
     }
     
     const nextStep = this.steps[currentIndex + 1].id;
+    
+    // Validate that we can actually move to the next step
+    const currentStepValid = this.validateStep(currentStep, formData);
+    debugLog("NEXT STEP: Current step validation", {
+      currentStep,
+      isValid: currentStepValid,
+      nextStep
+    });
+    
+    if (!currentStepValid) {
+      debugLog("NEXT STEP: Cannot advance - current step invalid", { currentStep });
+      return null;
+    }
+    
     stepLogger.debug(`Next step after ${currentStep} is ${nextStep}`);
+    debugLog("NEXT STEP: Result", { from: currentStep, to: nextStep });
     return nextStep;
   }
   

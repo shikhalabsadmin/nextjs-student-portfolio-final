@@ -6,6 +6,7 @@ export type AssignmentStep =
   | 'skills-reflection'
   | 'process-challenges'
   | 'review-submit'
+  | 'assignment-preview'
   | 'teacher-feedback';
 
 export interface StepConfig {

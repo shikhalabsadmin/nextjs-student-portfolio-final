@@ -15,6 +15,15 @@ export const externalLinkSchema = z.object({
   type: z.string().optional().default("")
 }).strict();
 
+// Schema for question-level comments
+export const questionCommentSchema = z.object({
+  id: z.string(),
+  comment: z.string(),
+  timestamp: z.string(),
+  teacher_id: z.string(),
+  question_id: z.string(),
+}).strict();
+
 // Schema for feedback items
 export const feedbackItemSchema = z.object({
   text: z.string().optional().default(""),
@@ -22,6 +31,7 @@ export const feedbackItemSchema = z.object({
   teacher_id: z.string().nullable().optional(),
   selected_skills: z.array(z.string()).optional().default([]),
   skills_justification: z.string().optional().default(""),
+  question_comments: z.record(z.string(), questionCommentSchema).optional().default({}),
 }).strict();
 
 // Schema for assignment files
@@ -127,6 +137,7 @@ export const assignmentFormSchema = baseAssignmentFormSchema.extend({
 // Type inference
 export type AssignmentFormValues = z.infer<typeof baseAssignmentFormSchema>;
 export type FeedbackItem = z.infer<typeof feedbackItemSchema>;
+export type QuestionComment = z.infer<typeof questionCommentSchema>;
 export type AssignmentFile = z.infer<typeof assignmentFileSchema>;
 export type YoutubeLink = z.infer<typeof youtubeLinkSchema>;
 export type ExternalLink = z.infer<typeof externalLinkSchema>;

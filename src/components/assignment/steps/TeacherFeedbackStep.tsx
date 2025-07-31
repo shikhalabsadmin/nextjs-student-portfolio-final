@@ -18,16 +18,21 @@ import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/config/routes";
 import { useAuthState } from "@/hooks/useAuthState";
 import { UserRole } from "@/enums/user.enum";
+import { MessageCircle } from "lucide-react";
+import { QuestionComment } from "@/lib/validations/assignment";
+import { normalizeFeedback, getLatestFeedback, getLatestQuestionComments } from "@/lib/utils/feedback-compatibility";
+import { getQuestionLabel } from "@/lib/utils/question-mapping";
 
 // Interfaces
 interface TeacherFeedbackStepProps {
   form: UseFormReturn<AssignmentFormValues>;
 }
 
-// Extend the TeacherFeedbackData to include skills properties
+// Extend the TeacherFeedbackData to include skills properties and question comments
 interface TeacherFeedbackData extends BaseFeedbackData {
   selected_skills?: string[];
   skills_justification?: string;
+  question_comments?: Record<string, QuestionComment>;
 }
 
 // Define interface for profile data from API
@@ -74,7 +79,53 @@ const SkillsCard = memo(({ feedback }: { feedback: TeacherFeedbackData }) => {
     </div>
   );
 });
-SkillsCard.displayName = "SkillsCard";
+ SkillsCard.displayName = "SkillsCard";
+
+// Question Comments Component
+const QuestionCommentsCard = memo(({ questionComments }: { questionComments: Record<string, QuestionComment> }) => {
+  const commentEntries = Object.entries(questionComments);
+  
+  if (commentEntries.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col gap-3 m-5 p-5 border border-blue-200 rounded-md shadow-md bg-blue-50">
+      <div className="flex items-center gap-2 mb-2">
+        <MessageCircle className="h-5 w-5 text-blue-600" />
+        <h3 className="text-lg font-semibold text-blue-900">Question Comments</h3>
+        <Badge className="bg-blue-100 text-blue-800 text-xs">
+          {commentEntries.length}
+        </Badge>
+      </div>
+      
+      <div className="space-y-4">
+        {commentEntries.map(([questionId, comment]) => (
+          <div key={questionId} className="bg-white border border-blue-200 rounded-md p-4">
+            <div className="text-sm font-medium text-blue-800 mb-2">
+              📝 {getQuestionLabel(questionId)}
+            </div>
+            <div className="text-gray-700 text-sm mb-2 bg-gray-50 p-3 rounded border">
+              {comment.comment}
+            </div>
+            <div className="text-xs text-blue-600">
+              Teacher feedback • {new Date(comment.timestamp).toLocaleDateString()} at{' '}
+              {new Date(comment.timestamp).toLocaleTimeString([], { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      <div className="text-xs text-blue-700 bg-blue-100 p-2 rounded mt-2">
+        💡 These are specific comments your teacher made about individual questions in your assignment
+      </div>
+    </div>
+  );
+});
+QuestionCommentsCard.displayName = "QuestionCommentsCard";
 
 // No Feedback Component (Memoized)
 const NoFeedback = memo(() => {
@@ -135,19 +186,14 @@ const HaveFeedback = memo(
   ({ form }: { form: UseFormReturn<AssignmentFormValues> }) => {
     console.log("[DEBUG] feedback", form.getValues().feedback);
     const [isLoading, setIsLoading] = useState(false);
-    const feedbackItems = Array.isArray(form.getValues().feedback) 
-      ? form.getValues().feedback as TeacherFeedbackData[]
-      : [];
+    
+    // Use compatibility utilities to handle both old and new feedback formats
+    const feedbackItems = normalizeFeedback(form.getValues().feedback) as TeacherFeedbackData[];
     const assignmentId = form.getValues().id ?? "";
     const assignmentSubject = form.getValues().subject ?? "";
 
-    // Find most recent feedback (for skills card)
-    const sortedFeedback = [...feedbackItems].sort((a, b) => {
-      const dateA = a.date ? new Date(a.date).getTime() : 0;
-      const dateB = b.date ? new Date(b.date).getTime() : 0;
-      return dateB - dateA; // Sort in descending order (newest first)
-    });
-    const mostRecentFeedback = sortedFeedback[0];
+    // Get most recent feedback using compatibility utility
+    const mostRecentFeedback = getLatestFeedback(form.getValues().feedback) as TeacherFeedbackData | null;
 
     // Get unique teacher IDs from all feedback items
     const teacherIds = [...new Set(
@@ -247,6 +293,9 @@ const HaveFeedback = memo(
       );
     }
 
+    // Extract question comments using compatibility utility
+    const questionComments = getLatestQuestionComments(form.getValues().feedback);
+
     return (
       <div className="flex flex-col gap-5">
         {/* Skills Card - showing most recent selected skills */}
@@ -254,6 +303,11 @@ const HaveFeedback = memo(
           mostRecentFeedback.selected_skills?.length > 0 || mostRecentFeedback.skills_justification ? (
             <SkillsCard feedback={mostRecentFeedback} />
           ) : null
+        )}
+        
+        {/* Question Comments Card - showing specific feedback on questions */}
+        {questionComments && Object.keys(questionComments).length > 0 && (
+          <QuestionCommentsCard questionComments={questionComments} />
         )}
         
         {isLoadingProfiles && teacherIds.length > 0 ? (

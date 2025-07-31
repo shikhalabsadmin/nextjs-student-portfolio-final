@@ -2,20 +2,40 @@ import { type StepConfig } from "@/types/assignment";
 import { ASSIGNMENT_STATUS, AssignmentStatus } from "@/constants/assignment-status";
 
 /**
- * Filters steps based on assignment status
+ * Filters steps based on assignment status and actual completion state
  * @param steps - Array of step configurations
  * @param status - Current assignment status
+ * @param isActuallyComplete - Whether all required steps are actually complete
  * @returns Filtered array of steps
  */
-export function getFilteredSteps(steps: StepConfig[], status: AssignmentStatus): StepConfig[] {
-  if (status === ASSIGNMENT_STATUS.SUBMITTED) {
-    // First check if teacher-feedback step exists in the array
-    const feedbackStep = steps.find(step => step.id === 'teacher-feedback');
-    if (feedbackStep) {
-      return [feedbackStep]; // Return only the feedback step
-    }
-    // If teacher-feedback step doesn't exist, return the original array
+export function getFilteredSteps(steps: StepConfig[], status: AssignmentStatus, isActuallyComplete: boolean = false): StepConfig[] {
+  console.log("🔄 STEP FILTERING:", {
+    status,
+    isActuallyComplete,
+    availableSteps: steps.map(s => s.id)
+  });
+
+  // ✅ CLEAN LOGIC: Only show post-submission steps when assignment is truly submitted AND complete
+  
+  if (status === ASSIGNMENT_STATUS.NEEDS_REVISION) {
+    // Special case: Show only teacher feedback for revision requests
+    const filteredSteps = steps.filter(step => step.id === 'teacher-feedback');
+    console.log("✅ FILTERED STEPS (NEEDS_REVISION):", filteredSteps.map(s => s.id));
+    return filteredSteps;
+  }
+  
+  if ((status === ASSIGNMENT_STATUS.SUBMITTED || status === ASSIGNMENT_STATUS.APPROVED) && isActuallyComplete) {
+    // Only show ALL steps (including assignment-preview & teacher-feedback) when truly submitted AND complete
+    console.log("✅ FILTERED STEPS (TRULY SUBMITTED & COMPLETE):", steps.map(s => s.id));
     return steps;
   }
-  return steps;
+  
+  // ✅ DEFAULT: For all other cases (draft, incomplete "submitted", etc.), show only work steps
+  // Never show assignment-preview or teacher-feedback until assignment is actually submitted and complete
+  const workSteps = steps.filter(step => 
+    step.id !== 'teacher-feedback' && 
+    step.id !== 'assignment-preview'
+  );
+  console.log("✅ FILTERED STEPS (WORK ONLY):", workSteps.map(s => s.id));
+  return workSteps;
 }

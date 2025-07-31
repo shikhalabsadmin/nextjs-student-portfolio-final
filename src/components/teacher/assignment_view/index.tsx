@@ -32,7 +32,8 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
   const [modalDefaultValues, setModalDefaultValues] = useState({
     selectedSkills: [] as string[],
     justification: "",
-    feedback: ""
+    feedback: "",
+    questionComments: {} as Record<string, any>
   });
 
   // Use the custom hook for data fetching and management
@@ -65,6 +66,18 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
       }));
     }
   }, [skillsAssessment]);
+
+  // Load question comments from latest feedback
+  useEffect(() => {
+    const latestFeedback = getCurrentTeacherLatestFeedback();
+    if (latestFeedback?.question_comments) {
+      console.log('[TeacherAssignmentView] Loading question comments from latest feedback:', latestFeedback.question_comments);
+      setModalDefaultValues(prev => ({
+        ...prev,
+        questionComments: latestFeedback.question_comments || {}
+      }));
+    }
+  }, [feedbackItems, getCurrentTeacherLatestFeedback]);
 
   // Prepare steps for the sidebar
   const steps = [
@@ -105,6 +118,15 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
         selected_skills: formData.selectedSkills || [],
         skills_justification: formData.justification || "",
       });
+      
+      // Update modal default values to include question comments
+      setModalDefaultValues(prev => ({
+        ...prev,
+        selectedSkills: formData.selectedSkills || prev.selectedSkills,
+        justification: formData.justification || prev.justification,
+        feedback: formData.feedback || prev.feedback,
+        questionComments: formData.questionComments || prev.questionComments
+      }));
     }
   };
 
@@ -128,6 +150,7 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
         selectedSkills: formData?.selectedSkills || [],
         justification: formData?.justification || "",
         feedback: formData?.feedback || "",
+        questionComments: modalDefaultValues?.questionComments || {},
       },
       ASSIGNMENT_STATUS.APPROVED
     );
@@ -142,6 +165,7 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
         selectedSkills: formData?.selectedSkills || [],
         justification: formData?.justification || "",
         feedback: formData?.feedback || "",
+        questionComments: modalDefaultValues?.questionComments || {},
       },
       ASSIGNMENT_STATUS.NEEDS_REVISION
     );
@@ -211,9 +235,9 @@ const TeacherAssignmentView = ({ user }: TeacherAssignmentViewProps) => {
 
         {/* Main content area */}
         <div className="flex-1">
-          <div className="rounded border border-slate-200 flex flex-col h-[calc(100vh-6rem)] md:h-[calc(100vh-8rem)] overflow-hidden shadow-sm bg-white">
+          <div className="rounded border border-slate-200 flex flex-col shadow-sm bg-white relative"  style={{isolation: 'isolate', contain: 'layout style'}}>
             {/* Header */}
-            <div className="sticky top-0 z-10 bg-white border-b border-slate-200">
+            <div className="sticky top-0 z-10 bg-white border-b border-slate-200" style={{position: 'sticky', zIndex: 100}}>
               <TeacherHeader
                 studentName={student?.name || "Student"}
                 subject={assignment.subject || "Unknown Subject"}

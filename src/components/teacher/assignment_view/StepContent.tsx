@@ -77,7 +77,9 @@ const StepContent = ({
 
   // Handle form data changes
   const handleFormDataChange = (data: any) => {
+    console.log('[StepContent] Form data changed:', data);
     const newData = { ...formData, ...data };
+    console.log('[StepContent] New form data:', newData);
     setFormData(newData);
     onFormDataChange(newData);
   };
@@ -143,21 +145,30 @@ const StepContent = ({
           </TabsList>
         </div>
 
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1">
           <TabsContent
             value="work"
-            className="m-0 h-full"
+            className="m-0"
           >
-            <div className="h-full overflow-auto">
-              <Work form={form} initialStep={activeStep} />
+            <div className="relative">
+              <Work 
+                form={form} 
+                initialStep={activeStep}
+                onQuestionCommentsChange={(comments) => {
+                  // Handle question comments change - this will be passed up to update feedback
+                  const newFormData = { ...formData, questionComments: comments };
+                  setFormData(newFormData);
+                  onFormDataChange(newFormData);
+                }}
+              />
             </div>
           </TabsContent>
 
           <TabsContent
             value="feedback"
-            className="m-0 h-full"
+            className="m-0"
           >
-            <div className="h-full overflow-auto p-2 sm:p-4">
+            <div className="p-2 sm:p-4">
               <Feedback 
                 form={form!} 
                 feedbackItems={feedbackItems}
@@ -167,9 +178,9 @@ const StepContent = ({
         </div>
       </Tabs>
 
-      {/* Status and action buttons */}
-      {showActionButtons && (
-        <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4 p-3 sm:p-4 border-t border-slate-200 bg-slate-50">
+      {/* Bottom Action Buttons */}
+      {!isApproved && !isRevisionRequested && (
+        <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4 p-4 sm:p-6 border-t border-slate-200 bg-slate-50 mt-8">
           <Button
             variant="outline"
             onClick={() => onRevision(formData)}
@@ -187,6 +198,7 @@ const StepContent = ({
           </Button>
         </div>
       )}
+
     </div>
   );
 };

@@ -1,36 +1,44 @@
-import type { UseFormReturn } from "react-hook-form";
-import type { AssignmentFormValues } from "@/lib/validations/assignment";
 import { useState, useEffect } from "react";
+import { UseFormReturn } from "react-hook-form";
+import { AssignmentFormValues } from "@/lib/validations/assignment";
 import { CreationProcess } from "./reflection-sections/CreationProcess";
-import { CreationProcessImages } from "./reflection-sections/CreationProcessImages";
 import { Learnings } from "./reflection-sections/Learnings";
 import { Challenges } from "./reflection-sections/Challenges";
 import { Improvements } from "./reflection-sections/Improvements";
 import { Acknowledgments } from "./reflection-sections/Acknowledgments";
+import { CreationProcessImages } from "./reflection-sections/CreationProcessImages";
+
+// Helper function to get text content from HTML
+const getTextContent = (html: string): string => {
+  if (!html || html === '<p></p>') return '';
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+  return tempDiv.textContent || tempDiv.innerText || '';
+};
 
 interface ReflectionStepProps {
   form: UseFormReturn<AssignmentFormValues>;
 }
 
 export function ReflectionStep({ form }: ReflectionStepProps) {
-  // Track character counts for each field
+  // Track character counts for each field (text-only, not HTML)
   const [charCounts, setCharCounts] = useState({
-    creation_process: form.getValues("creation_process")?.length || 0,
-    learnings: form.getValues("learnings")?.length || 0,
-    challenges: form.getValues("challenges")?.length || 0,
-    improvements: form.getValues("improvements")?.length || 0,
-    acknowledgments: form.getValues("acknowledgments")?.length || 0,
+    creation_process: getTextContent(form.getValues("creation_process") || '').length,
+    learnings: getTextContent(form.getValues("learnings") || '').length,
+    challenges: getTextContent(form.getValues("challenges") || '').length,
+    improvements: getTextContent(form.getValues("improvements") || '').length,
+    acknowledgments: getTextContent(form.getValues("acknowledgments") || '').length,
   });
 
   // Update character counts when form values change
   useEffect(() => {
     const subscription = form.watch((value) => {
       setCharCounts({
-        creation_process: value.creation_process?.length || 0,
-        learnings: value.learnings?.length || 0,
-        challenges: value.challenges?.length || 0,
-        improvements: value.improvements?.length || 0,
-        acknowledgments: value.acknowledgments?.length || 0,
+        creation_process: getTextContent(value.creation_process || '').length,
+        learnings: getTextContent(value.learnings || '').length,
+        challenges: getTextContent(value.challenges || '').length,
+        improvements: getTextContent(value.improvements || '').length,
+        acknowledgments: getTextContent(value.acknowledgments || '').length,
       });
     });
 

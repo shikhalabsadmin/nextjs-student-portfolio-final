@@ -32,6 +32,12 @@ export const STEPS: StepConfig[] = [
     description: "Once submitted, your teacher will review it and provide feedback. You won't be able to edit after submission unless revisions are requested."
   },
   {
+    id: "assignment-preview",
+    title: "Submitted Assignment",
+    header: "Your Submitted Assignment",
+    description: "Here's your submitted assignment. Your teacher will review it and provide feedback."
+  },
+  {
     id: "teacher-feedback",
     title: "Teacher Feedback",
     header: "Feedback",

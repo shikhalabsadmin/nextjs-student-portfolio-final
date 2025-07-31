@@ -265,10 +265,10 @@ export const updateAssignment = async (
 
 export const deleteAssignment = async (assignmentId: string, userId: string) => {
   try {
-    // Try to use the RPC function first
-    const { error: rpcError } = await supabase.rpc('delete_assignment_with_files', {
-      p_assignment_id: assignmentId,
-      p_student_id: userId
+    // Use the existing RPC function that matches the one in AssignmentsList
+    const { data, error: rpcError } = await supabase.rpc('delete_assignment', {
+      assignment_id: assignmentId,
+      user_id: userId
     });
     
     if (rpcError) {
@@ -282,10 +282,19 @@ export const deleteAssignment = async (assignmentId: string, userId: string) => 
         .eq("student_id", userId);
 
       if (error) {
+        console.error("Direct delete also failed:", error);
         return error;
       }
+      
+      console.log("Direct delete succeeded");
+      return { success: true, id: assignmentId };
+    }
+
+    if (!data) {
+      console.warn("RPC delete returned no data, but no error");
     }
     
+    console.log("RPC delete succeeded");
     return { success: true, id: assignmentId };
   } catch (error: unknown) {
     console.error(`Error deleting assignment ${assignmentId}:`, error);

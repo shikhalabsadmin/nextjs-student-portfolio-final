@@ -52,15 +52,56 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
       },
-      fontFamily: {
-        sans: ["Inter", "sans-serif"],
-      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      keyframes: {
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+      },
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: 'none',
+            color: 'rgb(51 65 85)', // slate-700
+            a: {
+              color: 'rgb(59 130 246)', // blue-500
+              textDecoration: 'underline',
+              '&:hover': {
+                color: 'rgb(37 99 235)', // blue-600
+              },
+            },
+            strong: {
+              color: 'rgb(30 41 59)', // slate-800
+            },
+            h1: {
+              color: 'rgb(15 23 42)', // slate-900
+            },
+            h2: {
+              color: 'rgb(15 23 42)', // slate-900
+            },
+            h3: {
+              color: 'rgb(15 23 42)', // slate-900
+            },
+          },
+        },
+      },
     },
   },
-  plugins: [tailwindcssAnimate],
+  plugins: [
+    tailwindcssAnimate,
+    require('@tailwindcss/typography'),
+  ],
 } satisfies Config;

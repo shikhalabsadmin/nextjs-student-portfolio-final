@@ -72,85 +72,114 @@ export const RevisionModal = memo(
     };
 
     return (
-      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogPortal>
-          <DialogOverlay className="fixed inset-0 z-50 bg-black/80" />
-          <div className="fixed left-[50%] top-[50%] z-50 grid w-[95vw] max-w-[20rem] sm:max-w-[24rem] md:max-w-3xl translate-x-[-50%] translate-y-[-50%] bg-white px-3 py-4 sm:px-5 sm:py-7 md:px-10 md:py-[56px] shadow-lg border border-slate-200 rounded-[6px] max-h-[90vh] overflow-y-auto">
-            <div className="space-y-2 sm:space-y-5 md:space-y-10">
-              {/* Title */}
-              <div className="space-y-1 sm:space-y-2">
-                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900">
+      <>
+        {isOpen && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}>
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '8px',
+              width: '100%',
+              maxWidth: '800px',
+              height: '70vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}>
+              {/* Header */}
+              <div style={{
+                padding: '24px',
+                borderBottom: '1px solid #e5e7eb'
+              }}>
+                <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0, marginBottom: '8px' }}>
                   Send for revision
                 </h2>
-                <p className="text-xs sm:text-sm md:text-base text-slate-600 font-normal">
+                <p style={{ color: '#6b7280', margin: 0 }}>
                   Please specify what the student should revise.
                 </p>
               </div>
 
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 sm:space-y-6">
-                  {/* Feedback input */}
-                  <FormField
-                    control={form.control}
-                    name="feedback"
-                    render={({ field }) => (
-                      <FormItem className="space-y-[6px]">
-                        <FormLabel className="block text-xs sm:text-sm font-medium text-slate-900">
-                          Clearly explain what needs improvement.
-                        </FormLabel>
-                        <FormControl>
-                          <RichTextEditor
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="Eg: Clarify Skills Used, Expand Reflection"
-                          />
-                        </FormControl>
-                        <FormMessage className="text-red-500 text-xs sm:text-sm" />
-                        <FormDescription className="text-slate-500 text-xs sm:text-sm font-normal">
-                          Suggestion: Be specific to help the student refine their work.
-                        </FormDescription>
-                      </FormItem>
-                    )}
-                  />
-
-                  {form.formState.errors.root && (
-                    <p className="text-red-500 text-xs sm:text-sm">
-                      {form.formState.errors.root.message}
-                    </p>
-                  )}
-
-                  {/* Action buttons */}
-                  <div className="flex flex-col sm:flex-row justify-start gap-2 sm:gap-6">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={onClose}
-                      disabled={isSubmitting}
-                      className="w-full sm:w-auto px-3 py-2 font-medium text-xs sm:text-sm rounded-[6px] border-slate-300 text-slate-800"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="w-full sm:w-auto px-3 py-2 font-medium text-xs sm:text-sm rounded-[6px] bg-indigo-500 hover:bg-indigo-600 text-white"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                          Sending...
-                        </>
-                      ) : (
-                        "Send"
+              {/* Scrollable Content */}
+              <div style={{
+                flex: 1,
+                overflow: 'auto',
+                padding: '24px'
+              }}>
+                <Form {...form}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    {/* Feedback input */}
+                    <FormField
+                      control={form.control}
+                      name="feedback"
+                      render={({ field }) => (
+                        <FormItem className="space-y-[6px]">
+                          <FormLabel className="block text-xs sm:text-sm font-medium text-slate-900">
+                            Clearly explain what needs improvement.
+                          </FormLabel>
+                          <FormControl>
+                            <RichTextEditor
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder="Eg: Clarify Skills Used, Expand Reflection"
+                            />
+                          </FormControl>
+                          <FormMessage className="text-red-500 text-xs sm:text-sm" />
+                          <FormDescription className="text-slate-500 text-xs sm:text-sm font-normal">
+                            Suggestion: Be specific to help the student refine their work.
+                          </FormDescription>
+                        </FormItem>
                       )}
-                    </Button>
+                    />
+
+                    {form.formState.errors.root && (
+                      <p className="text-red-500 text-xs sm:text-sm">
+                        {form.formState.errors.root.message}
+                      </p>
+                    )}
                   </div>
-                </form>
-              </Form>
+                </Form>
+              </div>
+
+              {/* Footer */}
+              <div style={{
+                borderTop: '1px solid #e5e7eb',
+                padding: '24px',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '12px'
+              }}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={form.handleSubmit(handleSubmit)}
+                  disabled={isSubmitting}
+                  className="bg-indigo-500 hover:bg-indigo-600 text-white"
+                >
+                  {isSubmitting ? "Sending..." : "Send"}
+                </Button>
+              </div>
             </div>
           </div>
-        </DialogPortal>
-      </Dialog>
+        )}
+      </>
     );
   }
 );

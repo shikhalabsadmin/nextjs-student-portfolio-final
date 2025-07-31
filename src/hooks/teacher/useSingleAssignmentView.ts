@@ -68,6 +68,9 @@ const useSingleAssignmentView = (assignmentId: string | undefined, user: User) =
           teacher_id: legacyFeedback.teacher_id as string | null,
           selected_skills: Array.isArray(legacyFeedback.selected_skills) ? (legacyFeedback.selected_skills as string[]) : [],
           skills_justification: typeof legacyFeedback.skills_justification === "string" ? legacyFeedback.skills_justification : "",
+          question_comments: legacyFeedback.question_comments && typeof legacyFeedback.question_comments === 'object' 
+            ? legacyFeedback.question_comments as Record<string, any>
+            : {},
         }];
       }
     }
@@ -158,11 +161,13 @@ const useSingleAssignmentView = (assignmentId: string | undefined, user: User) =
       justification,
       feedback,
       assignmentStatus,
+      questionComments,
     }: {
       selectedSkills: string[];
       justification: string;
       feedback?: string;
       assignmentStatus: keyof typeof ASSIGNMENT_STATUS;
+      questionComments?: Record<string, any>;
     }) => {
       if (!assignment?.id) return;
 
@@ -181,6 +186,7 @@ const useSingleAssignmentView = (assignmentId: string | undefined, user: User) =
         teacher_id: user?.id || null,
         selected_skills: selectedSkills,
         skills_justification: justification,
+        question_comments: questionComments || {},
       };
 
       // Combine with existing feedback
@@ -228,6 +234,7 @@ const useSingleAssignmentView = (assignmentId: string | undefined, user: User) =
         selectedSkills: string[];
         justification: string;
         feedback?: string;
+        questionComments?: Record<string, any>;
       },
       assignmentStatus: keyof typeof ASSIGNMENT_STATUS
     ) => {

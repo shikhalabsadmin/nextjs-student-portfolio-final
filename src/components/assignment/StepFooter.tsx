@@ -15,6 +15,7 @@ type StepFooterProps = {
   step: AssignmentStep;
   areAllStepsComplete?: boolean;
   className?: string;
+  assignmentStatus?: string; // Add assignment status prop
 };
 
 export function StepFooter({
@@ -22,10 +23,49 @@ export function StepFooter({
   disabled,
   step,
   areAllStepsComplete = true,
-  className
+  className,
+  assignmentStatus = ASSIGNMENT_STATUS.DRAFT
 }: StepFooterProps) {
   const navigate = useNavigate();
   const { user } = useAuthState();
+  
+  // ✅ Smart button visibility - show action buttons for incomplete assignments
+  // Only show "view-only" message for truly complete and approved assignments
+  const isCompleteAndApproved = assignmentStatus === ASSIGNMENT_STATUS.APPROVED;
+  
+  // Show a different message for submitted but incomplete assignments
+  const isSubmittedButIncomplete = assignmentStatus === ASSIGNMENT_STATUS.SUBMITTED && !areAllStepsComplete;
+  
+  if (isCompleteAndApproved) {
+    return (
+      <div className={cn("flex justify-center items-center gap-3 pt-6 pb-4 border-t border-gray-100 mt-8", className)}>
+        <div className="text-center py-4">
+          <p className="text-sm text-gray-500 font-medium">
+            ✅ Assignment approved - View-only mode
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            Assignment is complete and approved
+          </p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show informational message for submitted but incomplete assignments
+  if (isSubmittedButIncomplete) {
+    return (
+      <div className={cn("flex flex-col items-center gap-4 pt-6 pb-4 border-t border-gray-100 mt-8", className)}>
+        <div className="text-center">
+          <p className="text-sm text-amber-600 font-medium">
+            ⚠️ Assignment submitted but incomplete
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            You can still edit and improve your work
+          </p>
+        </div>
+      </div>
+    );
+  }
   
   // Determine if the button should be disabled
   // For review-submit step, disable if not all steps are complete
@@ -56,19 +96,24 @@ export function StepFooter({
     }
   };
 
-  // Check if current step is teacher feedback
+  // Check if current step is teacher feedback or assignment preview
   const isTeacherFeedbackStep = step === "teacher-feedback";
+  const isAssignmentPreviewStep = step === "assignment-preview";
   
   // Check if review step with incomplete steps
   const isIncompleteReviewStep = step === "review-submit" && !areAllStepsComplete;
 
-  // Don't show footer for teacher feedback step (has its own navigation)
-  if (isTeacherFeedbackStep) {
+  // Special case for assignment-preview step (submission confirmation)
+  if (step === "assignment-preview") {
     return (
-      <div className={cn("flex justify-center pt-6 pb-4", className)}>
-        <Button 
+      <div className={cn("flex flex-col items-center gap-4 pt-6 pb-4 border-t border-gray-100 mt-8", className)}>
+        <p className="text-center text-sm text-gray-600">
+          Your assignment has been submitted successfully and is ready for teacher review.
+        </p>
+        <Button
+          type="button"
           onClick={handleGoToDashboard}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-6 py-2.5 rounded-lg transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-6 py-2.5 rounded-lg transition-colors shadow-md hover:shadow-lg flex items-center gap-2"
         >
           <Home className="w-4 h-4" />
           <span>Go to Dashboard</span>
@@ -77,9 +122,24 @@ export function StepFooter({
     );
   }
 
+  // Don't show footer for teacher feedback step (has button in header now)
+  if (isTeacherFeedbackStep) {
+    return null;
+  }
+
+  // Debug logging to help identify button visibility issues
+  console.log("StepFooter render:", {
+    step,
+    assignmentStatus,
+    areAllStepsComplete,
+    disabled,
+    isCompleteAndApproved,
+    isSubmittedButIncomplete
+  });
+
   return (
     <div className={cn("flex flex-col sm:flex-row justify-between items-center gap-3 pt-6 pb-4 border-t border-gray-100 mt-8", className)}>
-      {/* Save Draft button (only show for non-review steps) */}
+      {/* Save Draft button (show for non-review steps, allowing editing of incomplete submissions) */}
       {step !== "review-submit" && (
         <Button
           type="button"
