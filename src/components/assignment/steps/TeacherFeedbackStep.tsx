@@ -186,6 +186,7 @@ const HaveFeedback = memo(
   ({ form }: { form: UseFormReturn<AssignmentFormValues> }) => {
     console.log("[DEBUG] feedback", form.getValues().feedback);
     const [isLoading, setIsLoading] = useState(false);
+    const { user } = useAuthState();
     
     // Use compatibility utilities to handle both old and new feedback formats
     const feedbackItems = normalizeFeedback(form.getValues().feedback) as TeacherFeedbackData[];
@@ -322,7 +323,7 @@ const HaveFeedback = memo(
           />
         )}
         
-        {form?.getValues("status") === ASSIGNMENT_STATUS.NEEDS_REVISION && (
+        {form?.getValues("status") === ASSIGNMENT_STATUS.NEEDS_REVISION && user?.role === UserRole.TEACHER && (
           <Button
             onClick={handleRevision}
             className="w-max bg-[#6366F1] hover:bg-[#6366F1]/90 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors"
