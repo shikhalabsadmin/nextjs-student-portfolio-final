@@ -28,6 +28,7 @@ const TeacherProfile = lazy(() => import("@/pages/TeacherProfile").then(module =
 const StudentProfile = lazy(() => import("@/pages/StudentProfile").then(module => ({ default: module.StudentProfile })));
 const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
 const UpdatePassword = lazy(() => import("@/components/auth/UpdatePassword").then(module => ({ default: module.UpdatePassword })));
+const SSOLogin = lazy(() => import("@/pages/SSOLogin"));
 // Updated to use default export
 const StudentAssignmentForm = lazy(() => import("@/components/assignment/AssignmentForm"));
 const TeacherDashboard = lazy(() => import("@/components/teacher/dashboard"));
@@ -109,6 +110,15 @@ const AppContent = () => {
             </Suspense>
           ),
           errorElement: <Error message="An error occurred updating your password" fullScreen />,
+        },
+        {
+          path: ROUTES.COMMON.SSO_LOGIN,
+          element: (
+            <Suspense fallback={<SuspenseFallback />}>
+              <SSOLogin />
+            </Suspense>
+          ),
+          errorElement: <Error message="An error occurred with SSO login" fullScreen />,
         },
       ],
     },

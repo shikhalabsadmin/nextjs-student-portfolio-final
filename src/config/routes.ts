@@ -7,6 +7,7 @@ export const ROUTES = {
   COMMON: {
     HOME: "/",
     UPDATE_PASSWORD: "/auth/update-password",
+    SSO_LOGIN: "/sso/login",
   },
 
   // Student routes (UserRole.STUDENT)

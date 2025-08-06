@@ -38,6 +38,25 @@ interface AuthState {
 export const useAuthState = (): AuthState => {
   authLogger.debug("useAuthState hook called");
   
+  // Check for SSO authentication in localStorage
+  const ssoAuthCheck = () => {
+    const isAuthenticated = localStorage.getItem('portfolio_authenticated');
+    const ssoUserData = localStorage.getItem('portfolio_user');
+    
+    if (isAuthenticated === 'true' && ssoUserData) {
+      try {
+        const parsedUser = JSON.parse(ssoUserData);
+        authLogger.debug("SSO authentication detected", { userId: parsedUser.id, source: parsedUser.source });
+        return parsedUser;
+      } catch (error) {
+        authLogger.error("Error parsing SSO user data", error);
+        localStorage.removeItem('portfolio_authenticated');
+        localStorage.removeItem('portfolio_user');
+      }
+    }
+    return null;
+  };
+  
   // Get session info
   const { 
     data: sessionData, 
@@ -47,6 +66,29 @@ export const useAuthState = (): AuthState => {
     queryKey: PROFILE_KEYS.authSession,
     queryFn: async () => {
       authLogger.debug("Fetching auth session");
+      
+      // First check for SSO authentication
+      const ssoUser = ssoAuthCheck();
+      if (ssoUser) {
+        authLogger.debug("Using SSO authentication instead of Supabase session");
+        // Return a mock session structure for SSO users
+        return {
+          data: {
+            session: {
+              user: {
+                id: ssoUser.id,
+                email: ssoUser.email,
+                user_metadata: { 
+                  role: ssoUser.role,
+                  full_name: ssoUser.name,
+                  sso_source: ssoUser.source
+                }
+              }
+            }
+          }
+        };
+      }
+      
       const result = await supabase.auth.getSession();
       authLogger.debug("Auth session fetched", { 
         hasSession: !!result.data.session,
@@ -113,7 +155,20 @@ export const useAuthState = (): AuthState => {
   // Sign out function
   const signOut = useCallback(async () => {
     authLogger.info("Signing out user", { userId: user?.id });
-    await supabase.auth.signOut();
+    
+    // Check if this is an SSO user
+    const isSSOUser = localStorage.getItem('portfolio_authenticated') === 'true';
+    
+    if (isSSOUser) {
+      // Clear SSO authentication
+      authLogger.debug("Clearing SSO authentication");
+      localStorage.removeItem('portfolio_authenticated');
+      localStorage.removeItem('portfolio_user');
+    } else {
+      // Regular Supabase sign out
+      await supabase.auth.signOut();
+    }
+    
     queryClient.invalidateQueries({ queryKey: PROFILE_KEYS.authSession });
     queryClient.invalidateQueries({ queryKey: PROFILE_KEYS.profile(user?.id) });
     authLogger.info("Sign out successful");
