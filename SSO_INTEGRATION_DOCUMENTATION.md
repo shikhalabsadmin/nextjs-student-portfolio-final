@@ -70,14 +70,14 @@ VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # SSO Configuration
-VITE_PORTFOLIO_SHARED_SECRET=sso_super_secure_key_2024_portfolio_ai_learning_platform_integration_xyz789
+VITE_PORTFOLIO_SHARED_SECRET=f8f888c5b3530ae1a98cce68bd363b2113bde661a578285aef3f37e63a9dd057
 ```
 
 #### AI Learning Platform (.env.local)
 ```bash
 # Portfolio Integration
 PORTFOLIO_URL=https://student-portfolio-nine-green.vercel.app
-PORTFOLIO_SHARED_SECRET=sso_super_secure_key_2024_portfolio_ai_learning_platform_integration_xyz789
+PORTFOLIO_SHARED_SECRET=f8f888c5b3530ae1a98cce68bd363b2113bde661a578285aef3f37e63a9dd057
 ```
 
 **⚠️ CRITICAL**: Both systems MUST use the **exact same shared secret**
