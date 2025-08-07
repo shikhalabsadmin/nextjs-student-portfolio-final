@@ -61,23 +61,86 @@ export default function SSOLogin() {
         
         // Database operations with proper error handling
         try {
-          // Check if user exists in your system
-          const { data: existingProfile, error: profileError } = await supabase
+          // First, check if user exists by EMAIL (for account linking)
+          const { data: existingProfileByEmail, error: emailError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('email', userData.email)
+            .single();
+
+          if (emailError && emailError.code !== 'PGRST116') {
+            // Error other than "not found"
+            ssoLogger.error("Error checking existing profile by email:", emailError);
+            throw emailError;
+          }
+
+          // Then check if user exists by AI Learning user_id  
+          const { data: existingProfileById, error: idError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', userData.user_id)
             .single();
 
-          if (profileError && profileError.code !== 'PGRST116') {
+          if (idError && idError.code !== 'PGRST116') {
             // Error other than "not found"
-            ssoLogger.error("Error checking existing profile:", profileError);
-            throw profileError;
+            ssoLogger.error("Error checking existing profile by ID:", idError);
+            throw idError;
           }
 
-          if (existingProfile) {
-            ssoLogger.debug("Updating existing user profile");
-            // Update existing user profile
+          // Handle different account linking scenarios
+          if (existingProfileByEmail && existingProfileById) {
+            // User exists by both email AND ID - normal update
+            ssoLogger.debug("User exists by both email and ID - updating profile");
+            const profileToUpdate = existingProfileById;
+            
             const { error: updateError } = await supabase.from('profiles').update({
+              first_name: userData.full_name?.split(' ')[0] || '',
+              last_name: userData.full_name?.split(' ').slice(1).join(' ') || '',
+              role: userData.role as UserRole,
+              bio: userData.bio || null,
+              updated_at: new Date().toISOString(),
+              sync_source: userData.source,
+              ai_learning_user_id: userData.user_id
+            }).eq('id', profileToUpdate.id);
+
+            if (updateError) {
+              ssoLogger.error("Error updating profile:", updateError);
+              throw updateError;
+            }
+            
+          } else if (existingProfileByEmail && !existingProfileById) {
+            // ACCOUNT LINKING: User exists in Portfolio but never came from AI Learning
+            ssoLogger.info("Linking existing Portfolio account with AI Learning", {
+              portfolioUserId: existingProfileByEmail.id,
+              aiLearningUserId: userData.user_id,
+              email: userData.email
+            });
+            
+            const { error: linkError } = await supabase.from('profiles').update({
+              first_name: userData.full_name?.split(' ')[0] || '',
+              last_name: userData.full_name?.split(' ').slice(1).join(' ') || '',
+              role: userData.role as UserRole,
+              bio: userData.bio || null,
+              updated_at: new Date().toISOString(),
+              sync_source: userData.source,
+              ai_learning_user_id: userData.user_id, // Link the AI Learning ID
+              linked_at: new Date().toISOString()
+            }).eq('id', existingProfileByEmail.id);
+
+            if (linkError) {
+              ssoLogger.error("Error linking accounts:", linkError);
+              throw linkError;
+            }
+
+            // Use the existing Portfolio user ID for authentication
+            userData.user_id = existingProfileByEmail.id;
+            
+          } else if (!existingProfileByEmail && existingProfileById) {
+            // User exists by AI Learning ID but different email - update email
+            ssoLogger.debug("Updating email for existing AI Learning user");
+            
+            const { error: updateError } = await supabase.from('profiles').update({
+              email: userData.email,
               first_name: userData.full_name?.split(' ')[0] || '',
               last_name: userData.full_name?.split(' ').slice(1).join(' ') || '',
               role: userData.role as UserRole,
@@ -90,9 +153,10 @@ export default function SSOLogin() {
               ssoLogger.error("Error updating profile:", updateError);
               throw updateError;
             }
+            
           } else {
-            ssoLogger.debug("Creating new user profile");
-            // Create new user profile
+            // NEW USER: Create fresh account from AI Learning
+            ssoLogger.debug("Creating new user profile from AI Learning");
             const { error: insertError } = await supabase.from('profiles').insert({
               id: userData.user_id,
               email: userData.email,
@@ -102,7 +166,9 @@ export default function SSOLogin() {
               bio: userData.bio || null,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
-              sync_source: userData.source
+              sync_source: userData.source,
+              ai_learning_user_id: userData.user_id, // Same as ID for new users
+              linked_at: new Date().toISOString()
             });
 
             if (insertError) {
