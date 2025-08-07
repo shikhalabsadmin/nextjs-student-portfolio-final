@@ -42,6 +42,12 @@ export default function SSOLogin() {
           throw new Error('SSO shared secret not configured');
         }
 
+        // Check if Supabase client is properly initialized
+        if (!supabase) {
+          ssoLogger.error("Supabase client not initialized. Check environment variables.");
+          throw new Error('Database connection not available');
+        }
+
         ssoLogger.debug("Validating JWT token");
         
         // Validate JWT token
@@ -53,54 +59,60 @@ export default function SSOLogin() {
           source: userData.source 
         });
         
-        // Check if user exists in your system
-        const { data: existingProfile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userData.user_id)
-          .single();
+        // Database operations with proper error handling
+        try {
+          // Check if user exists in your system
+          const { data: existingProfile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userData.user_id)
+            .single();
 
-        if (profileError && profileError.code !== 'PGRST116') {
-          // Error other than "not found"
-          ssoLogger.error("Error checking existing profile:", profileError);
-          throw profileError;
-        }
-
-        if (existingProfile) {
-          ssoLogger.debug("Updating existing user profile");
-          // Update existing user profile
-          const { error: updateError } = await supabase.from('profiles').update({
-            first_name: userData.full_name?.split(' ')[0] || '',
-            last_name: userData.full_name?.split(' ').slice(1).join(' ') || '',
-            role: userData.role as UserRole,
-            bio: userData.bio || null,
-            updated_at: new Date().toISOString(),
-            sync_source: userData.source
-          }).eq('id', userData.user_id);
-
-          if (updateError) {
-            ssoLogger.error("Error updating profile:", updateError);
-            throw updateError;
+          if (profileError && profileError.code !== 'PGRST116') {
+            // Error other than "not found"
+            ssoLogger.error("Error checking existing profile:", profileError);
+            throw profileError;
           }
-        } else {
-          ssoLogger.debug("Creating new user profile");
-          // Create new user profile
-          const { error: insertError } = await supabase.from('profiles').insert({
-            id: userData.user_id,
-            email: userData.email,
-            first_name: userData.full_name?.split(' ')[0] || '',
-            last_name: userData.full_name?.split(' ').slice(1).join(' ') || '',
-            role: userData.role as UserRole,
-            bio: userData.bio || null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            sync_source: userData.source
-          });
 
-          if (insertError) {
-            ssoLogger.error("Error creating profile:", insertError);
-            throw insertError;
+          if (existingProfile) {
+            ssoLogger.debug("Updating existing user profile");
+            // Update existing user profile
+            const { error: updateError } = await supabase.from('profiles').update({
+              first_name: userData.full_name?.split(' ')[0] || '',
+              last_name: userData.full_name?.split(' ').slice(1).join(' ') || '',
+              role: userData.role as UserRole,
+              bio: userData.bio || null,
+              updated_at: new Date().toISOString(),
+              sync_source: userData.source
+            }).eq('id', userData.user_id);
+
+            if (updateError) {
+              ssoLogger.error("Error updating profile:", updateError);
+              throw updateError;
+            }
+          } else {
+            ssoLogger.debug("Creating new user profile");
+            // Create new user profile
+            const { error: insertError } = await supabase.from('profiles').insert({
+              id: userData.user_id,
+              email: userData.email,
+              first_name: userData.full_name?.split(' ')[0] || '',
+              last_name: userData.full_name?.split(' ').slice(1).join(' ') || '',
+              role: userData.role as UserRole,
+              bio: userData.bio || null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              sync_source: userData.source
+            });
+
+            if (insertError) {
+              ssoLogger.error("Error creating profile:", insertError);
+              throw insertError;
+            }
           }
+        } catch (dbError) {
+          ssoLogger.error("Database operation failed:", dbError);
+          throw new Error('Failed to sync user profile. Please try again.');
         }
 
         // Store user data in localStorage for your app
