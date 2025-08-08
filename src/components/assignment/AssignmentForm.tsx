@@ -62,6 +62,8 @@ function AssignmentForm({ user }: AssignmentFormProps) {
     isLoading,
     isContinueDisabled,
     handleSubmitAssignment,
+    manualEditEnabled,
+    setManualEditEnabled,
   } = useAssignmentForm({ user });
 
   // Derived state - moved up to be available for other useMemo hooks
@@ -110,6 +112,10 @@ function AssignmentForm({ user }: AssignmentFormProps) {
     },
     [setCurrentStep, filteredSteps, currentStep, assignmentStatus]
   );
+
+  const handleEnableManualEdit = useCallback(() => {
+    setManualEditEnabled(true);
+  }, [setManualEditEnabled]);
 
   // Simplified backup logic - now handled in useAssignmentForm
   useEffect(() => {
@@ -380,6 +386,7 @@ function AssignmentForm({ user }: AssignmentFormProps) {
                   step={currentStep}
                   areAllStepsComplete={areAllStepsComplete}
                   assignmentStatus={assignmentStatus} // ✅ Pass assignment status
+                  onEnableEdit={handleEnableManualEdit}
                 />
               </div>
             </div>

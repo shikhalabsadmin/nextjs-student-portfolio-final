@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { getAssignmentSanityIssues } from "@/lib/utils/assignment-sanity";
 import { SaveStatusIndicator } from "@/components/ui/save-status-indicator";
 import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
 import { cn } from "@/lib/utils";
@@ -88,9 +89,8 @@ export function StepHeader({
             className="hidden sm:flex" 
           />
         </div>
-        <p className="text-gray-600 text-xs sm:text-sm md:text-base mt-1">
-          {description}
-        </p>
+        <p className="text-gray-600 text-xs sm:text-sm md:text-base mt-1">{description}</p>
+        <SanityInlineBadge />
         {/* ✅ Mobile save indicator */}
         <div className="sm:hidden mt-2">
           <SaveStatusIndicator 
@@ -157,4 +157,26 @@ export function StepHeader({
       )}
     </div>
   );
+}
+
+function SanityInlineBadge() {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const React = require("react");
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { useFormContext } = require("react-hook-form");
+    const { watch } = useFormContext();
+    const values = watch();
+    const issues = getAssignmentSanityIssues(values);
+    if (!issues || issues.length === 0) {
+      return <div className="text-[11px] text-green-600">Sanity check passed</div>;
+    }
+    return (
+      <div className="text-[11px] text-amber-600">
+        {issues.length} potential issue{issues.length > 1 ? 's' : ''} detected
+      </div>
+    );
+  } catch {
+    return null;
+  }
 }

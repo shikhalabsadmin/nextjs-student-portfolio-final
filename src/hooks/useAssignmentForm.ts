@@ -60,6 +60,7 @@ function useAssignmentForm({ user }: { user: User }) {
   const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(
     null
   );
+  const [manualEditEnabled, setManualEditEnabled] = useState<boolean>(false);
 
   // ===== Data Mutations =====
 
@@ -720,11 +721,12 @@ function useAssignmentForm({ user }: { user: User }) {
     
     return (
       isLoading ||
-      !steps.isEditable(formValues.status) ||
+      (!manualEditEnabled && !steps.isEditable(formValues.status)) ||
       !isBasicInfoComplete(formValues)
     );
   }, [
     isLoading, 
+    manualEditEnabled,
     form.watch('title'),
     form.watch('artifact_type'),
     form.watch('subject'),
@@ -748,6 +750,8 @@ function useAssignmentForm({ user }: { user: User }) {
     handleDeleteAssignment,
     isContinueDisabled,
     handleSubmitAssignment,
+    manualEditEnabled,
+    setManualEditEnabled,
   };
 }
 
