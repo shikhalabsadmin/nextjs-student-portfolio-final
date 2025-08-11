@@ -3,7 +3,7 @@ import { ASSIGNMENT_STATUS } from "@/constants/assignment-status";
 import { cn } from "@/lib/utils";
 import { AssignmentStep } from "@/types/assignment";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { AlertCircle, Home, Save } from "lucide-react";
+import { AlertCircle, Edit, Home, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/config/routes";
 import { useAuthState } from "@/hooks/useAuthState";
@@ -16,6 +16,7 @@ type StepFooterProps = {
   areAllStepsComplete?: boolean;
   className?: string;
   assignmentStatus?: string; // Add assignment status prop
+  onEnableEdit?: () => void; // Optional hook to enable manual editing
 };
 
 export function StepFooter({
@@ -24,7 +25,8 @@ export function StepFooter({
   step,
   areAllStepsComplete = true,
   className,
-  assignmentStatus = ASSIGNMENT_STATUS.DRAFT
+  assignmentStatus = ASSIGNMENT_STATUS.DRAFT,
+  onEnableEdit
 }: StepFooterProps) {
   const navigate = useNavigate();
   const { user } = useAuthState();
@@ -39,13 +41,26 @@ export function StepFooter({
   if (isCompleteAndApproved) {
     return (
       <div className={cn("flex justify-center items-center gap-3 pt-6 pb-4 border-t border-gray-100 mt-8", className)}>
-        <div className="text-center py-4">
-          <p className="text-sm text-gray-500 font-medium">
-            ✅ Assignment approved - View-only mode
-          </p>
-          <p className="text-xs text-gray-400 mt-1">
-            Assignment is complete and approved
-          </p>
+        <div className="flex flex-col sm:flex-row items-center gap-3 py-2">
+          <div className="text-center">
+            <p className="text-sm text-gray-500 font-medium">
+              ✅ Assignment approved - View-only mode
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Assignment is complete and approved
+            </p>
+          </div>
+          {!!onEnableEdit && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onEnableEdit}
+              className="border-gray-300 text-gray-700 hover:bg-gray-50 font-medium text-sm px-5 py-2.5 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <Edit className="w-4 h-4" />
+              <span>Enable Manual Edit</span>
+            </Button>
+          )}
         </div>
       </div>
     );
