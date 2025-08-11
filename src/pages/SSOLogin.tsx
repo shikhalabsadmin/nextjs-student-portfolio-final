@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import jwt from 'jsonwebtoken';
 import { supabase } from '@/integrations/supabase/client';
 import { ROUTES } from '@/config/routes';
 import { UserRole } from '@/enums/user.enum';
@@ -8,21 +7,7 @@ import { logger } from '@/lib/logger';
 
 const ssoLogger = logger.forModule("SSOLogin");
 
-const SHARED_SECRET = import.meta.env.VITE_PORTFOLIO_SHARED_SECRET;
-
-interface SSOUserData {
-  user_id: string;
-  email: string;
-  full_name: string;
-  role: 'STUDENT' | 'TEACHER' | 'PARENT' | 'ADMIN';
-  grade?: string;
-  subjects?: string[];
-  bio?: string;
-  school_name?: string;
-  workspace_id: string;
-  workspace_role: string;
-  source: string;
-}
+// SSO exchange now happens via Edge Function to establish Supabase session
 
 export default function SSOLogin() {
   const [searchParams] = useSearchParams();
@@ -38,177 +23,36 @@ export default function SSOLogin() {
           throw new Error('No SSO token provided');
         }
 
-        if (!SHARED_SECRET) {
-          throw new Error('SSO shared secret not configured');
-        }
-
         // Check if Supabase client is properly initialized
         if (!supabase) {
           ssoLogger.error("Supabase client not initialized. Check environment variables.");
           throw new Error('Database connection not available');
         }
-
-        ssoLogger.debug("Validating JWT token");
-        
-        // Validate JWT token
-        const userData = jwt.verify(token, SHARED_SECRET) as SSOUserData;
-        ssoLogger.info('SSO Login - User data verified:', { 
-          userId: userData.user_id, 
-          email: userData.email, 
-          role: userData.role,
-          source: userData.source 
+        ssoLogger.debug("Invoking SSO exchange edge function");
+        const { data, error } = await supabase.functions.invoke('sso-exchange', {
+          body: {
+            token,
+            redirectTo: window.location.origin
+          }
         });
-        
-        // Database operations with proper error handling
-        try {
-          // First, check if user exists by EMAIL (for account linking)
-          const { data: existingProfileByEmail, error: emailError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('email', userData.email)
-            .single();
-
-          if (emailError && emailError.code !== 'PGRST116') {
-            // Error other than "not found"
-            ssoLogger.error("Error checking existing profile by email:", emailError);
-            throw emailError;
-          }
-
-          // Then check if user exists by AI Learning user_id  
-          const { data: existingProfileById, error: idError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userData.user_id)
-            .single();
-
-          if (idError && idError.code !== 'PGRST116') {
-            // Error other than "not found"
-            ssoLogger.error("Error checking existing profile by ID:", idError);
-            throw idError;
-          }
-
-          // Handle different account linking scenarios
-          if (existingProfileByEmail && existingProfileById) {
-            // User exists by both email AND ID - normal update
-            ssoLogger.debug("User exists by both email and ID - updating profile");
-            const profileToUpdate = existingProfileById;
-            
-            const { error: updateError } = await supabase.from('profiles').update({
-              first_name: userData.full_name?.split(' ')[0] || '',
-              last_name: userData.full_name?.split(' ').slice(1).join(' ') || '',
-              role: userData.role as UserRole,
-              bio: userData.bio || null,
-              updated_at: new Date().toISOString(),
-              sync_source: userData.source,
-              ai_learning_user_id: userData.user_id
-            }).eq('id', profileToUpdate.id);
-
-            if (updateError) {
-              ssoLogger.error("Error updating profile:", updateError);
-              throw updateError;
-            }
-            
-          } else if (existingProfileByEmail && !existingProfileById) {
-            // ACCOUNT LINKING: User exists in Portfolio but never came from AI Learning
-            ssoLogger.info("Linking existing Portfolio account with AI Learning", {
-              portfolioUserId: existingProfileByEmail.id,
-              aiLearningUserId: userData.user_id,
-              email: userData.email
-            });
-            
-            const { error: linkError } = await supabase.from('profiles').update({
-              first_name: userData.full_name?.split(' ')[0] || '',
-              last_name: userData.full_name?.split(' ').slice(1).join(' ') || '',
-              role: userData.role as UserRole,
-              bio: userData.bio || null,
-              updated_at: new Date().toISOString(),
-              sync_source: userData.source,
-              ai_learning_user_id: userData.user_id, // Link the AI Learning ID
-              linked_at: new Date().toISOString()
-            }).eq('id', existingProfileByEmail.id);
-
-            if (linkError) {
-              ssoLogger.error("Error linking accounts:", linkError);
-              throw linkError;
-            }
-
-            // Use the existing Portfolio user ID for authentication
-            userData.user_id = existingProfileByEmail.id;
-            
-          } else if (!existingProfileByEmail && existingProfileById) {
-            // User exists by AI Learning ID but different email - update email
-            ssoLogger.debug("Updating email for existing AI Learning user");
-            
-            const { error: updateError } = await supabase.from('profiles').update({
-              email: userData.email,
-              first_name: userData.full_name?.split(' ')[0] || '',
-              last_name: userData.full_name?.split(' ').slice(1).join(' ') || '',
-              role: userData.role as UserRole,
-              bio: userData.bio || null,
-              updated_at: new Date().toISOString(),
-              sync_source: userData.source
-            }).eq('id', userData.user_id);
-
-            if (updateError) {
-              ssoLogger.error("Error updating profile:", updateError);
-              throw updateError;
-            }
-            
-          } else {
-            // NEW USER: Create fresh account from AI Learning
-            ssoLogger.debug("Creating new user profile from AI Learning");
-            const { error: insertError } = await supabase.from('profiles').insert({
-              id: userData.user_id,
-              email: userData.email,
-              first_name: userData.full_name?.split(' ')[0] || '',
-              last_name: userData.full_name?.split(' ').slice(1).join(' ') || '',
-              role: userData.role as UserRole,
-              bio: userData.bio || null,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              sync_source: userData.source,
-              ai_learning_user_id: userData.user_id, // Same as ID for new users
-              linked_at: new Date().toISOString()
-            });
-
-            if (insertError) {
-              ssoLogger.error("Error creating profile:", insertError);
-              throw insertError;
-            }
-          }
-        } catch (dbError) {
-          ssoLogger.error("Database operation failed:", dbError);
-          throw new Error('Failed to sync user profile. Please try again.');
+        if (error) {
+          ssoLogger.error('SSO exchange failed', error);
+          throw error;
         }
-
-        // Store user data in localStorage for your app
-        const portfolioUser = {
-          id: userData.user_id,
-          email: userData.email,
-          name: userData.full_name,
-          role: userData.role,
-          workspace_id: userData.workspace_id,
-          source: userData.source
-        };
-
-        localStorage.setItem('portfolio_user', JSON.stringify(portfolioUser));
-        localStorage.setItem('portfolio_authenticated', 'true');
-
-        ssoLogger.info("SSO login successful, redirecting user", { role: userData.role });
-
-        // Redirect based on role
-        if (userData.role === 'TEACHER' || userData.role === 'ADMIN') {
-          navigate(ROUTES.TEACHER.DASHBOARD, { replace: true });
-        } else {
-          navigate(ROUTES.STUDENT.DASHBOARD, { replace: true });
+        const actionLink = (data as any)?.action_link;
+        if (!actionLink) {
+          throw new Error('Invalid SSO exchange response');
         }
+        // Redirect to establish Supabase session
+        window.location.replace(actionLink);
         
       } catch (error) {
         ssoLogger.error('SSO login failed:', error);
         
-        // Clear any partial auth state
-        localStorage.removeItem('portfolio_user');
-        localStorage.removeItem('portfolio_authenticated');
+        try {
+          localStorage.removeItem('portfolio_user');
+          localStorage.removeItem('portfolio_authenticated');
+        } catch {}
         
         // Redirect to login with error message
         navigate(`${ROUTES.COMMON.HOME}?error=sso_failed`, { replace: true });
