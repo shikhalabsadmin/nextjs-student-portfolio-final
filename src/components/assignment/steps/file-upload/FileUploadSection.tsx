@@ -99,41 +99,51 @@ export function FileUploadSection({
         </div>
         
         {showLinkInput && (
-          <div className="flex items-center gap-2">
-            <Input
-              placeholder="Paste URL here (YouTube, Google Drive, Canva, etc.)"
-              className="flex-1"
-              value={linkInputValue}
-              onChange={(e) => setLinkInputValue(e.target.value)}
-              onKeyDown={async (e) => {
-                if (e.key === 'Enter') {
-                  await handleLinkSubmit();
-                } else if (e.key === 'Escape') {
+          <div className="space-y-3">
+            <div className="w-full">
+              <Input
+                placeholder="Paste your link here..."
+                className="w-full"
+                value={linkInputValue}
+                onChange={(e) => setLinkInputValue(e.target.value)}
+                onKeyDown={async (e) => {
+                  if (e.key === 'Enter') {
+                    await handleLinkSubmit();
+                  } else if (e.key === 'Escape') {
+                    setShowLinkInput(false);
+                    setLinkInputValue("");
+                  }
+                }}
+                autoFocus
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                Supports YouTube, Google Drive, Canva, Figma, and other links
+              </p>
+            </div>
+            <div className="flex items-center gap-2 justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-gray-600 hover:text-gray-800"
+                onClick={() => {
                   setShowLinkInput(false);
                   setLinkInputValue("");
-                }
-              }}
-              autoFocus
-            />
-            <Button
-              type="button"
-              variant="outline"
-              className="text-gray-600"
-              onClick={handleLinkSubmit}
-            >
-              Add
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-gray-600"
-              onClick={() => {
-                setShowLinkInput(false);
-                setLinkInputValue("");
-              }}
-            >
-              Cancel
-            </Button>
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-gray-600 hover:text-gray-800 min-w-[60px]"
+                onClick={handleLinkSubmit}
+                disabled={!linkInputValue.trim()}
+              >
+                Add
+              </Button>
+            </div>
           </div>
         )}
       </div>
