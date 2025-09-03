@@ -16,8 +16,8 @@ export function PreviewStep({ form }: PreviewStepProps) {
   // DEBUG: Show actual array contents to debug phantom links
   console.log('👁️ [PREVIEW_TAB] External links debug', {
     assignmentId: values?.id,
-    externalLinksArray: values?.externalLinks,
-    youtubeLinksArray: values?.youtubelinks
+    externalLinksArray: JSON.stringify(values?.externalLinks, null, 2),
+    youtubeLinksArray: JSON.stringify(values?.youtubelinks, null, 2)
   });
 
   const selectedSkills = useMemo(
