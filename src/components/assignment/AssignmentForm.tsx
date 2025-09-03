@@ -64,6 +64,7 @@ function AssignmentForm({ user }: AssignmentFormProps) {
     handleSubmitAssignment,
     manualEditEnabled,
     setManualEditEnabled,
+    saveData, // Add saveData function for draft saving without validation
   } = useAssignmentForm({ user });
 
   // Derived state - moved up to be available for other useMemo hooks
@@ -109,6 +110,33 @@ function AssignmentForm({ user }: AssignmentFormProps) {
     // Allow navigation if basic text fields are filled (no files required for navigation)
     return isBasicInfoNavigationComplete(formValues);
   }, [form.watch("title"), form.watch("artifact_type"), form.watch("subject"), form.watch("month")]);
+
+  // Handle save draft without validation restrictions
+  const handleSaveDraft = useCallback(async () => {
+    try {
+      const formData = form.getValues();
+      const formId = formData.id;
+      
+      if (formId) {
+        // For existing assignments, use the saveData function which doesn't require validation
+        await saveData(formId, formData);
+        toast({
+          title: "Draft saved",
+          description: "Your progress has been saved.",
+        });
+      } else {
+        // For new assignments, trigger the auto-save/create process
+        await handleSaveAndContinue();
+      }
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      toast({
+        title: "Error saving draft",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [form, saveData, handleSaveAndContinue, toast]);
 
   // Event handlers
   const handleSetCurrentStep = useCallback(
@@ -389,6 +417,7 @@ function AssignmentForm({ user }: AssignmentFormProps) {
                 {/* Step Footer */}
                 <StepFooter
                   onContinue={handleSaveAndContinueClick}
+                  onSaveDraft={handleSaveDraft}
                   disabled={isContinueDisabled}
                   step={currentStep}
                   areAllStepsComplete={areAllStepsComplete}

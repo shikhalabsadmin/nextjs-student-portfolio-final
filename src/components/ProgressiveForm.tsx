@@ -1077,7 +1077,7 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
               <Button
                 variant="outline"
                   onClick={() => handleSaveAsDraft(false)}
-                disabled={isSubmitting || isSavingDraft || !answers.title || !isDirty}
+                disabled={isSubmitting || isSavingDraft}
                 size="sm"
                 className="text-gray-700 hover:text-gray-900 border-gray-200 hover:border-gray-300 h-9 px-4 transition-all"
               >

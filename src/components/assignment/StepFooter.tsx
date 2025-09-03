@@ -11,6 +11,7 @@ import { UserRole } from "@/enums/user.enum";
 
 type StepFooterProps = {
   onContinue: () => void;
+  onSaveDraft?: () => void; // Add dedicated save draft function
   disabled: boolean;
   step: AssignmentStep;
   areAllStepsComplete?: boolean;
@@ -21,6 +22,7 @@ type StepFooterProps = {
 
 export function StepFooter({
   onContinue,
+  onSaveDraft,
   disabled,
   step,
   areAllStepsComplete = true,
@@ -148,12 +150,12 @@ export function StepFooter({
   return (
     <div className={cn("flex flex-col sm:flex-row justify-between items-center gap-3 pt-6 pb-4 border-t border-gray-100 mt-8", className)}>
       {/* Save Draft button (show for non-review steps, allowing editing of incomplete submissions) */}
-      {step !== "review-submit" && (
+      {step !== "review-submit" && onSaveDraft && (
         <Button
           type="button"
           variant="outline"
-          onClick={onContinue}
-          disabled={isButtonDisabled}
+          onClick={onSaveDraft}
+          disabled={false} // Save draft should always be available (no validation restrictions)
           className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-50 font-medium text-sm px-5 py-2.5 rounded-lg transition-colors flex items-center gap-2"
         >
           <Save className="w-4 h-4" />

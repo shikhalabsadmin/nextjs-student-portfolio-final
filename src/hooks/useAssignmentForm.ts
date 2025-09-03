@@ -753,6 +753,7 @@ function useAssignmentForm({ user }: { user: User }) {
     handleSubmitAssignment,
     manualEditEnabled,
     setManualEditEnabled,
+    saveData, // Add saveData for draft saving without validation
   };
 }
 
