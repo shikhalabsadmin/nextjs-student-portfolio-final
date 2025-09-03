@@ -24,7 +24,7 @@ const isRestrictedStatus = (status: AssignmentStatus): boolean => {
 };
 
 // Add at the top of the file after imports
-const DEBUG = true;
+const DEBUG = false;
 function debugLog(...args: any[]) {
   if (DEBUG) {
     console.log("[StepService Debug]", ...args);
@@ -100,7 +100,7 @@ export class StepService {
    */
   constructor(steps: ReadonlyArray<StepConfig> = STEPS) {
     this.steps = steps;
-    stepLogger.info("StepService initialized with steps:", this.steps.map(s => s.id));
+
   }
 
   /**
@@ -147,7 +147,7 @@ export class StepService {
   validateStep(stepId: AssignmentStep, formData: AssignmentFormValues): boolean {
     // Validate step ID
     if (!this.isValidStep(stepId)) {
-      stepLogger.error(`Unknown step ID: ${stepId}`);
+
       debugLog("VALIDATION ERROR: Invalid step ID", stepId);
       return false;
     }
@@ -250,7 +250,7 @@ export class StepService {
     }
     
     const isValid = fieldsValid && customValid;
-    stepLogger.debug(`Step ${stepId} validation result: ${isValid}`);
+
     debugLog(`VALIDATION: Step ${stepId} final validation result: ${isValid}`, {
       fieldsValid,
       customValid,
@@ -272,7 +272,7 @@ export class StepService {
     for (let i = 0; i < currentIndex; i++) {
       const prevStepId = this.steps[i].id;
       if (!this.validateStep(prevStepId, formData)) {
-        stepLogger.debug(`Step ${stepId} is invalid because previous step ${prevStepId} is invalid`);
+
         return false;
       }
     }
@@ -362,7 +362,7 @@ export class StepService {
       return null;
     }
     
-    stepLogger.debug(`Next step after ${currentStep} is ${nextStep}`);
+
     debugLog("NEXT STEP: Result", { from: currentStep, to: nextStep });
     return nextStep;
   }
@@ -382,7 +382,7 @@ export class StepService {
     }
     
     const prevStep = this.steps[currentIndex - 1].id;
-    stepLogger.debug(`Previous step before ${currentStep} is ${prevStep}`);
+
     return prevStep;
   }
   
@@ -412,7 +412,7 @@ export class StepService {
       if (stepId === 'teacher-feedback' || stepId === 'assignment-preview') continue;
       
       if (!this.validateStep(stepId, formData)) {
-        stepLogger.debug(`Found incomplete step: ${stepId}`);
+
         return stepId;
       }
     }
@@ -451,7 +451,7 @@ export class StepService {
     }
     
     const errorFields = Object.keys(errors);
-    stepLogger.debug(`Finding step with error fields: ${errorFields.join(', ')}`);
+
     
     // Check each step to find which one contains the errors
     for (const step of this.steps) {
@@ -463,12 +463,12 @@ export class StepService {
       }
       
       if (this.stepContainsErrorFields(stepId, errorFields)) {
-        stepLogger.debug(`Found errors in step: ${stepId}`);
+
         return stepId;
       }
     }
     
-    stepLogger.warn(`Could not determine specific step for errors: ${errorFields.join(', ')}`);
+
     return 'basic-info'; // Default to first step if we can't determine
   }
   
