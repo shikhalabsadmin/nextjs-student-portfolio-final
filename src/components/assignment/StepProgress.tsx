@@ -88,7 +88,7 @@ export function StepProgress({
                   isCurrent={currentStep === step.id}
                   isComplete={validateStep(step.id)}
                   onClick={
-                    disabled && !(step.id === 'assignment-preview' || step.id === 'teacher-feedback')
+                    disabled && !(step.id === 'basic-info' || step.id === 'assignment-preview' || step.id === 'teacher-feedback')
                       ? () => {}
                       : () => {
                           setCurrentStep(step.id);
@@ -117,7 +117,7 @@ export function StepProgress({
               isCurrent={currentStep === step.id}
               isComplete={validateStep(step.id)}
               onClick={
-                disabled && !(step.id === 'assignment-preview' || step.id === 'teacher-feedback')
+                disabled && !(step.id === 'basic-info' || step.id === 'assignment-preview' || step.id === 'teacher-feedback')
                   ? () => {}
                   : () => {
                       setCurrentStep(step.id);
