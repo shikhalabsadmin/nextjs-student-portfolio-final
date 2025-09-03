@@ -154,7 +154,7 @@ const FormMessage = React.forwardRef<
     (name && formState.touchedFields[name as keyof typeof formState.touchedFields])
   )
   
-  const body = showError ? String(error?.message) : children
+  const body = showError ? (error?.message || 'An error occurred') : children
 
   if (!body) {
     return null

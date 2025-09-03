@@ -18,7 +18,8 @@ export function Error({
   onHome
 }: ErrorProps) {
   // Format error message to provide more context when possible
-  const formatErrorMessage = (message: string): string => {
+  const formatErrorMessage = (message: string | undefined): string => {
+    if (!message) return "An unexpected error occurred";
     if (typeof message !== 'string') {
       return "An unknown error occurred";
     }

@@ -11,7 +11,7 @@ export function UploadProgress({ fileName, progress }: UploadProgressProps) {
   
   // Log the progress value for debugging
   useEffect(() => {
-  
+    console.log(`[UploadProgress] ${fileName}: ${progress}%`);
     
     // Smoothly update the progress
     if (progress > displayProgress) {

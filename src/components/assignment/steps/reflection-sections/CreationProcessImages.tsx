@@ -231,7 +231,7 @@ export function CreationProcessImages({ form }: CreationProcessImagesProps) {
       
       {error ? (
         <div className="p-4 border border-red-200 bg-red-50 rounded-md text-red-600 text-sm">
-          {error}
+          {error || 'Upload failed'}
           <Button 
             variant="link" 
             size="sm" 
