@@ -155,6 +155,47 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
     setFiles
   });
 
+  // Cleanup phantom empty external links on component mount
+  useEffect(() => {
+    const externalLinks = form.getValues("externalLinks") || [];
+    const hasEmptyLinks = externalLinks.some(link => !link?.url || !link.url.trim());
+    
+    if (hasEmptyLinks) {
+      console.log('🧹 [CLEANUP] Removing phantom empty external links', {
+        before: JSON.stringify(externalLinks, null, 2)
+      });
+      
+      // Filter out empty links
+      const cleanLinks = externalLinks.filter(link => link?.url && link.url.trim());
+      
+      // Update form
+      form.setValue("externalLinks", cleanLinks, {
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true
+      });
+      
+      // Update youtubelinks to match
+      const youtubeLinks = cleanLinks
+        .filter(link => link.type === 'youtube')
+        .map(link => ({ url: link.url, title: link.title }));
+        
+      form.setValue("youtubelinks", youtubeLinks, {
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true
+      });
+      
+      console.log('🧹 [CLEANUP] Cleanup completed', {
+        cleanExternalLinks: JSON.stringify(cleanLinks, null, 2),
+        cleanYoutubeLinks: JSON.stringify(youtubeLinks, null, 2)
+      });
+      
+      // Trigger validation
+      form.trigger();
+    }
+  }, [form]);
+
 
 
   return (
