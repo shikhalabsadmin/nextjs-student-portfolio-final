@@ -84,63 +84,64 @@ export function ExternalLinksSection({
               variant="destructive"
               size="icon"
               className="absolute top-2 right-2 h-6 w-6 rounded-full"
-              onClick={async () => {
-                console.log('🗑️ [EXTERNAL_LINK_DELETE] Starting deletion', {
-                  deletingIndex: index,
-                  deletingLink: link,
-                  currentExternalLinks: externalLinks,
-                  currentYoutubeLinks: form.getValues("youtubelinks")
-                });
-                
-                const newLinks = [...(externalLinks || [])];
-                newLinks.splice(index, 1);
-                
-                // Remove empty links and only add placeholder if there are no valid links left
-                const validLinksRemaining = newLinks.filter(link => link?.url && link.url.trim());
-                if (validLinksRemaining.length === 0) {
-                  // Don't add empty placeholder, just set to empty array
-                  // This will properly trigger "no content" state
-                  newLinks.length = 0;
-                }
-                
-                console.log('🗑️ [EXTERNAL_LINK_DELETE] New links after deletion', {
-                  newLinks,
-                  hasValidLinks: newLinks.some(link => link?.url && link.url.trim())
-                });
-                
-                // Update externalLinks with proper validation options
-                form.setValue("externalLinks", newLinks, { 
-                  shouldValidate: true,
-                  shouldDirty: true,
-                  shouldTouch: true
-                });
-                
-                // Update youtubelinks for consistency (filter out non-YouTube links)
-                const youtubeLinks = newLinks.filter(link => link.type === 'youtube')
-                  .map(link => ({
-                    url: link.url,
-                    title: link.title
-                  }));
-                
-                form.setValue("youtubelinks", youtubeLinks, { 
-                  shouldValidate: true,
-                  shouldDirty: true,
-                  shouldTouch: true
-                });
-                
-                console.log('🗑️ [EXTERNAL_LINK_DELETE] Form values after update', {
-                  externalLinks: form.getValues("externalLinks"),
-                  youtubelinks: form.getValues("youtubelinks"),
-                  files: form.getValues("files")
-                });
-                
-                // Trigger form validation to update step completion status
-                await form.trigger("externalLinks");
-                await form.trigger("youtubelinks");
-                await form.trigger();
-                
-                console.log('🗑️ [EXTERNAL_LINK_DELETE] Validation completed');
-              }}
+                      onClick={async () => {
+          console.log('🗑️ [EXTERNAL_LINK_DELETE] Starting deletion', {
+            deletingIndex: index,
+            deletingLink: link,
+            currentExternalLinks: JSON.stringify(externalLinks, null, 2),
+            currentYoutubeLinks: JSON.stringify(form.getValues("youtubelinks"), null, 2)
+          });
+
+          // Remove the specific link
+          const newLinks = [...(externalLinks || [])];
+          newLinks.splice(index, 1);
+
+          // Filter out any remaining empty/invalid links
+          const cleanedLinks = newLinks.filter(link => link?.url && link.url.trim());
+
+          console.log('🗑️ [EXTERNAL_LINK_DELETE] Cleaned links', {
+            beforeClean: JSON.stringify(newLinks, null, 2),
+            afterClean: JSON.stringify(cleanedLinks, null, 2),
+            hasValidLinks: cleanedLinks.length > 0
+          });
+
+          // Set to completely empty array if no valid links remain
+          const finalLinks = cleanedLinks.length > 0 ? cleanedLinks : [];
+
+          // Update externalLinks with proper validation options
+          form.setValue("externalLinks", finalLinks, {
+            shouldValidate: true,
+            shouldDirty: true,
+            shouldTouch: true
+          });
+
+          // Update youtubelinks - filter from the cleaned links only
+          const youtubeLinks = finalLinks
+            .filter(link => link.type === 'youtube')
+            .map(link => ({
+              url: link.url,
+              title: link.title
+            }));
+
+          form.setValue("youtubelinks", youtubeLinks, {
+            shouldValidate: true,
+            shouldDirty: true,
+            shouldTouch: true
+          });
+
+          console.log('🗑️ [EXTERNAL_LINK_DELETE] Final form values', {
+            externalLinks: JSON.stringify(form.getValues("externalLinks"), null, 2),
+            youtubelinks: JSON.stringify(form.getValues("youtubelinks"), null, 2),
+            files: form.getValues("files")?.length || 0
+          });
+
+          // Trigger form validation to update step completion status
+          await form.trigger("externalLinks");
+          await form.trigger("youtubelinks");
+          await form.trigger();
+
+          console.log('🗑️ [EXTERNAL_LINK_DELETE] Validation completed');
+        }}
             >
               <X className="h-3 w-3" />
             </Button>
