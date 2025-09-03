@@ -85,11 +85,28 @@ export function ExternalLinksSection({
               size="icon"
               className="absolute top-2 right-2 h-6 w-6 rounded-full"
               onClick={async () => {
+                console.log('🗑️ [EXTERNAL_LINK_DELETE] Starting deletion', {
+                  deletingIndex: index,
+                  deletingLink: link,
+                  currentExternalLinks: externalLinks,
+                  currentYoutubeLinks: form.getValues("youtubelinks")
+                });
+                
                 const newLinks = [...(externalLinks || [])];
                 newLinks.splice(index, 1);
-                if (newLinks.length === 0) {
-                  newLinks.push({ url: "", title: "", type: "" });
+                
+                // Remove empty links and only add placeholder if there are no valid links left
+                const validLinksRemaining = newLinks.filter(link => link?.url && link.url.trim());
+                if (validLinksRemaining.length === 0) {
+                  // Don't add empty placeholder, just set to empty array
+                  // This will properly trigger "no content" state
+                  newLinks.length = 0;
                 }
+                
+                console.log('🗑️ [EXTERNAL_LINK_DELETE] New links after deletion', {
+                  newLinks,
+                  hasValidLinks: newLinks.some(link => link?.url && link.url.trim())
+                });
                 
                 // Update externalLinks with proper validation options
                 form.setValue("externalLinks", newLinks, { 
@@ -111,10 +128,18 @@ export function ExternalLinksSection({
                   shouldTouch: true
                 });
                 
+                console.log('🗑️ [EXTERNAL_LINK_DELETE] Form values after update', {
+                  externalLinks: form.getValues("externalLinks"),
+                  youtubelinks: form.getValues("youtubelinks"),
+                  files: form.getValues("files")
+                });
+                
                 // Trigger form validation to update step completion status
                 await form.trigger("externalLinks");
                 await form.trigger("youtubelinks");
                 await form.trigger();
+                
+                console.log('🗑️ [EXTERNAL_LINK_DELETE] Validation completed');
               }}
             >
               <X className="h-3 w-3" />

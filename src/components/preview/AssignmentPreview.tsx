@@ -69,14 +69,26 @@ const AssignmentPreview = memo(
 
     // Combined external links - convert YouTube links to the external links format if needed
     const externalLinks = useMemo(() => {
+      // Filter out any empty/invalid links from external links
+      const validExternalLinks = values?.externalLinks?.filter(link => link?.url && link.url.trim()) || [];
+      const validYoutubeLinks = values?.youtubelinks?.filter(link => link?.url && link.url.trim()) || [];
+      
+      console.log('🔍 [ASSIGNMENT_PREVIEW] External links data', {
+        assignmentId: values?.id,
+        rawExternalLinks: values?.externalLinks,
+        rawYoutubeLinks: values?.youtubelinks,
+        validExternalLinks,
+        validYoutubeLinks
+      });
+      
       // Use external links if available
-      if (Array.isArray(values?.externalLinks) && values.externalLinks.some(link => link?.url)) {
-        return values.externalLinks;
+      if (validExternalLinks.length > 0) {
+        return validExternalLinks;
       }
       
       // Otherwise, convert YouTube links to the external format
-      if (Array.isArray(values?.youtubelinks) && values.youtubelinks.some(link => link?.url)) {
-        return values.youtubelinks.map(link => ({
+      if (validYoutubeLinks.length > 0) {
+        return validYoutubeLinks.map(link => ({
           url: link.url,
           title: link.title,
           type: 'youtube'
