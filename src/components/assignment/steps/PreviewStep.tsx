@@ -13,12 +13,7 @@ export function PreviewStep({ form }: PreviewStepProps) {
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
   const values = useMemo(() => form.getValues(), [form]);
 
-  // DEBUG: Show actual array contents to debug phantom links
-  console.log('👁️ [PREVIEW_TAB] External links debug', {
-    assignmentId: values?.id,
-    externalLinksArray: JSON.stringify(values?.externalLinks, null, 2),
-    youtubeLinksArray: JSON.stringify(values?.youtubelinks, null, 2)
-  });
+
 
   const selectedSkills = useMemo(
     () =>

@@ -55,18 +55,7 @@ export function isBasicInfoComplete(formData: AssignmentFormValues): boolean {
 
   const hasFiles = Array.isArray(formData.files) && formData.files.length > 0;
   
-  // DEBUG: Log the validation details
-  console.log('🔍 [BASIC_INFO_VALIDATION]', {
-    assignmentId: formData.id,
-    areRequiredFieldsFilled,
-    hasYoutubeLinks,
-    hasExternalLinks,
-    hasFiles,
-    youtubelinks: formData.youtubelinks,
-    externalLinks: formData.externalLinks,
-    files: formData.files?.length || 0,
-    finalResult: areRequiredFieldsFilled && (hasYoutubeLinks || hasExternalLinks || hasFiles)
-  });
+
   
   // All required fields must be filled AND either files, youtubelinks, or externalLinks must be present
   return areRequiredFieldsFilled && (hasYoutubeLinks || hasExternalLinks || hasFiles);

@@ -161,10 +161,6 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
     const hasEmptyLinks = externalLinks.some(link => !link?.url || !link.url.trim());
     
     if (hasEmptyLinks) {
-      console.log('🧹 [CLEANUP] Removing phantom empty external links', {
-        before: JSON.stringify(externalLinks, null, 2)
-      });
-      
       // Filter out empty links
       const cleanLinks = externalLinks.filter(link => link?.url && link.url.trim());
       
@@ -184,11 +180,6 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
         shouldValidate: true,
         shouldDirty: true,
         shouldTouch: true
-      });
-      
-      console.log('🧹 [CLEANUP] Cleanup completed', {
-        cleanExternalLinks: JSON.stringify(cleanLinks, null, 2),
-        cleanYoutubeLinks: JSON.stringify(youtubeLinks, null, 2)
       });
       
       // Trigger validation

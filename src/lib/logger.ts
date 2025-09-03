@@ -11,7 +11,7 @@ export interface LogEntry {
 class Logger {
   private logs: LogEntry[] = [];
   private readonly maxLogs = 1000;
-  private enabled = false; // Temporarily disable all logger output
+  private enabled = process.env.NODE_ENV === "development";
 
   private formatMessage(message: string, data?: unknown): string {
     const dataStr = data ? JSON.stringify(data, null, 2) : '';

@@ -73,13 +73,7 @@ const AssignmentPreview = memo(
       const validExternalLinks = values?.externalLinks?.filter(link => link?.url && link.url.trim()) || [];
       const validYoutubeLinks = values?.youtubelinks?.filter(link => link?.url && link.url.trim()) || [];
       
-          console.log('🔍 [ASSIGNMENT_PREVIEW] External links data', {
-      assignmentId: values?.id,
-      rawExternalLinks: JSON.stringify(values?.externalLinks, null, 2),
-      rawYoutubeLinks: JSON.stringify(values?.youtubelinks, null, 2),
-      validExternalLinks: JSON.stringify(validExternalLinks, null, 2),
-      validYoutubeLinks: JSON.stringify(validYoutubeLinks, null, 2)
-    });
+      
       
       // Use external links if available
       if (validExternalLinks.length > 0) {

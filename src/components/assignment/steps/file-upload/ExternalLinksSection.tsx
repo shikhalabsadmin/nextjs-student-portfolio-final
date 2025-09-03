@@ -85,25 +85,12 @@ export function ExternalLinksSection({
               size="icon"
               className="absolute top-2 right-2 h-6 w-6 rounded-full"
                       onClick={async () => {
-          console.log('🗑️ [EXTERNAL_LINK_DELETE] Starting deletion', {
-            deletingIndex: index,
-            deletingLink: link,
-            currentExternalLinks: JSON.stringify(externalLinks, null, 2),
-            currentYoutubeLinks: JSON.stringify(form.getValues("youtubelinks"), null, 2)
-          });
-
           // Remove the specific link
           const newLinks = [...(externalLinks || [])];
           newLinks.splice(index, 1);
 
           // Filter out any remaining empty/invalid links
           const cleanedLinks = newLinks.filter(link => link?.url && link.url.trim());
-
-          console.log('🗑️ [EXTERNAL_LINK_DELETE] Cleaned links', {
-            beforeClean: JSON.stringify(newLinks, null, 2),
-            afterClean: JSON.stringify(cleanedLinks, null, 2),
-            hasValidLinks: cleanedLinks.length > 0
-          });
 
           // Set to completely empty array if no valid links remain
           const finalLinks = cleanedLinks.length > 0 ? cleanedLinks : [];
@@ -129,18 +116,10 @@ export function ExternalLinksSection({
             shouldTouch: true
           });
 
-          console.log('🗑️ [EXTERNAL_LINK_DELETE] Final form values', {
-            externalLinks: JSON.stringify(form.getValues("externalLinks"), null, 2),
-            youtubelinks: JSON.stringify(form.getValues("youtubelinks"), null, 2),
-            files: form.getValues("files")?.length || 0
-          });
-
           // Trigger form validation to update step completion status
           await form.trigger("externalLinks");
           await form.trigger("youtubelinks");
           await form.trigger();
-
-          console.log('🗑️ [EXTERNAL_LINK_DELETE] Validation completed');
         }}
             >
               <X className="h-3 w-3" />
