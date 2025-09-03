@@ -187,18 +187,6 @@ NoFeedback.displayName = "NoFeedback";
 const HaveFeedback = memo(
   ({ form }: { form: UseFormReturn<AssignmentFormValues> }) => {
     const feedback = form.getValues().feedback;
-    console.log("🔍 COMMENTS DEBUG - TeacherFeedbackStep feedback structure:", feedback);
-    if (Array.isArray(feedback) && feedback.length > 0) {
-      console.log("🔍 COMMENTS DEBUG - First feedback item:", feedback[0]);
-      console.log("🔍 COMMENTS DEBUG - First feedback item keys:", Object.keys(feedback[0]));
-      console.log("🔍 COMMENTS DEBUG - Looking for question_comments in first item:", feedback[0].question_comments);
-      console.log("🔍 COMMENTS DEBUG - All feedback items:", feedback.map((item, index) => ({ 
-        index, 
-        keys: Object.keys(item),
-        hasQuestionComments: !!item.question_comments,
-        questionCommentsKeys: item.question_comments ? Object.keys(item.question_comments) : 'none'
-      })));
-    }
     const [isLoading, setIsLoading] = useState(false);
     const { user } = useAuthState();
     

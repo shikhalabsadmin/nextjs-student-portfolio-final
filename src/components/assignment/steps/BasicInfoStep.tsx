@@ -155,17 +155,7 @@ export function BasicInfoStep({ form }: BasicInfoStepProps) {
     setFiles
   });
 
-  // DEBUG: Log current form data on Basic Info tab
-  console.log('📋 [BASIC_INFO_TAB] Current form data', {
-    assignmentId: form.getValues("id"),
-    externalLinks: form.getValues("externalLinks"),
-    youtubelinks: form.getValues("youtubelinks"),
-    files: form.getValues("files"),
-    filesLength: form.getValues("files")?.length || 0,
-    hasValidExternalLinks: form.getValues("externalLinks")?.some(link => link?.url && link.url.trim()),
-    hasValidYoutubeLinks: form.getValues("youtubelinks")?.some(link => link?.url && link.url.trim()),
-    formValues: form.getValues()
-  });
+
 
   return (
     <div className="space-y-6 md:space-y-8">

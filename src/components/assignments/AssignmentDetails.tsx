@@ -11,57 +11,23 @@ interface AssignmentDetailsProps {
 }
 
 export function AssignmentDetails({ assignment, mode = 'student' }: AssignmentDetailsProps) {
-  console.log('[DEDUP] Starting file deduplication:', {
-    mode,
-    originalFiles: assignment.files,
-    originalCount: assignment.files?.length
-  });
-
   // Deduplicate files based on file_name, keeping the latest version
   const uniqueFiles = assignment.files?.reduce((acc, current) => {
-    console.log('[DEDUP] Processing file:', {
-      id: current.id,
-      name: current.file_name,
-      created_at: current.created_at
-    });
-
     // Find existing file with same name
     const existingIndex = acc.findIndex(file => file.file_name === current.file_name);
     
     if (existingIndex === -1) {
-      console.log('[DEDUP] Adding new file:', current.file_name);
       return [...acc, current];
     }
 
     // Compare timestamps and keep the latest version
     const existing = acc[existingIndex];
     if (new Date(current.created_at) > new Date(existing.created_at)) {
-      console.log('[DEDUP] Replacing with newer version:', {
-        fileName: current.file_name,
-        oldTimestamp: existing.created_at,
-        newTimestamp: current.created_at
-      });
       acc[existingIndex] = current;
-    } else {
-      console.log('[DEDUP] Keeping existing version:', {
-        fileName: existing.file_name,
-        timestamp: existing.created_at
-      });
     }
     
     return acc;
   }, [] as typeof assignment.files) || [];
-
-  console.log('[DEDUP] Deduplication complete:', {
-    mode,
-    originalCount: assignment.files?.length,
-    uniqueCount: uniqueFiles.length,
-    uniqueFiles: uniqueFiles.map(f => ({
-      id: f.id,
-      name: f.file_name,
-      url: f.file_url
-    }))
-  });
 
   const renderQuestionWithFollowUps = (questionId: string, answer: any) => {
     const question = INITIAL_QUESTIONS.find(q => q.id === questionId);

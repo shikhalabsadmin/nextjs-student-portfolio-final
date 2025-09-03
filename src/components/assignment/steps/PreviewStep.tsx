@@ -13,16 +13,13 @@ export function PreviewStep({ form }: PreviewStepProps) {
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
   const values = useMemo(() => form.getValues(), [form]);
 
-  // DEBUG: Log current form data on Preview tab
-  console.log('👁️ [PREVIEW_TAB] Current form data', {
+  // DEBUG: Only log when visiting preview tab to compare data
+  console.log('👁️ [PREVIEW_TAB] Form data for external links', {
     assignmentId: values?.id,
     externalLinks: values?.externalLinks,
     youtubelinks: values?.youtubelinks,
-    files: values?.files,
-    filesLength: values?.files?.length || 0,
     hasValidExternalLinks: values?.externalLinks?.some(link => link?.url && link.url.trim()),
-    hasValidYoutubeLinks: values?.youtubelinks?.some(link => link?.url && link.url.trim()),
-    allFormValues: values
+    hasValidYoutubeLinks: values?.youtubelinks?.some(link => link?.url && link.url.trim())
   });
 
   const selectedSkills = useMemo(
