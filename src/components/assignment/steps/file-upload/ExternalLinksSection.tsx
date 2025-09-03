@@ -84,13 +84,37 @@ export function ExternalLinksSection({
               variant="destructive"
               size="icon"
               className="absolute top-2 right-2 h-6 w-6 rounded-full"
-              onClick={() => {
+              onClick={async () => {
                 const newLinks = [...(externalLinks || [])];
                 newLinks.splice(index, 1);
                 if (newLinks.length === 0) {
                   newLinks.push({ url: "", title: "", type: "" });
                 }
-                form.setValue("externalLinks", newLinks);
+                
+                // Update externalLinks with proper validation options
+                form.setValue("externalLinks", newLinks, { 
+                  shouldValidate: true,
+                  shouldDirty: true,
+                  shouldTouch: true
+                });
+                
+                // Update youtubelinks for consistency (filter out non-YouTube links)
+                const youtubeLinks = newLinks.filter(link => link.type === 'youtube')
+                  .map(link => ({
+                    url: link.url,
+                    title: link.title
+                  }));
+                
+                form.setValue("youtubelinks", youtubeLinks, { 
+                  shouldValidate: true,
+                  shouldDirty: true,
+                  shouldTouch: true
+                });
+                
+                // Trigger form validation to update step completion status
+                await form.trigger("externalLinks");
+                await form.trigger("youtubelinks");
+                await form.trigger();
               }}
             >
               <X className="h-3 w-3" />
