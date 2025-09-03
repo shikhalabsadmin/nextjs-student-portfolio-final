@@ -19,7 +19,7 @@ import {
 } from "@/constants/assignment-status";
 import { GenericBreadcrumb } from "./AssignmentBreadcrumb";
 import { ROUTES } from "@/config/routes";
-import { isBasicInfoComplete } from "@/lib/utils/basic-info-validation";
+import { isBasicInfoComplete, isBasicInfoNavigationComplete } from "@/lib/utils/basic-info-validation";
 import { useToast } from "@/components/ui/use-toast";
 import { getFilteredSteps } from "@/utils/student-assignment-steps-utils";
 
@@ -102,6 +102,13 @@ function AssignmentForm({ user }: AssignmentFormProps) {
     
     return steps;
   }, [assignmentStatus, areAllStepsComplete]);
+
+  // Check if navigation should be allowed (separate from completion status)
+  const isNavigationAllowed = useMemo(() => {
+    const formValues = form.getValues();
+    // Allow navigation if basic text fields are filled (no files required for navigation)
+    return isBasicInfoNavigationComplete(formValues);
+  }, [form.watch("title"), form.watch("artifact_type"), form.watch("subject"), form.watch("month")]);
 
   // Event handlers
   const handleSetCurrentStep = useCallback(
@@ -303,8 +310,8 @@ function AssignmentForm({ user }: AssignmentFormProps) {
     setCurrentStep: handleSetCurrentStep,
     validateStep,
     status: assignmentStatus as AssignmentStatus,
-    // Pass the actual disabled state based on basic info completion for draft assignments
-    disabled: basicInfoTabNotComplete,
+    // Allow navigation based on text fields only (not file uploads)
+    disabled: !isNavigationAllowed,
   };
 
   // Loading state

@@ -1,7 +1,30 @@
 import { type AssignmentFormValues } from "@/lib/validations/assignment";
 
 /**
- * Checks if all required fields in the Basic Information tab are filled
+ * Checks if basic text fields are complete (for navigation purposes)
+ * @param formData The current assignment form data
+ * @returns Boolean indicating whether text fields allow navigation
+ */
+export function isBasicInfoNavigationComplete(formData: AssignmentFormValues): boolean {
+  // Check required string fields only (not files)
+  const requiredFields: (keyof AssignmentFormValues)[] = ['title', 'artifact_type', 'subject', 'month'];
+  return requiredFields.every(field => {
+    const value = formData[field];
+    
+    if (typeof value === 'string') {
+      return value.trim() !== '';
+    } else if (Array.isArray(value)) {
+      return value.length > 0;
+    } else if (typeof value === 'boolean') {
+      return value !== undefined;
+    }
+    
+    return false;
+  });
+}
+
+/**
+ * Checks if all required fields in the Basic Information tab are filled (including files)
  * @param formData The current assignment form data
  * @returns Boolean indicating whether all required fields are completed
  */

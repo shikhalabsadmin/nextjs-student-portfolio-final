@@ -16,6 +16,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { FileText } from "lucide-react";
 import { PreviewSection, PreviewField } from "@/components/ui/preview-section";
 import { SKILLS } from "@/constants";
+import { isBasicInfoNavigationComplete } from "@/lib/utils/basic-info-validation";
 
 interface ProgressiveFormProps {
   currentStep: number;
@@ -366,7 +367,19 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
     };
   };
 
-  // Check if first step is complete
+  // Check if first step navigation is allowed (text fields only, no files required)
+  const isFirstStepNavigationAllowed = useMemo(() => {
+    const formData = {
+      title: answers.title,
+      subject: answers.subject,
+      artifact_type: answers.artifact_type,
+      month: answers.month,
+    } as any;
+    
+    return isBasicInfoNavigationComplete(formData);
+  }, [answers.title, answers.subject, answers.artifact_type, answers.month]);
+
+  // Check if first step is fully complete (including files for green check)
   const isFirstStepCompleteValue = useMemo(() => {
     const hasTitle = typeof answers.title === 'string' && answers.title.trim().length > 0;
     const hasSubject = typeof answers.subject === 'string' && answers.subject.length > 0;
@@ -679,11 +692,11 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
       return;
     }
 
-    // Only allow navigation to other steps if step 1 is complete
-    if (!isFirstStepComplete()) {
+    // Only allow navigation to other steps if step 1 basic fields are filled
+    if (!isFirstStepNavigationAllowed) {
       toast({
-        title: "Error",
-        description: "Please complete the Basic Info section first",
+        title: "Complete Basic Info First",
+        description: "Please fill in title, subject, artifact type, and month to continue",
         variant: 'destructive'
       });
       return;
@@ -694,11 +707,11 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
   };
 
   const handleNext = async () => {
-    // For first step, require all fields to be filled
+    // For first step, require all fields to be filled (including files for next step)
     if (step === 1 && !isFirstStepComplete()) {
       toast({
-        title: "Error",
-        description: "Please fill out all required fields to continue",
+        title: "Complete Upload Required",
+        description: "Please upload your work or add links to continue to the next step",
         variant: 'destructive'
       });
       return;
@@ -771,7 +784,7 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
   };
 
   const handleContinue = () => {
-    // Only validate on first step
+    // Only validate on first step - require all fields including files for continue button
     if (step === 1 && !isFirstStepComplete()) {
       return;
     }

@@ -716,6 +716,7 @@ function useAssignmentForm({ user }: { user: User }) {
   ]);
 
   // Disable continue button when form is not editable or loading
+  // For continue button, still require files (use full validation)
   const isContinueDisabled = useMemo(() => {
     const formValues = form.getValues();
     
