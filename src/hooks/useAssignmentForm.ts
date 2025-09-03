@@ -24,7 +24,7 @@ import {
   getAssignmentWithFiles,
 } from "@/api/assignment";
 import { ASSIGNMENT_KEYS } from "@/query-key/student-assignment";
-import { isBasicInfoComplete } from "@/lib/utils/basic-info-validation";
+import { isBasicInfoComplete, isBasicInfoNavigationComplete } from "@/lib/utils/basic-info-validation";
 
 // Constants
 const AUTO_SAVE_DELAY = 5000;
@@ -716,14 +716,14 @@ function useAssignmentForm({ user }: { user: User }) {
   ]);
 
   // Disable continue button when form is not editable or loading
-  // For continue button, still require files (use full validation)
+  // For continue button, only require basic navigation fields (not files)
   const isContinueDisabled = useMemo(() => {
     const formValues = form.getValues();
     
     return (
       isLoading ||
       (!manualEditEnabled && !steps.isEditable(formValues.status)) ||
-      !isBasicInfoComplete(formValues)
+      !isBasicInfoNavigationComplete(formValues)
     );
   }, [
     isLoading, 
@@ -732,9 +732,8 @@ function useAssignmentForm({ user }: { user: User }) {
     form.watch('artifact_type'),
     form.watch('subject'),
     form.watch('month'),
-    form.watch('status'),
-    form.watch('files'),
-    form.watch('youtubelinks')
+    form.watch('status')
+    // Removed files and youtubelinks from dependencies since they're not required for continue button
   ]);
 
   // Public interface

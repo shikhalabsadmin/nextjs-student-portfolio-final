@@ -41,18 +41,16 @@ const STEP_REQUIREMENTS: Record<AssignmentStep, StepRequirement> = {
   'basic-info': {
     fields: ['title', 'artifact_type', 'subject', 'month'],
     customCheck: (data: AssignmentFormValues) => {
-      // At least one of files, youtubelinks, or externalLinks is required
+      // At least one of files, youtubelinks, or externalLinks is required for completion
       const hasYoutubeLinks = Array.isArray(data.youtubelinks) && 
         data.youtubelinks.some(link => link?.url && link.url.trim().length > 0);
       const hasExternalLinks = Array.isArray(data.externalLinks) && 
         data.externalLinks.some(link => link?.url && link.url.trim().length > 0);
       
-      // Files are stored in assignment_files table, not tracked in form data
-      // For assignments with an ID, assume files may exist since file upload works
-      // but isn't properly integrated with form validation
-      const hasFiles = Boolean(data.id); // If assignment exists, files may be uploaded
+      // Check actual files array in form data - this should be properly updated when files are deleted
+      const hasFiles = Array.isArray(data.files) && data.files.length > 0;
       
-      // Return true if at least one type of artifact is present OR assignment has ID
+      // Return true only if at least one type of artifact is actually present
       return hasYoutubeLinks || hasExternalLinks || hasFiles;
     }
   },

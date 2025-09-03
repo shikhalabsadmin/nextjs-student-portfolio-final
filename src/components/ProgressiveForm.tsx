@@ -67,7 +67,7 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
           id: id,
           title: state.assignmentData.title || '',
           subject: state.assignmentData.subject || '',
-          grade: state.assignmentData.grade || profile?.grade || '',
+          grade: state.assignmentData.grade || (profile?.grade as string) || '',
           month: state.assignmentData.month || new Date().toLocaleString('default', { month: 'long' }),
           artifact_type: state.assignmentData.artifact_type || '',
           artifact_url: state.assignmentData.artifact_url || '',

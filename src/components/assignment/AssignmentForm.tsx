@@ -71,7 +71,7 @@ function AssignmentForm({ user }: AssignmentFormProps) {
   // Use form.watch to make this reactive to status changes after submission
   const assignmentStatus = form.watch("status") || ASSIGNMENT_STATUS.DRAFT;
 
-  // Check if basic info is complete
+  // Check if basic info is complete (for green check display)
   const basicInfoTabNotComplete = useMemo(() => {
     return !isBasicInfoComplete(form.getValues());
   }, [form.watch("title"), form.watch("artifact_type"), form.watch("subject"), form.watch("month"), form.watch("files"), form.watch("externalLinks"), form.watch("youtubelinks")]); // Watch the actual fields that matter for basic info completion
