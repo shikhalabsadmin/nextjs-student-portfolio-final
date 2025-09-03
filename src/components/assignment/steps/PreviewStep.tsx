@@ -13,13 +13,11 @@ export function PreviewStep({ form }: PreviewStepProps) {
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
   const values = useMemo(() => form.getValues(), [form]);
 
-  // DEBUG: Only log when visiting preview tab to compare data
-  console.log('👁️ [PREVIEW_TAB] Form data for external links', {
+  // DEBUG: Show actual array contents to debug phantom links
+  console.log('👁️ [PREVIEW_TAB] External links debug', {
     assignmentId: values?.id,
-    externalLinks: values?.externalLinks,
-    youtubelinks: values?.youtubelinks,
-    hasValidExternalLinks: values?.externalLinks?.some(link => link?.url && link.url.trim()),
-    hasValidYoutubeLinks: values?.youtubelinks?.some(link => link?.url && link.url.trim())
+    externalLinksArray: values?.externalLinks,
+    youtubeLinksArray: values?.youtubelinks
   });
 
   const selectedSkills = useMemo(
@@ -32,37 +30,13 @@ export function PreviewStep({ form }: PreviewStepProps) {
 
   // Extract teacher question comments for revision mode
   const questionComments = useMemo(() => {
-        console.log("🔍 COMMENTS DEBUG - PreviewStep:", {
-      status: values?.status,
-      isRevisionStatus: values?.status === ASSIGNMENT_STATUS.NEEDS_REVISION,
-      feedback: values?.feedback,
-      feedbackType: Array.isArray(values?.feedback) ? 'array' : typeof values?.feedback,
-      feedbackLength: Array.isArray(values?.feedback) ? values?.feedback.length : 'not array'
-    });
-
-    if (Array.isArray(values?.feedback) && values?.feedback.length > 0) {
-      console.log("🔍 COMMENTS DEBUG - PreviewStep feedback items detailed:", values?.feedback.map((item, index) => ({ 
-        index, 
-        keys: Object.keys(item),
-        hasQuestionComments: !!item.question_comments,
-        questionCommentsKeys: item.question_comments ? Object.keys(item.question_comments) : 'none',
-        questionCommentsValue: item.question_comments || 'NOT_FOUND'
-      })));
-    }
-
     if (values?.status !== ASSIGNMENT_STATUS.NEEDS_REVISION) {
-      console.log("🔍 COMMENTS DEBUG - Not revision status, no comments to show");
       return null;
     }
 
     // Use the proper utility function to extract question comments
     const comments = getLatestQuestionComments(values?.feedback);
-    console.log("🔍 COMMENTS DEBUG - Question comments from utility:", comments);
-    console.log("🔍 COMMENTS DEBUG - Is question_comments empty?", Object.keys(comments).length === 0);
-    console.log("🔍 COMMENTS DEBUG - This means teacher did not add any question-specific comments, only general feedback");
-
     const commentEntries = Object.entries(comments);
-    console.log("🔍 COMMENTS DEBUG - Comment entries:", commentEntries);
     
     return commentEntries.length > 0 ? commentEntries : null;
   }, [values?.feedback, values?.status]);
