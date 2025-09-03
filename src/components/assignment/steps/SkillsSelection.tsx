@@ -37,7 +37,7 @@ export function SkillsSelection({ form }: SkillsSelectionProps) {
               "text-lg font-medium",
               hasError && "text-red-500"
             )}>
-              What skills did you practice? (Select Top 3) <span className="text-red-500">*</span>
+              What skills did you practice? <span className="text-red-500">*</span>
             </FormLabel>
             <FormDescription className={cn(
               hasError && "text-red-400"

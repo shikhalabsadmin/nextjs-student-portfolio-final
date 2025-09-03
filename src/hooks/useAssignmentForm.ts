@@ -240,6 +240,8 @@ function useAssignmentForm({ user }: { user: User }) {
         throw new Error(result.message || 'Database update failed');
       }
       
+
+      
       return result;
     },
     onSuccess: (result, { id, data }) => {
@@ -591,7 +593,9 @@ function useAssignmentForm({ user }: { user: User }) {
         updateData: updateData
       });
 
-      await updateMutation.mutateAsync({
+
+
+      const mutationResult = await updateMutation.mutateAsync({
         id: data.id,
         data: updateData,
       });

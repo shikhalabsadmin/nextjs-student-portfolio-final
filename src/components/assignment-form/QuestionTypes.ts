@@ -102,7 +102,7 @@ export const INITIAL_QUESTIONS: Question[] = [
   // Step 3: Skills and Pride
   {
     id: "selected_skills",
-    label: "What skills did you practice? Select Top 3",
+    label: "What skills did you practice?",
     type: "select",
     options: [
       "Motivation",

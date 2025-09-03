@@ -929,7 +929,7 @@ export function ProgressiveForm({ currentStep, onStepChange, onFirstStepComplete
 
         <PreviewSection title="Skills and Pride">
           <PreviewField 
-            label="What skills did you practice? Select Top 3" 
+            label="What skills did you practice?" 
               value={answers.selected_skills?.map(skill => 
                 SKILLS.find(s => s.id === skill)?.name || skill
               ).join(', ')} 

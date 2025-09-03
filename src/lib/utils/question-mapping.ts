@@ -18,7 +18,7 @@ export const QUESTION_LABELS: Record<string, string> = {
   originality_explanation: "Explain what was new",
   
   // Skills Questions (from SkillsSelection.tsx, SkillsJustification.tsx, PrideReason.tsx)
-  selected_skills: "What skills did you practice? (Select Top 3)",
+  selected_skills: "What skills did you practice?",
   skills_justification: "Justify the selected skills",
   pride_reason: "Why are you proud of this artifact?",
   

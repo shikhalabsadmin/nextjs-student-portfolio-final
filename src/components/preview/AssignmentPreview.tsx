@@ -314,7 +314,7 @@ const AssignmentPreview = memo(
 
           {/* Skills and Pride */}
           <PreviewField
-            label="What skills did you practice? Select Top 3"
+            label="What skills did you practice?"
             value={selectedSkills}
           />
           <PreviewField

@@ -67,6 +67,7 @@ export const updateAssignment = async (
   data: Partial<AssignmentFormValues>
 ) => {
   debug.log("Updating assignment", { id, data });
+  
   const { data: updatedData, error } = await supabase
     .from("assignments")
     .update(data)
@@ -78,6 +79,8 @@ export const updateAssignment = async (
     debug.error("Failed to update assignment", error);
     throw error;
   }
+
+
 
   return updatedData;
 };
