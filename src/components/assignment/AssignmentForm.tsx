@@ -76,9 +76,16 @@ function AssignmentForm({ user }: AssignmentFormProps) {
     return !isBasicInfoComplete(form.getValues());
   }, [form.watch("title"), form.watch("artifact_type"), form.watch("subject"), form.watch("month"), form.watch("files"), form.watch("externalLinks"), form.watch("youtubelinks")]); // Watch the actual fields that matter for basic info completion
 
-  // ✅ FIXED: Check if all required work steps are actually complete (regardless of status)
+
+  // ✅ OPTIMIZED: Only validate all steps when actually on review-submit step
   const areAllStepsComplete = useMemo(() => {
-    // Always validate the core work steps, regardless of assignment status
+    if (currentStep !== 'review-submit') {
+      console.log("🔧 OPTIMIZATION: Skipping all-steps validation - not on review step");
+      return false;
+    }
+    
+    console.log("🔍 RUNNING ALL-STEPS VALIDATION (on review-submit step)");
+    // Always validate the core work steps when on review step
     const workStepsToValidate = STEPS.filter(step => 
       step.id !== 'review-submit' && 
       step.id !== 'assignment-preview' && 
@@ -90,7 +97,7 @@ function AssignmentForm({ user }: AssignmentFormProps) {
       return isValid;
     });
     return allComplete;
-  }, [validateStep, form.formState.isDirty, currentStep, assignmentStatus]);
+  }, [currentStep, validateStep]);
 
   const currentStepConfig = useMemo(
     () => STEPS.find((step) => step.id === currentStep),
@@ -98,11 +105,12 @@ function AssignmentForm({ user }: AssignmentFormProps) {
   );
 
   const filteredSteps = useMemo(() => {
-    // ✅ CRITICAL FIX: Pass actual completion state to prevent showing submitted/feedback steps for incomplete work
-    const steps = getFilteredSteps(STEPS, assignmentStatus, areAllStepsComplete);
+    // ✅ CRITICAL FIX: For basic navigation, we don't need to validate all steps
+    // Steps filtering is now based on status only, not completion validation
+    const steps = getFilteredSteps(STEPS, assignmentStatus, false);
     
     return steps;
-  }, [assignmentStatus, areAllStepsComplete]);
+  }, [assignmentStatus]);
 
   // Check if navigation should be allowed (separate from completion status)
   const isNavigationAllowed = useMemo(() => {
@@ -164,10 +172,11 @@ function AssignmentForm({ user }: AssignmentFormProps) {
   // ✅ REMOVED: Complex backup system - now handled by simplified auto-save in hook
 
   const handleSaveAndContinueClick = useCallback(async () => {
-    console.log("STEP CLICK: Save and continue clicked", { 
+    console.log("🚀 SAVE & CONTINUE CLICKED:", { 
       currentStep, 
       formId: form.getValues().id,
-      hasData: !!form.getValues().title 
+      hasData: !!form.getValues().title,
+      allFormData: form.getValues()
     });
     
     if (currentStep === "review-submit") {
@@ -195,14 +204,24 @@ function AssignmentForm({ user }: AssignmentFormProps) {
         // Get the fields for the current step from STEP_REQUIREMENTS
         const stepFields = getStepRequiredFields(currentStep as AssignmentStep);
         
-        // Check current step validation BEFORE form.trigger
-        const currentStepValid = validateStep(currentStep);
+        // Check current step validation BEFORE form.trigger (navigation context - files not required)
+        console.log(`🎯 VALIDATING CURRENT STEP FOR NAVIGATION: ${currentStep}`);
+        const currentStepValid = validateStep(currentStep, { isForNavigation: true });
         
         // ENHANCED: Trigger validation for specific fields and set custom errors
         const isStepValid = await form.trigger(stepFields as any);
         
+        console.log("🔍 VALIDATION RESULTS:", {
+          currentStep,
+          stepFields,
+          isStepValid,
+          currentStepValid,
+          overall: isStepValid && currentStepValid
+        });
+        
         // ENHANCED: If validation fails, set specific field errors for visual feedback
         if (!isStepValid || !currentStepValid) {
+          console.log("❌ VALIDATION FAILED - Setting custom errors for step:", currentStep);
           
           // Set specific field errors for better visual feedback
           if (currentStep === 'skills-reflection') {
@@ -225,43 +244,48 @@ function AssignmentForm({ user }: AssignmentFormProps) {
               });
             }
           } else if (currentStep === 'basic-info') {
+            console.log("🔍 BASIC INFO VALIDATION CHECK:", {
+              title: formData.title,
+              artifact_type: formData.artifact_type,
+              subject: formData.subject,
+              month: formData.month,
+              files: formData.files,
+              youtubelinks: formData.youtubelinks,
+              externalLinks: formData.externalLinks
+            });
+            
             if (!formData.title?.trim()) {
+              console.log("❌ BASIC INFO: Title validation failed");
               form.setError('title', {
                 type: 'required',
                 message: 'Title is required'
               });
             }
             if (!formData.artifact_type) {
+              console.log("❌ BASIC INFO: Artifact type validation failed");
               form.setError('artifact_type', {
                 type: 'required',
                 message: 'Please select an artifact type'
               });
             }
             if (!formData.subject) {
+              console.log("❌ BASIC INFO: Subject validation failed");
               form.setError('subject', {
                 type: 'required',
                 message: 'Please select a subject'
               });
             }
             if (!formData.month) {
+              console.log("❌ BASIC INFO: Month validation failed");
               form.setError('month', {
                 type: 'required',
                 message: 'Please select a month'
               });
             }
-            // Check for files/links
-            const hasFiles = Array.isArray(formData.files) && formData.files.length > 0;
-            const hasYoutubeLinks = Array.isArray(formData.youtubelinks) && 
-              formData.youtubelinks.some(link => link?.url && link.url.trim().length > 0);
-            const hasExternalLinks = Array.isArray(formData.externalLinks) && 
-              formData.externalLinks.some(link => link?.url && link.url.trim().length > 0);
             
-            if (!hasFiles && !hasYoutubeLinks && !hasExternalLinks) {
-              form.setError('files', {
-                type: 'required',
-                message: 'Please add at least one file, YouTube link, or external link'
-              });
-            }
+            console.log("✅ BASIC INFO: Files/work validation SKIPPED for Save & Continue (only required for submission)");
+            // NOTE: Files/links are not required for navigation between steps
+            // They are only required for final submission (handled elsewhere)
           } else if (currentStep === 'role-originality') {
             if (formData.is_team_work === undefined) {
               form.setError('is_team_work', {
@@ -313,12 +337,15 @@ function AssignmentForm({ user }: AssignmentFormProps) {
             }, 100);
           }
           
+          console.log("❌ STOPPING EXECUTION - Validation failed for step:", currentStep);
           return; // Don't proceed if validation failed
         }
         
+        console.log("✅ VALIDATION PASSED - Proceeding with save and continue for step:", currentStep);
         // If validation passes, clear any existing errors and proceed
         form.clearErrors();
         await handleSaveAndContinue();
+        console.log("🎉 SAVE & CONTINUE COMPLETED SUCCESSFULLY for step:", currentStep);
       }
     } catch (error) {
       console.error("STEP CLICK: Error in save and continue:", error);

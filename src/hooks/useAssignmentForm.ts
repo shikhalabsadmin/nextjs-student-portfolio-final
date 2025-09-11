@@ -508,9 +508,9 @@ function useAssignmentForm({ user }: { user: User }) {
 
   // Validate a specific step
   const validateStep = useCallback(
-    (stepId: AssignmentStep) => {
-      const isValid = steps.validateStep(stepId, form.getValues());
-      formLogger.debug("Validating step", { step: stepId, isValid });
+    (stepId: AssignmentStep, context?: { isForNavigation?: boolean }) => {
+      const isValid = steps.validateStep(stepId, form.getValues(), context);
+      formLogger.debug("Validating step", { step: stepId, isValid, context });
       return isValid;
     },
     [form]
@@ -662,8 +662,11 @@ function useAssignmentForm({ user }: { user: User }) {
         from: currentStep,
         to: next,
       });
+      console.log("🎯 STEP CHANGE: Setting current step to", next);
       setCurrentStep(next);
       toast.success("Saved and continued");
+    } else {
+      console.log("❌ NO STEP ADVANCEMENT: getNextStep returned null", { currentStep });
     }
   };
 

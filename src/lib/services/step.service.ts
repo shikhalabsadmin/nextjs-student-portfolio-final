@@ -13,7 +13,7 @@ const RESTRICTED_STATUSES = [
 // Type definitions for step validation
 interface StepRequirement {
   fields: (keyof AssignmentFormValues)[];
-  customCheck?: (data: AssignmentFormValues) => boolean;
+  customCheck?: (data: AssignmentFormValues, context?: { isForNavigation?: boolean }) => boolean;
   dependsOnPrevious?: boolean;
   alwaysValid?: boolean;
 }
@@ -40,8 +40,14 @@ const stepLogger = logger.forModule("StepService");
 const STEP_REQUIREMENTS: Record<AssignmentStep, StepRequirement> = {
   'basic-info': {
     fields: ['title', 'artifact_type', 'subject', 'month'],
-    customCheck: (data: AssignmentFormValues) => {
-      // At least one of files, youtubelinks, or externalLinks is required for completion
+    customCheck: (data: AssignmentFormValues, context?: { isForNavigation?: boolean }) => {
+      // For navigation between steps, only require text fields (no files needed)
+      if (context?.isForNavigation) {
+        console.log("🔧 BASIC-INFO: Navigation validation - files not required");
+        return true;
+      }
+      
+      // For completion/submission validation, require files/links
       const hasYoutubeLinks = Array.isArray(data.youtubelinks) && 
         data.youtubelinks.some(link => link?.url && link.url.trim().length > 0);
       const hasExternalLinks = Array.isArray(data.externalLinks) && 
@@ -50,8 +56,11 @@ const STEP_REQUIREMENTS: Record<AssignmentStep, StepRequirement> = {
       // Check actual files array in form data - this should be properly updated when files are deleted
       const hasFiles = Array.isArray(data.files) && data.files.length > 0;
       
+      const hasWorkAttached = hasYoutubeLinks || hasExternalLinks || hasFiles;
+      console.log("🔍 BASIC-INFO: Completion validation - files required", { hasWorkAttached });
+      
       // Return true only if at least one type of artifact is actually present
-      return hasYoutubeLinks || hasExternalLinks || hasFiles;
+      return hasWorkAttached;
     }
   },
   'role-originality': {
@@ -142,9 +151,10 @@ export class StepService {
    * Check if a step is valid based on its requirements
    * @param stepId Step identifier
    * @param formData Current form data
+   * @param context Optional context for validation (e.g., navigation vs completion)
    * @returns Boolean indicating if step is valid
    */
-  validateStep(stepId: AssignmentStep, formData: AssignmentFormValues): boolean {
+  validateStep(stepId: AssignmentStep, formData: AssignmentFormValues, context?: { isForNavigation?: boolean }): boolean {
     // Validate step ID
     if (!this.isValidStep(stepId)) {
 
@@ -234,8 +244,21 @@ export class StepService {
     debugLog("VALIDATION: Required fields validation", { stepId, fieldsValid, fields: requirements.fields });
     
     // Run custom validation if provided
-    const customValid = requirements.customCheck ? requirements.customCheck(formData) : true;
-    debugLog("VALIDATION: Custom validation", { stepId, customValid, hasCustomCheck: !!requirements.customCheck });
+    const customValid = requirements.customCheck ? requirements.customCheck(formData, context) : true;
+    debugLog("VALIDATION: Custom validation", { stepId, customValid, hasCustomCheck: !!requirements.customCheck, context });
+    
+    // Special logging for basic-info step
+    if (stepId === 'basic-info') {
+      console.log("🔍 BASIC-INFO STEP VALIDATION:", {
+        stepId,
+        fieldsValid,
+        customValid,
+        hasFiles: Array.isArray(formData.files) && formData.files.length > 0,
+        hasYoutubeLinks: Array.isArray(formData.youtubelinks) && formData.youtubelinks.some(link => link?.url && link.url.trim().length > 0),
+        hasExternalLinks: Array.isArray(formData.externalLinks) && formData.externalLinks.some(link => link?.url && link.url.trim().length > 0),
+        requirements
+      });
+    }
     
     // Enhanced logging for role-originality step specifically
     if (stepId === 'role-originality') {
@@ -349,21 +372,24 @@ export class StepService {
     
     const nextStep = this.steps[currentIndex + 1].id;
     
-    // Validate that we can actually move to the next step
-    const currentStepValid = this.validateStep(currentStep, formData);
+    // Validate that we can actually move to the next step (navigation context - files not required)
+    const currentStepValid = this.validateStep(currentStep, formData, { isForNavigation: true });
     debugLog("NEXT STEP: Current step validation", {
       currentStep,
       isValid: currentStepValid,
-      nextStep
+      nextStep,
+      validationContext: "navigation"
     });
     
     if (!currentStepValid) {
       debugLog("NEXT STEP: Cannot advance - current step invalid", { currentStep });
+      console.log("❌ STEP ADVANCEMENT BLOCKED: Current step validation failed", { currentStep, reason: "validation failed for navigation" });
       return null;
     }
     
 
     debugLog("NEXT STEP: Result", { from: currentStep, to: nextStep });
+    console.log("🚀 STEP ADVANCEMENT: Moving to next step", { from: currentStep, to: nextStep });
     return nextStep;
   }
   
