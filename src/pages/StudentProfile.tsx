@@ -97,6 +97,7 @@ export const StudentProfile = ({
 }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
   // Use useRef to track if form has been initialized to prevent multiple initializations
@@ -351,12 +352,18 @@ export const StudentProfile = ({
           imagePath: newImagePath
         });
         
+        // Check if grade is changing to update draft assignments
+        const oldGrade = (profileData as any)?.grade;
+        const newGrade = values.grade;
+        const gradeChanged = oldGrade !== newGrade;
+
         const { error: updateError } = await supabase
           .from("profiles")
           .update({
             full_name: values.full_name,
             bio: values.bio || "",
             school_name: values.school_name || "",
+            grade: values.grade,
             image: newImageUrl,
             image_path: newImagePath,
           })
@@ -388,10 +395,54 @@ export const StudentProfile = ({
 
         console.log("[DEBUG Profile Picture] Profile update success");
 
-        toast({
-          title: "Success",
-          description: "Profile updated successfully",
-        });
+        // Update all draft assignments if grade changed
+        if (gradeChanged && newGrade) {
+          try {
+            console.log("[DEBUG Grade Update] Updating draft assignments", {
+              oldGrade,
+              newGrade,
+              userId: user.id
+            });
+
+            const { error: assignmentUpdateError } = await supabase
+              .from("assignments")
+              .update({ grade: newGrade })
+              .eq("student_id", user.id)
+              .eq("status", "DRAFT");
+
+            if (assignmentUpdateError) {
+              console.error("[DEBUG Grade Update] Failed to update draft assignments", assignmentUpdateError);
+              // Don't throw here - profile update succeeded, this is just a bonus feature
+              toast({
+                title: "Warning",
+                description: "Profile updated, but some draft assignments may need manual grade update",
+                variant: "destructive",
+              });
+            } else {
+              console.log("[DEBUG Grade Update] Successfully updated draft assignments");
+              
+              // Invalidate assignment queries to refresh UI
+              queryClient.invalidateQueries({ queryKey: ['studentAssignments'] });
+              queryClient.invalidateQueries({ queryKey: ['assignments'] });
+              
+              toast({
+                title: "Success",
+                description: "Profile and draft assignments updated successfully",
+              });
+            }
+          } catch (error) {
+            console.error("[DEBUG Grade Update] Error updating draft assignments", error);
+            toast({
+              title: "Success",
+              description: "Profile updated successfully",
+            });
+          }
+        } else {
+          toast({
+            title: "Success",
+            description: "Profile updated successfully",
+          });
+        }
       } catch (error) {
         console.log("[DEBUG Profile Picture] updateProfileMutation error", error);
         toast({
