@@ -683,15 +683,14 @@ export const StudentProfile = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm font-medium text-gray-700">
-                    Grade Level <span className="text-red-500">*</span> <span className="text-sm font-normal text-gray-500">(Set during signup)</span>
+                    Grade Level <span className="text-red-500">*</span>
                   </FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}
-                    disabled
                   >
                     <FormControl>
-                      <SelectTrigger className="h-11 bg-gray-100 border-gray-200 rounded-lg shadow-sm cursor-not-allowed">
+                      <SelectTrigger className="h-11 bg-white border-gray-300 rounded-lg shadow-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
                         <SelectValue placeholder="Select your grade" />
                       </SelectTrigger>
                     </FormControl>
@@ -703,6 +702,9 @@ export const StudentProfile = ({
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormDescription className="text-xs text-gray-500">
+                    Choose the grade level that best matches your current academic year.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

@@ -40,7 +40,7 @@ const getStepRequiredFields = (stepId: AssignmentStep): string[] => {
 };
 
 type AssignmentFormProps = {
-  user: User;
+  user: User & { grade?: string };
 };
 
 function AssignmentForm({ user }: AssignmentFormProps) {

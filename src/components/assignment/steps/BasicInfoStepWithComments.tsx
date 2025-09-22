@@ -19,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { FileUploadSection, ExternalLinksSection } from "./file-upload";
-import { GRADE_SUBJECTS, GradeLevel } from "@/constants/grade-subjects";
+import { GRADE_SUBJECTS, GRADE_LEVELS, GradeLevel } from "@/constants/grade-subjects";
 import { DatePicker } from "@/components/ui/date-picker";
 import { ValidatedSelect } from "@/components/ui/validated-select";
 import { FormFieldWithComment } from "@/components/ui/form-field-with-comment";

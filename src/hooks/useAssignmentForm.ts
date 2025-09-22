@@ -35,7 +35,7 @@ const formLogger = logger.forModule("useAssignmentForm");
 /**
  * Hook for managing the multi-step assignment form
  */
-function useAssignmentForm({ user }: { user: User }) {
+function useAssignmentForm({ user }: { user: User & { grade?: string } }) {
   const { id: assignmentId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -314,10 +314,11 @@ function useAssignmentForm({ user }: { user: User }) {
           return null;
         }
 
-        formLogger.info("Initializing new assignment", { userId: user.id });
+        formLogger.info("Initializing new assignment", { userId: user.id, userGrade: user.grade });
         const initialData = {
           ...getDefaultValues(),
           student_id: user.id,
+          grade: user.grade || "",
           status: ASSIGNMENT_STATUS.DRAFT,
         };
         createMutation.mutate(initialData);
