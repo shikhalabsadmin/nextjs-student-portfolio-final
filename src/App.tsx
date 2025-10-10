@@ -27,6 +27,7 @@ const StudentDashboard = lazy(() => import("@/pages/StudentDashboard"));
 const TeacherProfile = lazy(() => import("@/pages/TeacherProfile").then(module => ({ default: module.TeacherProfile })));
 const StudentProfile = lazy(() => import("@/pages/StudentProfile").then(module => ({ default: module.StudentProfile })));
 const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
+const PasswordProtectedAdmin = lazy(() => import("@/components/admin/PasswordProtectedAdmin").then(module => ({ default: module.PasswordProtectedAdmin })));
 const UpdatePassword = lazy(() => import("@/components/auth/UpdatePassword").then(module => ({ default: module.UpdatePassword })));
 const SSOLogin = lazy(() => import("@/pages/SSOLogin"));
 // Updated to use default export
@@ -119,6 +120,15 @@ const AppContent = () => {
             </Suspense>
           ),
           errorElement: <Error message="An error occurred with SSO login" fullScreen />,
+        },
+        {
+          path: "/admin",
+          element: (
+            <Suspense fallback={<SuspenseFallback />}>
+              <PasswordProtectedAdmin />
+            </Suspense>
+          ),
+          errorElement: <Error message="An error occurred with admin access" fullScreen />,
         },
       ],
     },
