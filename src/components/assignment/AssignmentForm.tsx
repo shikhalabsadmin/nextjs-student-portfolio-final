@@ -77,14 +77,23 @@ function AssignmentForm({ user }: AssignmentFormProps) {
   }, [form.watch("title"), form.watch("artifact_type"), form.watch("subject"), form.watch("month"), form.watch("files"), form.watch("externalLinks"), form.watch("youtubelinks")]); // Watch the actual fields that matter for basic info completion
 
 
-  // ✅ OPTIMIZED: Only validate all steps when actually on review-submit step
+  // ✅ OPTIMIZED: Trust submission status for submitted assignments, validate only drafts
   const areAllStepsComplete = useMemo(() => {
+    // If assignment is already submitted or approved, trust that it was complete at submission
+    // This prevents false "incomplete" warnings when viewing submitted assignments
+    if (assignmentStatus === ASSIGNMENT_STATUS.SUBMITTED || 
+        assignmentStatus === ASSIGNMENT_STATUS.APPROVED) {
+      console.log("✅ SUBMITTED/APPROVED: Assignment is considered complete (trusting status)");
+      return true;
+    }
+    
+    // For draft assignments, only validate when on review-submit step
     if (currentStep !== 'review-submit') {
-      console.log("🔧 OPTIMIZATION: Skipping all-steps validation - not on review step");
+      console.log("🔧 DRAFT: Skipping all-steps validation - not on review step");
       return false;
     }
     
-    console.log("🔍 RUNNING ALL-STEPS VALIDATION (on review-submit step)");
+    console.log("🔍 DRAFT: Running all-steps validation on review-submit step");
     // Always validate the core work steps when on review step
     const workStepsToValidate = STEPS.filter(step => 
       step.id !== 'review-submit' && 
@@ -97,7 +106,7 @@ function AssignmentForm({ user }: AssignmentFormProps) {
       return isValid;
     });
     return allComplete;
-  }, [currentStep, validateStep]);
+  }, [currentStep, validateStep, assignmentStatus]);
 
   const currentStepConfig = useMemo(
     () => STEPS.find((step) => step.id === currentStep),

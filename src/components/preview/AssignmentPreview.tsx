@@ -233,7 +233,7 @@ const AssignmentPreview = memo(
 
           <PreviewField
             label="Completion Date"
-            value={formatDate(values?.created_at)}
+            value={formatDate(values?.month)}
           />
 
           <PreviewField
