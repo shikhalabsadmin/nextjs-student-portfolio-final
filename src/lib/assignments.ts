@@ -118,7 +118,7 @@ export const saveDraft = async (data: AssignmentFormData): Promise<Assignment | 
       is_original_work: data.is_original_work || true,
       team_contribution: data.team_contribution || null,
       originality_explanation: data.originality_explanation || null,
-      month: data.month || new Date().toLocaleString('default', { month: 'long' }),
+      month: data.month || null,
       selected_skills: data.selected_skills || [],
       skills_justification: data.skills_justification || null,
       pride_reason: data.pride_reason || null,

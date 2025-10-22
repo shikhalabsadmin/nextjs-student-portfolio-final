@@ -65,7 +65,7 @@ export const baseAssignmentFormSchema = z.object({
   created_at: z.string().optional().default(() => new Date().toISOString()),
   updated_at: z.string().optional().default(() => new Date().toISOString()),
   is_parent: z.boolean().optional().default(false),
-  month: z.string().optional().default(new Date().toLocaleString('default', { month: 'long' })),
+  month: z.string().optional(),
   team_contribution: z.string().optional().default(""),
   selected_skills: z.array(z.string()).optional().default([]),
   skills_justification: z.string().optional().default(""),
@@ -116,7 +116,7 @@ export const assignmentFormSchema = baseAssignmentFormSchema.extend({
     .refine(isHtmlContentValid, "This field is required"),
 }).superRefine((data, ctx) => {
   // Validate team contribution is provided if team work is selected
-  if (data.is_team_work && data.team_contribution && !isHtmlContentValid(data.team_contribution)) {
+  if (data.is_team_work && !isHtmlContentValid(data.team_contribution)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Team contribution is required for team work",
@@ -125,11 +125,24 @@ export const assignmentFormSchema = baseAssignmentFormSchema.extend({
   }
   
   // Validate originality explanation is provided if original work is selected
-  if (data.is_original_work && data.originality_explanation && !isHtmlContentValid(data.originality_explanation)) {
+  if (data.is_original_work && !isHtmlContentValid(data.originality_explanation)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Please explain what makes your work original",
       path: ["originality_explanation"],
+    });
+  }
+
+  // Validate that at least one file or external link is provided
+  const hasFiles = data.files && data.files.length > 0 && data.files.some(f => f.file_url);
+  const hasExternalLinks = data.externalLinks && data.externalLinks.length > 0 && data.externalLinks.some(l => l.url);
+  const hasYoutubeLinks = data.youtubelinks && data.youtubelinks.length > 0 && data.youtubelinks.some(l => l.url);
+  
+  if (!hasFiles && !hasExternalLinks && !hasYoutubeLinks) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "At least one file or link must be uploaded",
+      path: ["files"],
     });
   }
 });
