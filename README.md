@@ -1,355 +1,279 @@
-# Student Portfolio Analyzer
+# Student Portfolio Platform
 
-A comprehensive platform for students to document, reflect, and showcase their academic work. This application allows students to build portfolios of their academic achievements, while teachers can manage assignments and verify student submissions.
+A web application that helps students build and showcase their academic portfolios while enabling teachers to create assignments, review student work, and provide feedback.
 
-## 📋 Table of Contents
+**🔗 Quick Links:**
+- 🌐 [Live Application](https://student-portfolio-shikha-learning-labs.vercel.app/)
+- 📦 [GitHub Repository](https://github.com/shikhalabsadmin/nextjs-student-portfolio-final.git)
 
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Environment Variables](#environment-variables)
-- [Authentication](#authentication)
-- [Project Structure](#project-structure)
-- [API Documentation](#api-documentation)
-- [Database Schema](#database-schema)
-- [Testing](#testing)
-- [Code Style and Linting](#code-style-and-linting)
-- [Deployment](#deployment)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [License](#license)
+## About
 
-## ✨ Features
+This platform allows students to document their learning journey, submit assignments, and create a public portfolio showcasing their best work. Teachers can create assignments, review submissions, provide feedback, and verify completed work. The platform supports multiple user roles with appropriate access controls.
 
-- **Role-based Access Control**: Different interfaces for students, teachers, and administrators
-- **Student Dashboard**: Track assignments, submissions, and portfolio progress
-- **Teacher Tools**: Create assignments, verify submissions, and manage student work
-- **Portfolio Creation**: Students can document and showcase their academic achievements
-- **Assignment Management**: Create, edit, and track assignments with deadlines
-- **Responsive Design**: Works on desktop and mobile devices
+## Features
 
-## 🛠️ Tech Stack
+### For Students
+- **Dashboard**: View all assignments with filtering by subject, status, and date
+- **Assignment Management**: Complete multi-step assignments with file uploads, rich text editing, and reflection
+- **Portfolio Creation**: Build a public portfolio showcasing approved assignments
+- **Profile Management**: Update personal information, grade level, and school details
+- **Progress Tracking**: Monitor assignment status and feedback from teachers
 
-This project is built with modern web technologies:
+### For Teachers
+- **Assignment Creation**: Create assignments with questions, instructions, and due dates
+- **Submission Review**: Review student submissions with a detailed interface
+- **Feedback System**: Provide detailed feedback, approve or request revisions
+- **Skills Assessment**: Evaluate and tag student skills demonstrated in assignments
+- **Analytics Dashboard**: View statistics and insights about student performance
 
-- **Frontend Framework**: React with TypeScript
+### For Administrators
+- **User Management**: Manage users, roles, and permissions
+- **System Administration**: Access admin dashboard and reports
+- **Platform Configuration**: Configure system settings and preferences
+
+### Platform Features
+- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
+- **File Upload**: Support for images, documents, and other file types
+- **Rich Text Editing**: Advanced text editor with formatting options
+- **Single Sign-On (SSO)**: Integration with external learning platforms
+- **Real-time Updates**: Immediate feedback and status updates
+
+## Technology Stack
+
+- **Frontend Framework**: React 18 with TypeScript
 - **Build Tool**: Vite
-- **Styling**: Tailwind CSS with shadcn/ui components
-- **State Management**: React Query and Context API
-- **Routing**: React Router
-- **Authentication**: Supabase Auth
-- **Database**: Supabase (PostgreSQL)
-- **Charts & Visualization**: Recharts
+- **Styling**: Tailwind CSS with shadcn/ui component library
+- **State Management**: React Query for server state, Context API for global state
+- **Routing**: React Router v6
+- **Backend**: Supabase (PostgreSQL database + Authentication)
+- **Form Handling**: React Hook Form with Zod validation
+- **UI Components**: Radix UI primitives with custom styling
+- **Text Editor**: Tiptap rich text editor
+- **Charts**: Recharts for data visualization
 
-## 🚀 Getting Started
+## Prerequisites
 
-### Prerequisites
+Before you begin, ensure you have the following installed:
 
-- Node.js (v16 or higher)
-- npm or yarn
-- Git
+- **Node.js**: Version 16 or higher ([Download](https://nodejs.org/))
+- **npm**: Comes with Node.js (or use yarn if preferred)
+- **Git**: For version control ([Download](https://git-scm.com/))
+- **Supabase Access**: Contact your team lead for access to the company Supabase project
 
-### Installation
+## Installation
 
-```sh
-# Clone the repository
-git clone <YOUR_GIT_URL>
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/shikhalabsadmin/nextjs-student-portfolio-final.git
+   cd nextjs-student-portfolio-final
+   ```
+   
+   **Note**: Access to this repository is restricted to authorized team members only.
 
-# Navigate to the project directory
-cd nextjs-student-portfolio-final
-
-# Install dependencies
+2. **Install dependencies**
+   ```bash
 npm install
+   ```
 
-# Start the development server
+3. **Set up environment variables**
+   
+   Create a `.env` file in the root directory:
+   ```env
+   VITE_SUPABASE_URL=your_supabase_project_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   VITE_PORTFOLIO_SHARED_SECRET=your_shared_secret_for_sso
+   ```
+
+   **Getting Supabase credentials:**
+   - Contact your team lead or DevOps team for the Supabase project credentials
+   - Or access the company Supabase dashboard (internal access required)
+   - Navigate to Settings → API to get the Project URL and anon/public key
+
+   **SSO Shared Secret:**
+   - Contact your team lead or DevOps administrator for the shared secret value
+   - This is required only if you're integrating with external learning platforms
+
+4. **Start the development server**
+   ```bash
 npm run dev
 ```
 
-### Environment Variables
+5. **Open your browser**
+   
+   The application will be available at `http://localhost:8080`
 
-Create a `.env` file in the root directory with the following variables:
+## Available Scripts
+
+- `npm run dev` - Start the development server
+- `npm run build` - Build the application for production
+- `npm run build:dev` - Build in development mode
+- `npm run lint` - Run ESLint to check code quality
+- `npm run preview` - Preview the production build locally
+
+## Project Structure
 
 ```
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+src/
+├── api/              # API service functions
+├── components/       # React components organized by feature
+│   ├── admin/       # Admin-specific components
+│   ├── assignment/  # Assignment-related components
+│   ├── auth/        # Authentication components
+│   ├── student/     # Student-specific components
+│   ├── teacher/     # Teacher-specific components
+│   └── ui/          # Reusable UI components
+├── config/          # Configuration files (routes, roles)
+├── constants/       # Application constants
+├── contexts/        # React context providers
+├── hooks/           # Custom React hooks
+├── integrations/    # Third-party service integrations
+├── lib/             # Utility functions and services
+├── pages/           # Page-level components
+├── query-key/       # React Query key definitions
+├── scripts/         # Utility scripts
+├── types/           # TypeScript type definitions
+└── utils/           # Helper functions
 ```
 
-## 🔐 Authentication
+## Authentication
 
-The application uses Supabase for authentication with a custom role selection flow:
+The platform supports two authentication methods:
 
-1. User signs up/signs in
-2. System checks for user role
-3. If no role exists, shows role selection modal
-4. After role selection:
-   - Students → /dashboard
-   - Teachers → /assignments
+### Standard Authentication
+Users can sign up and sign in using email and password. After registration, users select their role (Student or Teacher), which determines their access and interface.
 
-### Key Authentication Files
+### Single Sign-On (SSO)
+The platform can integrate with external learning platforms using JWT-based authentication. When a user clicks a link from an external platform, they are automatically authenticated using a secure token.
 
-- `src/integrations/supabase/client.ts` - Supabase client configuration
-- `src/hooks/useAuthState.ts` - Central auth state management
-- `src/components/auth/RoleSelectionModal.tsx` - Role selection UI
-- `src/components/AppRoutes.tsx` - Route protection and role-based navigation
+**Authentication Flow:**
+1. User signs up or signs in
+2. System checks for existing user role
+3. If no role exists, user selects their role
+4. User is redirected to their appropriate dashboard
 
-## 📁 Project Structure
+## Development Guidelines
 
-The application follows a feature-based structure:
+### Code Style
+- Follow the existing code patterns and conventions
+- Use TypeScript for all new code
+- Run `npm run lint` before committing changes
+- Use meaningful variable and function names
 
-- `src/components/` - Reusable UI components
-- `src/pages/` - Page components for different routes
-- `src/hooks/` - Custom React hooks
-- `src/lib/` - Utility functions and helpers
-- `src/integrations/` - Third-party service integrations
-- `src/types/` - TypeScript type definitions
+### Component Structure
+- Keep components small and focused on a single responsibility
+- Extract reusable logic into custom hooks
+- Use TypeScript interfaces for component props
+- Add error boundaries for error handling
 
-## 📡 API Documentation
+### File Naming
+- Components: PascalCase (e.g., `StudentDashboard.tsx`)
+- Hooks: camelCase with "use" prefix (e.g., `useAuthState.ts`)
+- Utilities: camelCase (e.g., `dateUtils.ts`)
+- Types: camelCase (e.g., `assignment.ts`)
 
-The application uses Supabase as its backend, with the following key API endpoints:
+## Environment Variables
 
-### Authentication
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `VITE_SUPABASE_URL` | Your Supabase project URL | Yes |
+| `VITE_SUPABASE_ANON_KEY` | Your Supabase anonymous key | Yes |
+| `VITE_PORTFOLIO_SHARED_SECRET` | Shared secret for SSO integration | Only if using SSO |
 
-- `POST /auth/signup` - Register a new user
-- `POST /auth/signin` - Sign in an existing user
-- `POST /auth/signout` - Sign out the current user
+**Important**: Never commit the `.env` file to version control. The `.gitignore` file is configured to exclude it.
 
-### Assignments
+## Building for Production
 
-- `GET /assignments` - List all assignments (filtered by role)
-- `GET /assignments/:id` - Get a specific assignment
-- `POST /assignments` - Create a new assignment
-- `PUT /assignments/:id` - Update an assignment
-- `DELETE /assignments/:id` - Delete an assignment
+1. **Build the application**
+   ```bash
+   npm run build
+   ```
 
-### Submissions
+2. **Preview the build**
+   ```bash
+   npm run preview
+   ```
 
-- `GET /submissions` - List all submissions for a user
-- `GET /submissions/:id` - Get a specific submission
-- `POST /submissions` - Create a new submission
-- `PUT /submissions/:id` - Update a submission
+3. **Deploy**
+   
+   The `dist/` folder contains the production-ready files. Deploy this folder to your hosting provider (Vercel, Netlify, etc.).
 
-### Profiles
+## Deployment
 
-- `GET /profiles/:id` - Get a user profile
-- `PUT /profiles/:id` - Update a user profile
+The project includes a `vercel.json` configuration file for deployment. Deployment is typically handled by the DevOps team through CI/CD pipelines.
 
-## 💾 Database Schema
+**Live Application:** [https://student-portfolio-shikha-learning-labs.vercel.app/](https://student-portfolio-shikha-learning-labs.vercel.app/)
 
-The application uses the following main tables in Supabase:
+**For manual deployment:**
+- Build the application: `npm run build`
+- The `dist/` folder contains the production-ready files
+- Contact the DevOps team for deployment procedures
 
-### Users
+**Important**: Always set environment variables in the hosting platform's dashboard before deploying. Contact your team lead for production environment credentials.
 
-- `id` - Primary key
-- `email` - User email
-- `created_at` - Account creation timestamp
-
-### Profiles
-
-- `id` - Primary key (references users.id)
-- `role` - User role (STUDENT, TEACHER, ADMIN)
-- `first_name` - User's first name
-- `last_name` - User's last name
-- `bio` - User biography
-
-### Assignments
-
-- `id` - Primary key
-- `title` - Assignment title
-- `description` - Assignment description
-- `due_date` - Submission deadline
-- `created_by` - Teacher who created the assignment
-- `created_at` - Creation timestamp
-
-### Submissions
-
-- `id` - Primary key
-- `assignment_id` - References assignments.id
-- `student_id` - References profiles.id
-- `content` - Submission content
-- `status` - Submission status (DRAFT, SUBMITTED, VERIFIED)
-- `submitted_at` - Submission timestamp
-
-## 🧪 Testing
-
-The project uses Vitest for unit and integration testing.
-
-### Running Tests
-
-```sh
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage
-npm run test:coverage
-```
-
-### Test Structure
-
-- `src/tests/` - Contains all test files
-- `*.test.tsx` - Component tests
-- `*.test.ts` - Utility and hook tests
-
-## 📏 Code Style and Linting
-
-This project uses ESLint and Prettier for code quality and formatting.
-
-### Linting
-
-```sh
-# Run ESLint
-npm run lint
-
-# Fix ESLint issues
-npm run lint:fix
-```
-
-### Formatting
-
-```sh
-# Format code with Prettier
-npm run format
-```
-
-### VS Code Integration
-
-The project includes recommended VS Code settings and extensions in `.vscode/` to ensure consistent code style across the team.
-
-## 📤 Deployment
-
-### Deployment Options
-
-You can deploy this application using various platforms such as:
-
-- Vercel
-- Netlify
-- AWS Amplify
-- GitHub Pages
-
-### Custom Domain
-
-To use a custom domain, you can configure it through your chosen deployment platform. Most platforms provide straightforward options for connecting your domain.
-
-## Responsive Design Implementation
-
-The application has been optimized for responsive display across all device sizes, from mobile phones to large desktop screens. The responsive design implementation follows these principles:
-
-### Breakpoints
-
-We use standard Tailwind CSS breakpoints:
-- `xs`: 0px (default)
-- `sm`: 640px
-- `md`: 768px
-- `lg`: 1024px
-- `xl`: 1280px
-- `2xl`: 1536px
-
-### Responsive Components
-
-Key responsive features include:
-
-1. **Flexible Layouts**
-   - Grid layouts that adapt to screen size
-   - Stack layouts on mobile, horizontal on desktop
-   - Proper spacing adjustments for different screen sizes
-
-2. **Mobile-First Approach**
-   - Components designed for mobile first
-   - Enhanced for larger screens
-   - Consistent padding and margin scales
-
-3. **Collapsible UI Elements**
-   - Sidebars that can be collapsed on smaller screens
-   - Mobile navigation menu
-   - Responsive modals and dialogs
-
-4. **Text Scaling**
-   - Font sizes that adjust based on screen size
-   - Proper text wrapping and overflow handling
-
-5. **Touch-Friendly Controls**
-   - Larger touch targets on mobile
-   - Properly spaced interactive elements
-   - Full-width buttons on mobile
-
-### Responsive Utility Hooks
-
-Custom React hooks for responsive design:
-
-- `useIsMobile(breakpoint)`: Check if viewport is below a specific breakpoint
-- `useActiveBreakpoint()`: Get the current active breakpoint
-- `useBreakpoint(min, max)`: Check if viewport is within a specific range
-
-### Implementation Strategy
-
-The responsive implementation preserves the desktop experience while enhancing mobile usability:
-
-1. **Component-Level Responsiveness**: Each component handles its own responsive behavior
-2. **Consistent Spacing**: Using a consistent spacing scale that adapts to screen size
-3. **Flexible Containers**: Using flex and grid layouts that adapt to available space
-4. **Conditional Rendering**: Showing/hiding elements based on screen size when appropriate
-5. **Performance Optimization**: Minimizing layout shifts and reflows
-
-## ❓ Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
-#### Authentication Issues
+**Port already in use**
+- Change the port in `vite.config.ts` or stop the process using port 8080
 
-**Problem**: "User role not found" error after login.
+**Supabase connection errors**
+- Verify your environment variables are set correctly
+- Check that your Supabase project is active
+- Ensure your IP address is allowed (if using IP restrictions)
 
-**Solution**: Check if the user has a profile in the `profiles` table with a valid role. You may need to manually add a role or reset the user's account.
+**Build errors**
+- Run `npm run lint` to identify issues
+- Ensure all TypeScript types are properly defined
+- Check that all dependencies are installed
 
-#### Supabase Connection Issues
+**Authentication issues**
+- Verify your Supabase credentials are correct
+- Check that the user has a profile in the database
+- Clear browser cache and localStorage
 
-**Problem**: "Failed to connect to Supabase" error.
+## Development Workflow
 
-**Solution**: Verify your environment variables are correctly set in the `.env` file and that your Supabase project is active.
+### Making Changes
 
-#### Build Errors
+1. **Create a feature branch** from the main branch
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
 
-**Problem**: TypeScript errors during build.
+2. **Make your changes** following the development guidelines
 
-**Solution**: Run `npm run lint` to identify and fix type issues. Make sure all required types are properly defined.
+3. **Test thoroughly** before committing
 
-### Getting Help
+4. **Commit your changes** with clear messages
+   ```bash
+   git commit -m 'Brief description of changes'
+   ```
 
-If you encounter issues not covered here, please:
+5. **Push to your branch**
+   ```bash
+   git push origin feature/your-feature-name
+   ```
 
-1. Check the [issue tracker](https://github.com/your-repo/issues) for similar problems
-2. Create a new issue with detailed reproduction steps
-3. Contact the project maintainers at support@example.com
+6. **Create a Pull Request** through the internal repository interface
 
-## 🤝 Contributing
+### Code Review Process
+- All changes require code review before merging
+- Follow the existing code style and patterns
+- Write clear commit messages
+- Add comments for complex business logic
+- Update documentation if needed
+- Ensure all tests pass before requesting review
 
-There are several ways of editing and contributing to this application:
+## Support and Contact
 
-### Use your preferred IDE
-
-If you want to work locally using your own IDE, you can clone this repo and push changes.
-
-### Edit a file directly in GitHub
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-### Use GitHub Codespaces
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+For technical issues, questions, or access requests:
+- Contact your team lead or project manager
+- Reach out to the development team via internal communication channels
+- Check the project documentation in the internal wiki
+- For urgent production issues, follow the company's incident management process
 
 ---
 
-Built with ❤️ by the Student Portfolio Analyzer Team
+**Internal Project - Shikha Learning Labs**
+
