@@ -126,7 +126,7 @@ export function SignIn({ onToggleMode, onResetPassword }: SignInProps) {
       console.log("[SignIn] Fetching user profile");
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("role, full_name")
+        .select("role, full_name, email")
         .eq("id", signInData.user.id)
         .single();
 
@@ -135,15 +135,63 @@ export function SignIn({ onToggleMode, onResetPassword }: SignInProps) {
         error: profileError,
         errorCode: profileError?.code,
         errorMessage: profileError?.message,
+        errorDetails: profileError?.details,
+        errorHint: profileError?.hint,
         data: profile,
       });
 
+      // If profile doesn't exist (PGRST116 = not found), try to create it
       if (profileError) {
+        if (profileError.code === 'PGRST116') {
+          console.log("[SignIn] Profile not found, attempting to create one");
+          
+          const { data: newProfile, error: createError } = await supabase
+            .from("profiles")
+            .insert({
+              id: signInData.user.id,
+              email: values.email,
+              full_name: values.email.split('@')[0],
+              role: null, // Will be set in profile completion
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .select()
+            .single();
+
+          if (createError) {
+            console.error("[SignIn] Failed to create profile:", createError);
+            toast({
+              title: "Profile Error",
+              description: `Database error: ${createError.message}. Please contact support with this error code: ${createError.code}`,
+              variant: "destructive",
+            });
+            throw createError;
+          }
+
+          console.log("[SignIn] Profile created successfully:", newProfile);
+          
+          // Redirect to role selection or profile setup
+          toast({
+            title: "Welcome!",
+            description: "Please complete your profile setup.",
+          });
+          window.location.href = ROUTES.COMMON.HOME; // Or a profile setup page
+          return;
+        }
+        
+        // For other errors, provide detailed feedback
         console.error("[SignIn] Profile fetch error:", {
           error: profileError,
           context: {
             userId: signInData.user.id,
+            email: values.email,
           },
+        });
+        
+        toast({
+          title: "Database Error",
+          description: `Error querying schema: ${profileError.message} (Code: ${profileError.code})`,
+          variant: "destructive",
         });
         throw profileError;
       }
