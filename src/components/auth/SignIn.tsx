@@ -123,63 +123,34 @@ export function SignIn({ onToggleMode, onResetPassword }: SignInProps) {
       setAttemptCount(0);
       localStorage.removeItem('auth_lockout');
 
-      console.log("[SignIn] Fetching user profile");
+      console.log("========================================");
+      console.log("[SignIn] 🔍 DIAGNOSTIC: Fetching user profile");
+      console.log("[SignIn] 📋 User ID from auth:", signInData.user.id);
+      console.log("[SignIn] 📧 Email:", values.email);
+      console.log("[SignIn] 🔑 User metadata:", signInData.user.user_metadata);
+      console.log("========================================");
+      
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("role, full_name, email")
         .eq("id", signInData.user.id)
         .single();
 
-      console.log("[SignIn] Profile fetch result:", {
-        success: !!profile,
-        error: profileError,
-        errorCode: profileError?.code,
-        errorMessage: profileError?.message,
-        errorDetails: profileError?.details,
-        errorHint: profileError?.hint,
-        data: profile,
-      });
-
-      // If profile doesn't exist (PGRST116 = not found), try to create it
+      console.log("========================================");
+      console.log("[SignIn] 📊 PROFILE FETCH RESULT:");
+      console.log("[SignIn] ✅ Success:", !!profile);
+      console.log("[SignIn] 📦 Profile data:", profile);
+      console.log("[SignIn] ❌ Error exists:", !!profileError);
+      
       if (profileError) {
-        if (profileError.code === 'PGRST116') {
-          console.log("[SignIn] Profile not found, attempting to create one");
-          
-          const { data: newProfile, error: createError } = await supabase
-            .from("profiles")
-            .insert({
-              id: signInData.user.id,
-              email: values.email,
-              full_name: values.email.split('@')[0],
-              role: null, // Will be set in profile completion
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .select()
-            .single();
-
-          if (createError) {
-            console.error("[SignIn] Failed to create profile:", createError);
-            toast({
-              title: "Profile Error",
-              description: `Database error: ${createError.message}. Please contact support with this error code: ${createError.code}`,
-              variant: "destructive",
-            });
-            throw createError;
-          }
-
-          console.log("[SignIn] Profile created successfully:", newProfile);
-          
-          // Redirect to role selection or profile setup
-          toast({
-            title: "Welcome!",
-            description: "Please complete your profile setup.",
-          });
-          window.location.href = ROUTES.COMMON.HOME; // Or a profile setup page
-          return;
-        }
+        console.log("[SignIn] 🚨 ERROR DETAILS:");
+        console.log("[SignIn]   - Code:", profileError.code);
+        console.log("[SignIn]   - Message:", profileError.message);
+        console.log("[SignIn]   - Details:", profileError.details);
+        console.log("[SignIn]   - Hint:", profileError.hint);
+        console.log("[SignIn]   - Full error object:", JSON.stringify(profileError, null, 2));
+        console.log("========================================");
         
-        // For other errors, provide detailed feedback
         console.error("[SignIn] Profile fetch error:", {
           error: profileError,
           context: {
@@ -190,11 +161,14 @@ export function SignIn({ onToggleMode, onResetPassword }: SignInProps) {
         
         toast({
           title: "Database Error",
-          description: `Error querying schema: ${profileError.message} (Code: ${profileError.code})`,
+          description: `Error: ${profileError.message} (Code: ${profileError.code}). Check browser console for details.`,
           variant: "destructive",
         });
         throw profileError;
       }
+      
+      console.log("[SignIn] ✅ Profile fetch successful");
+      console.log("========================================");
 
       console.log("[SignIn] Sign in successful, profile:", profile);
 
