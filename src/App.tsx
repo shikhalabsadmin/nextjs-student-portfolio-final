@@ -1,10 +1,10 @@
+import * as Sentry from "@sentry/react";
 import React, { lazy, Suspense } from "react";
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { Loading } from "@/components/ui/loading";
 import { logger } from "@/lib/logger";
 import { Error } from "@/components/ui/error";
@@ -316,7 +316,7 @@ const App: React.FC = () => {
   appLogger.info("App component mounting");
   
   return (
-    <ErrorBoundary fallback={<Error fullScreen={true} message="Something went wrong" />}>
+    <Sentry.ErrorBoundary fallback={<Error fullScreen={true} message="Something went wrong" />}>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <PortfolioPreviewProvider>
@@ -326,7 +326,7 @@ const App: React.FC = () => {
           </PortfolioPreviewProvider>
         </TooltipProvider>
       </QueryClientProvider>
-    </ErrorBoundary>
+    </Sentry.ErrorBoundary>
   );
 };
 
