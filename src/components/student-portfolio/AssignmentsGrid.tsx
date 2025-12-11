@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { cn } from "@/lib/utils";
 import { AssignmentCard } from "@/components/student/dashboard/AssignmentCard";
 import { AssignmentsGridProps } from "@/types/student-portfolio";
 
@@ -16,16 +17,29 @@ const MemoizedAssignmentCard = memo(AssignmentCard);
  * │                                                        │
  * │  Grid: 1 col (mobile) → 2 col (md) → 3 col (lg)       │
  * └──────────────────────────────────────────────────────────┘
+ * 
+ * @example
+ * <AssignmentsGrid 
+ *   assignments={[...]} 
+ *   classNames={{
+ *     container: "gap-8",      // Override grid gap
+ *     cardWrapper: "shadow-lg" // Add shadow to card wrapper
+ *   }}
+ * />
  */
 function AssignmentsGrid({ 
   assignments, 
   isBusy, 
   onAssignmentClick, 
-  previewMode 
+  previewMode,
+  classNames 
 }: AssignmentsGridProps) {
   return (
     <div
-      className="mt-36 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-8"
+      className={cn(
+        "mt-36 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-8",
+        classNames?.container
+      )}
       aria-live="polite"
       aria-busy={isBusy}
     >
@@ -33,7 +47,10 @@ function AssignmentsGrid({
         <div
           key={assignment.id}
           onClick={() => onAssignmentClick(assignment.id)}
-          className={previewMode ? "cursor-pointer" : ""}
+          className={cn(
+            previewMode ? "cursor-pointer" : "",
+            classNames?.cardWrapper
+          )}
         >
           <MemoizedAssignmentCard
             id={assignment.id.toString()}

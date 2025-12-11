@@ -36,12 +36,22 @@ export interface FileRecord {
 
 // ===== Component Props =====
 
-/** Props for ProfileAvatar component */
+/** Props for ProfileAvatar component (simple - single className) */
 export interface ProfileAvatarProps {
   image: string | null;
   name: string;
   showInitial: boolean;
   onImageError: () => void;
+  /** Custom className for the avatar container */
+  className?: string;
+}
+
+/** Style props for ProfileInfo component (complex - multiple elements) */
+export interface ProfileInfoClassNames {
+  container?: string;
+  title?: string;
+  badgeContainer?: string;
+  badge?: string;
 }
 
 /** Props for ProfileInfo component */
@@ -49,11 +59,21 @@ export interface ProfileInfoProps {
   name: string;
   grade: string;
   schoolName: string;
+  /** Custom classNames for different elements */
+  classNames?: ProfileInfoClassNames;
 }
 
-/** Props for ProfileBio component */
+/** Props for ProfileBio component (simple - single className) */
 export interface ProfileBioProps {
   bio: string;
+  /** Custom className for the bio paragraph */
+  className?: string;
+}
+
+/** Style props for AssignmentsGrid component (complex - multiple elements) */
+export interface AssignmentsGridClassNames {
+  container?: string;
+  cardWrapper?: string;
 }
 
 /** Props for AssignmentsGrid component */
@@ -62,6 +82,8 @@ export interface AssignmentsGridProps {
   isBusy: boolean;
   onAssignmentClick: (id: number) => void;
   previewMode: boolean;
+  /** Custom classNames for different elements */
+  classNames?: AssignmentsGridClassNames;
 }
 
 /** Props for StudentPortfolioView (main view component) */
@@ -81,4 +103,6 @@ export interface StudentPortfolioViewProps {
   isBusy: boolean;
   onAssignmentClick: (id: number) => void;
   previewMode: boolean;
+  /** Custom className for the view container */
+  className?: string;
 }
