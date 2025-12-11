@@ -1,0 +1,224 @@
+---
+description: Core development principles - questioning, KISS, SOLID, no over-engineering
+globs:
+  - "**/*.ts"
+  - "**/*.tsx"
+alwaysApply: true
+---
+
+# Core Development Principles
+
+**GOAL:** Ask first, keep it simple, follow SOLID, never over-engineer.
+
+**References:**
+- SOLID Principles: https://www.patterns.dev/vanilla/
+- React Best Practices: https://react.dev/learn
+- Clean Code: https://www.patterns.dev/
+
+---
+
+## ❓ BEFORE WRITING ANY CODE - ASK QUESTIONS
+
+### MANDATORY: Clarify Before Coding
+
+**NEVER assume. ALWAYS ask.** Before writing any code, ask questions to understand:
+
+1. **What exactly needs to be built?**
+   - What is the user-facing outcome?
+   - What screens/components are involved?
+   - What should happen on success/failure?
+
+2. **What are the inputs and outputs?**
+   - What data comes in?
+   - What data goes out?
+   - What format/structure?
+
+3. **What are the edge cases?**
+   - Empty states?
+   - Error states?
+   - Loading states?
+   - Offline behavior?
+
+4. **What are the constraints?**
+   - Performance requirements?
+   - Existing patterns to follow?
+   - Dependencies on other features?
+
+5. **What does "done" look like?**
+   - Acceptance criteria?
+   - How will this be tested?
+
+### Question Template
+
+Before implementing, ask:
+
+```
+Before I start coding, I need to clarify:
+
+1. [Specific question about requirements]
+2. [Specific question about expected behavior]
+3. [Specific question about edge cases]
+4. [Specific question about existing patterns]
+
+Once I understand these, I'll implement the solution.
+```
+
+### When to Stop Asking
+
+Only start coding when you can answer:
+
+- ✅ I know exactly what the user wants
+- ✅ I know all the edge cases to handle
+- ✅ I know what success looks like
+- ✅ I know the existing patterns to follow
+
+---
+
+## 🚫 NO OVER-ENGINEERING
+
+### Signs of Over-Engineering (STOP immediately):
+
+- Creating abstractions "for future use"
+- Building "flexible" systems for single use cases
+- Adding configuration options nobody asked for
+- Creating utility functions used only once
+- Building custom solutions for solved problems
+- Adding layers of indirection "just in case"
+- Premature optimization without measured problems
+
+### The Right Amount of Code
+
+```
+✅ RIGHT: Code that solves the current problem
+❌ WRONG: Code that solves problems that might exist someday
+```
+
+### Before Adding Any Abstraction:
+
+1. Is this pattern used 3+ times already? → If NO, don't abstract
+2. Does this solve a real problem right now? → If NO, don't build it
+3. Can I explain this in 30 seconds? → If NO, simplify it
+4. Would a junior developer understand this? → If NO, simplify it
+
+---
+
+## 🎯 KISS Principle
+
+### The Simplicity Test
+
+Before writing code, ask:
+
+1. What's the SIMPLEST solution that works?
+2. Can I remove anything and still solve the problem?
+3. Would I understand this code in 6 months?
+
+### Decision Tree
+
+```
+Need to solve a problem?
+│
+├── Does React/Next.js provide it? → USE IT
+│
+├── Does a library in package.json provide it? → USE IT
+│
+├── Does existing codebase have a pattern? → FOLLOW IT
+│
+├── Can I solve it in <20 lines? → WRITE IT INLINE
+│
+└── Is it truly complex? → ASK IF WE REALLY NEED IT
+```
+
+---
+
+## 📐 SOLID Principles
+
+### S - Single Responsibility
+
+Each file/function/component does ONE thing.
+
+```typescript
+// ❌ BAD: Component does fetching + rendering + logic
+const UserProfile = () => {
+  const [user, setUser] = useState(null);
+  useEffect(() => { fetch('/api/user').then(setUser); }, []);
+  const calculateAge = (birthDate) => { /* ... */ };
+  return <div>{/* everything */}</div>;
+};
+
+// ✅ GOOD: Separated concerns
+// hooks/useUser.ts - data fetching
+// lib/userHelpers.ts - calculations
+// components/UserProfile.tsx - UI only
+```
+
+### O - Open/Closed
+
+Open for extension, closed for modification. Use composition.
+
+```typescript
+// ✅ Extend via props, not modification
+<Card variant="primary" />
+<Card variant="secondary" />
+```
+
+### L - Liskov Substitution
+
+Child components usable wherever parent expected.
+
+### I - Interface Segregation
+
+Don't force components to depend on unused props.
+
+```typescript
+// ❌ BAD: Too many props, component only uses user.name
+interface Props { user: User; posts: Post[]; comments: Comment[]; }
+
+// ✅ GOOD: Only what's needed
+interface Props { userName: string; }
+```
+
+### D - Dependency Inversion
+
+Depend on abstractions, not concrete implementations.
+
+```typescript
+// ✅ Component uses useAuth() hook, not Supabase directly
+const LoginScreen = () => {
+  const { login } = useAuth(); // abstraction
+};
+```
+
+---
+
+## 📏 Code Limits (NON-NEGOTIABLE)
+
+| Rule | Limit | Action if Exceeded |
+|------|-------|-------------------|
+| **Max lines per file** | 300 | Split into smaller files |
+| **Max lines per function** | 50 | Extract helper functions |
+| **Max component props** | 7 | Create composed props or split |
+| **Max nesting depth** | 3 | Extract to separate functions |
+
+### How to Split Large Files
+
+```
+When file > 300 lines, extract:
+
+1. Types → src/types/[feature].types.ts
+2. Hooks → src/hooks/use[Feature].ts
+3. Utils → src/utils/[feature]Helpers.ts
+4. Sub-components → src/components/[Feature]/[SubComponent].tsx
+```
+
+---
+
+## 📋 Pre-Implementation Checklist
+
+Before writing ANY code:
+
+- [ ] Asked clarifying questions about requirements
+- [ ] Understand exactly what "done" looks like
+- [ ] Identified edge cases (empty, error, loading states)
+- [ ] Checked existing patterns in codebase
+- [ ] Verified this isn't over-engineered
+- [ ] Read relevant official docs

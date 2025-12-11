@@ -1,0 +1,280 @@
+---
+description: TypeScript rules - no any, strict types, type safety
+globs:
+  - "**/*.ts"
+  - "**/*.tsx"
+alwaysApply: true
+---
+
+# TypeScript Rules
+
+**GOAL:** Type safety everywhere. No `any`. Explicit types.
+
+**References:**
+- TypeScript Handbook: https://www.typescriptlang.org/docs/handbook/
+- React TypeScript Cheatsheet: https://react-typescript-cheatsheet.netlify.app/
+- Zod Validation: https://zod.dev/
+
+---
+
+## 🚫 NEVER Use `any` (ZERO TOLERANCE)
+
+```typescript
+// ❌ FORBIDDEN - Will be rejected
+const data: any = response;
+function handle(params: any) {}
+const items: any[] = [];
+
+// ✅ CORRECT - Use proper types
+const data: UserResponse = response;
+function handle(params: UserParams) {}
+const items: User[] = [];
+
+// ✅ CORRECT - Use unknown + type guard when type is truly unknown
+const data: unknown = response;
+if (isUserResponse(data)) {
+  // Now TypeScript knows data is UserResponse
+  console.log(data.name);
+}
+```
+
+---
+
+## ✅ Type Guards (Not Type Assertions)
+
+```typescript
+// ❌ BAD - Type assertion without validation
+const user = data as User;
+
+// ✅ GOOD - Type guard with runtime check
+function isUser(data: unknown): data is User {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'id' in data &&
+    'name' in data &&
+    typeof (data as User).id === 'string'
+  );
+}
+
+if (isUser(data)) {
+  // TypeScript now knows data is User
+  console.log(data.name);
+}
+```
+
+---
+
+## 📝 Explicit Types Required For:
+
+### Function Parameters
+
+```typescript
+// ❌ BAD
+const fetchUser = (id) => { /* ... */ };
+
+// ✅ GOOD
+const fetchUser = (id: string): Promise<User> => { /* ... */ };
+```
+
+### Exported Function Return Types
+
+```typescript
+// ❌ BAD - Return type inferred
+export const getUser = (id: string) => {
+  return users.find(u => u.id === id);
+};
+
+// ✅ GOOD - Explicit return type
+export const getUser = (id: string): User | undefined => {
+  return users.find(u => u.id === id);
+};
+```
+
+### Component Props
+
+```typescript
+// ❌ BAD - Props not typed
+const Button = ({ title, onPress }) => { /* ... */ };
+
+// ✅ GOOD - Props interface defined
+interface ButtonProps {
+  title: string;
+  onPress: () => void;
+  disabled?: boolean;
+}
+
+const Button = ({ title, onPress, disabled = false }: ButtonProps) => {
+  /* ... */
+};
+```
+
+### State with Complex Types
+
+```typescript
+// ❌ BAD - Type inferred as never[]
+const [users, setUsers] = useState([]);
+
+// ✅ GOOD - Explicit type
+const [users, setUsers] = useState<User[]>([]);
+```
+
+---
+
+## 🎯 Handle null/undefined Explicitly
+
+```typescript
+// ❌ BAD - Ignoring potential null
+const userName = user.name;
+
+// ✅ GOOD - Handle null cases
+const userName = user?.name ?? 'Unknown';
+
+// ✅ GOOD - Early return for null
+if (!user) {
+  return <EmptyState />;
+}
+return <UserProfile user={user} />;
+```
+
+---
+
+## 📦 Types Location
+
+Types can be organized in different ways depending on the project:
+
+### Option 1: Colocated Types (Preferred for most cases)
+```typescript
+// Define types near where they're used
+// src/components/UserCard.tsx
+interface UserCardProps {
+  user: User;
+  onSelect?: () => void;
+}
+```
+
+### Option 2: Shared Types Folder (For reusable types)
+```
+src/types/
+├── user.types.ts       # User-related types
+├── auth.types.ts       # Authentication types
+├── api.types.ts        # API response types
+└── index.ts            # Re-export all types
+```
+
+### Type File Structure
+
+```typescript
+// src/types/user.types.ts
+
+// Base types
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+}
+
+// Extended types
+export interface UserProfile extends User {
+  avatar?: string;
+  bio?: string;
+  phone?: string;
+}
+
+// API response types
+export interface UserResponse {
+  data: User;
+  success: boolean;
+}
+
+export interface UsersListResponse {
+  data: User[];
+  total: number;
+  page: number;
+}
+
+// Props types
+export interface UserCardProps {
+  user: User;
+  onPress?: () => void;
+}
+
+export interface UserListProps {
+  users: User[];
+  onUserSelect: (user: User) => void;
+  isLoading?: boolean;
+}
+```
+
+---
+
+## 🔧 Utility Types (Use Built-ins)
+
+```typescript
+// Use TypeScript utility types
+Partial<User>          // All properties optional
+Required<User>         // All properties required
+Pick<User, 'id' | 'name'>  // Only specific properties
+Omit<User, 'password'>     // Exclude properties
+Record<string, User>       // Object with string keys, User values
+
+// Example
+type CreateUserInput = Omit<User, 'id' | 'createdAt'>;
+type UpdateUserInput = Partial<Omit<User, 'id'>>;
+```
+
+---
+
+## ⚠️ Common Type Mistakes
+
+### Don't use object
+
+```typescript
+// ❌ BAD
+const config: object = { theme: 'dark' };
+
+// ✅ GOOD
+interface Config {
+  theme: 'light' | 'dark';
+}
+const config: Config = { theme: 'dark' };
+```
+
+### Don't use Function
+
+```typescript
+// ❌ BAD
+const callback: Function = () => {};
+
+// ✅ GOOD
+const callback: () => void = () => {};
+// OR
+const callback: (id: string) => Promise<User> = async (id) => { /* ... */ };
+```
+
+### Don't use String, Number, Boolean (use lowercase)
+
+```typescript
+// ❌ BAD - Wrapper objects
+const name: String = 'John';
+const age: Number = 25;
+
+// ✅ GOOD - Primitive types
+const name: string = 'John';
+const age: number = 25;
+```
+
+---
+
+## ✅ TypeScript Checklist
+
+Before committing:
+
+- [ ] No `any` types anywhere
+- [ ] All function parameters typed
+- [ ] All exported functions have return types
+- [ ] All component props have interfaces
+- [ ] Complex state has explicit types
+- [ ] null/undefined handled explicitly
+- [ ] Shared types in `src/types/`

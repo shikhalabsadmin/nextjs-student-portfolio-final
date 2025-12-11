@@ -1,0 +1,318 @@
+---
+description: Speed development patterns - build fast, ship fast
+globs:
+  - "**/*.ts"
+  - "**/*.tsx"
+alwaysApply: true
+---
+
+# ⚡ Speed Development Guide
+
+**GOAL:** Build features in minutes, not hours. Ship fast.
+
+**References:**
+- React optimization: https://react.dev/reference/react
+- TanStack Query: https://tanstack.com/query/latest
+- shadcn/ui: https://ui.shadcn.com/docs
+
+---
+
+## 🚀 The 5-Minute Feature Formula
+
+### Step 1: Copy Existing Pattern (30 seconds)
+
+```bash
+# Find similar feature
+grep -r "useQuery" src/pages/
+# Copy the structure
+```
+
+### Step 2: Create Files (1 minute)
+
+```
+types/[feature].ts           # Copy from types/student-portfolio.ts
+query-key/[feature].ts       # Copy from query-key/student-portfolio.ts
+components/[feature]/        # Copy structure from student-portfolio/
+pages/[Feature].tsx          # Copy from StudentPortfolio.tsx
+```
+
+### Step 3: Modify for Your Needs (3 minutes)
+
+- Change types
+- Change query keys
+- Change component props
+- Change UI text
+
+### Step 4: Done! (30 seconds)
+
+```bash
+# Check for errors
+npm run lint
+```
+
+---
+
+## 📋 Copy-Paste Templates
+
+### New Feature Type File
+
+```typescript
+// types/[feature].ts
+import { GradeLevel, Subject } from "@/constants/grade-subjects";
+
+// Data types
+export interface FeatureItem {
+  id: string;
+  title: string;
+  // add fields
+}
+
+// Component props (ALWAYS include className)
+export interface FeatureCardProps {
+  item: FeatureItem;
+  onClick?: () => void;
+  className?: string;
+}
+
+export interface FeatureListProps {
+  items: FeatureItem[];
+  isLoading?: boolean;
+  classNames?: {
+    container?: string;
+    item?: string;
+  };
+}
+```
+
+### New Query Key File
+
+```typescript
+// query-key/[feature].ts
+export const FEATURE_KEYS = {
+  all: () => ["feature"] as const,
+  list: (userId: string) => ["feature", "list", userId] as const,
+  detail: (id: string) => ["feature", "detail", id] as const,
+} as const;
+```
+
+### New API File
+
+```typescript
+// api/[feature].ts
+import { supabase } from "@/integrations/supabase/client";
+
+export const getFeatureList = async (userId: string) => {
+  const { data, error } = await supabase
+    .from("features")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data;
+};
+
+export const getFeatureDetail = async (id: string) => {
+  const { data, error } = await supabase
+    .from("features")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+```
+
+### New Presentational Component
+
+```typescript
+// components/[feature]/FeatureCard.tsx
+import { memo } from "react";
+import { cn } from "@/lib/utils";
+import { FeatureCardProps } from "@/types/[feature]";
+
+function FeatureCard({ item, onClick, className }: FeatureCardProps) {
+  return (
+    <div 
+      className={cn("p-4 border rounded-lg", className)}
+      onClick={onClick}
+    >
+      <h3 className="font-semibold">{item.title}</h3>
+    </div>
+  );
+}
+
+export default memo(FeatureCard);
+```
+
+### New Container Page
+
+```typescript
+// pages/[Feature].tsx
+import { memo, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Loading } from "@/components/ui/loading";
+import { Error } from "@/components/ui/error";
+import FeatureView from "@/components/[feature]";
+import { FEATURE_KEYS } from "@/query-key/[feature]";
+import { getFeatureList } from "@/api/[feature]";
+
+interface FeaturePageProps {
+  userId: string;
+}
+
+function FeaturePage({ userId }: FeaturePageProps) {
+  // Data fetching
+  const { data, isLoading, error } = useQuery({
+    queryKey: FEATURE_KEYS.list(userId),
+    queryFn: () => getFeatureList(userId),
+    enabled: !!userId,
+  });
+
+  // Callbacks
+  const handleItemClick = useCallback((id: string) => {
+    console.log("Clicked:", id);
+  }, []);
+
+  // Loading/Error states
+  if (isLoading) return <Loading fullScreen />;
+  if (error) return <Error message="Failed to load" />;
+  if (!data?.length) return <div>No items found</div>;
+
+  // Render
+  return (
+    <FeatureView
+      items={data}
+      onItemClick={handleItemClick}
+    />
+  );
+}
+
+export default memo(FeaturePage);
+```
+
+---
+
+## ⏱️ Time-Saving Commands
+
+### Add shadcn Components (10 seconds each)
+
+```bash
+# Common components you'll need
+npx shadcn@latest add button
+npx shadcn@latest add card
+npx shadcn@latest add dialog
+npx shadcn@latest add form
+npx shadcn@latest add input
+npx shadcn@latest add select
+npx shadcn@latest add table
+npx shadcn@latest add tabs
+npx shadcn@latest add badge
+npx shadcn@latest add avatar
+npx shadcn@latest add skeleton
+npx shadcn@latest add alert-dialog
+npx shadcn@latest add dropdown-menu
+```
+
+### Search Existing Code (5 seconds)
+
+```bash
+# Find similar patterns
+grep -r "useQuery" src/
+grep -r "interface.*Props" src/types/
+grep -r "export const.*KEYS" src/query-key/
+```
+
+---
+
+## 🎯 One-Liner Solutions
+
+| Need | Solution |
+|------|----------|
+| Loading spinner | `<Loading fullScreen />` |
+| Error message | `<Error message="..." />` |
+| Toast notification | `toast.success("Done!")` |
+| Format date | `format(new Date(date), 'PPP')` |
+| Debounce input | `debounce(handleChange, 300)` |
+| Unique ID | `nanoid()` |
+| Merge classes | `cn("base", isActive && "active", className)` |
+| Copy to clipboard | `navigator.clipboard.writeText(text)` |
+
+---
+
+## 🔄 Instant Refactoring
+
+### Extract to Hook (When Used 2+ Times)
+
+```typescript
+// Before: Repeated in multiple components
+const { data } = useQuery({
+  queryKey: KEYS.list(userId),
+  queryFn: () => fetchList(userId),
+});
+
+// After: Custom hook
+// hooks/useFeatureList.ts
+export function useFeatureList(userId: string) {
+  return useQuery({
+    queryKey: KEYS.list(userId),
+    queryFn: () => fetchList(userId),
+    enabled: !!userId,
+  });
+}
+
+// Usage
+const { data, isLoading } = useFeatureList(userId);
+```
+
+### Extract to Component (When UI Repeated)
+
+```typescript
+// Before: Repeated JSX
+<div className="flex items-center gap-2">
+  <Icon className="h-4 w-4" />
+  <span>{text}</span>
+</div>
+
+// After: Component
+function IconLabel({ icon: Icon, text, className }) {
+  return (
+    <div className={cn("flex items-center gap-2", className)}>
+      <Icon className="h-4 w-4" />
+      <span>{text}</span>
+    </div>
+  );
+}
+```
+
+---
+
+## 🚫 Time Wasters to Avoid
+
+| Time Waster | Fast Alternative |
+|-------------|------------------|
+| Building custom components | Use shadcn CLI |
+| Manual form validation | Use zod schema |
+| Custom fetch logic | Use TanStack Query |
+| Writing CSS from scratch | Use Tailwind classes |
+| Building custom icons | Use Lucide React |
+| Custom toast system | Use Sonner |
+| Manual loading states | useQuery handles it |
+| Custom error boundaries | Sentry handles it |
+
+---
+
+## ✅ Speed Checklist
+
+Before implementing:
+
+- [ ] Searched for existing similar code?
+- [ ] Checked if shadcn has the component?
+- [ ] Using TanStack Query for data?
+- [ ] Using react-hook-form for forms?
+- [ ] Copied template from above?
+- [ ] Types in separate file?
+- [ ] Query keys in separate file?
+
+**Speed = Reuse + Stable Packages + Copy-Paste Templates**

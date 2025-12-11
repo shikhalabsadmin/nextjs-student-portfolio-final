@@ -1,0 +1,255 @@
+---
+description: Master index for all Cursor rules - Student Portfolio App
+globs:
+  - "**/*.ts"
+  - "**/*.tsx"
+alwaysApply: true
+---
+
+# 📚 World-Class Cursor Rules - Student Portfolio App
+
+**MISSION:** Build fast. Ship fast. No BS. Use stable packages. Research first.
+
+---
+
+## Quick Navigation
+
+| # | Rule File | Purpose | Priority |
+|---|-----------|---------|----------|
+| 00 | `00-stop-overthinking.mdc` | Quick decisions, KISS | 🔴 Critical |
+| 01 | `01-core-principles.mdc` | Ask questions, SOLID | 🔴 Critical |
+| 02 | `02-folder-structure.mdc` | Where code belongs | 🔴 Critical |
+| 03 | `03-typescript.mdc` | No `any`, strict types | 🔴 Critical |
+| 04 | `04-react-patterns.mdc` | Container/Presentational | 🔴 Critical |
+| 05 | `05-tech-stack.mdc` | Stable packages | 🔴 Critical |
+| 06 | `06-vanilla-patterns.mdc` | Singleton, Factory, etc. | 🟢 Reference |
+| 07 | `07-speed-development.mdc` | Templates & shortcuts | 🟡 Important |
+| 08 | `08-research-first.mdc` | **Research before coding** | 🔴 Critical |
+| -- | `sentry_rules.mdc` | Error monitoring | 🟢 Reference |
+
+---
+
+## 🏆 Golden Rules (Memorize These)
+
+### Rule 0: RESEARCH FIRST
+
+```
+Before writing ANY code:
+1. Search npm for packages    → "npm [problem] react"
+2. Search blogs for solutions → "[problem] react 2024 best practice"
+3. Check package.json         → Already installed?
+4. Only then write custom     → If nothing found
+```
+
+### Rule 1: USE EXISTING PACKAGES
+
+```
+Server state    → TanStack Query (NOT useState+useEffect)
+Forms           → react-hook-form + zod (NOT manual state)
+UI Components   → shadcn/ui CLI (NOT build from scratch)
+Toasts          → Sonner (NOT custom)
+Animations      → Framer Motion (NOT CSS keyframes)
+Dates           → date-fns (NOT custom)
+Icons           → Lucide React (NOT custom SVG)
+```
+
+### Rule 2: FOLLOW THE PATTERN
+
+```
+pages/[Feature].tsx              → Container (state, API)
+components/[feature]/            → UI components
+  ├── ComponentA.tsx             → Single responsibility
+  ├── ComponentB.tsx             → Single responsibility
+  └── index.tsx                  → Composes all
+types/[feature].ts               → Types
+query-key/[feature].ts           → Query keys
+```
+
+### Rule 3: COPY > CREATE
+
+```bash
+# Find similar pattern
+grep -r "useQuery" src/pages/
+# Copy and modify
+```
+
+### Rule 4: SIMPLE > CLEVER
+
+```typescript
+// ✅ Simple and clear
+const active = items.filter(item => item.active);
+
+// ❌ Clever but confusing
+const active = items.reduce((acc, i) => i.active ? [...acc, i] : acc, []);
+```
+
+---
+
+## 📖 Documentation References
+
+### Core Technologies
+
+| Topic | URL |
+|-------|-----|
+| React | https://react.dev/ |
+| TypeScript | https://www.typescriptlang.org/docs/ |
+| Vite | https://vitejs.dev/guide/ |
+| React Router | https://reactrouter.com/en/main |
+
+### Data & State
+
+| Topic | URL |
+|-------|-----|
+| TanStack Query | https://tanstack.com/query/latest |
+| Supabase | https://supabase.com/docs |
+| Zustand | https://zustand.docs.pmnd.rs/ |
+| react-hook-form | https://react-hook-form.com/ |
+| Zod | https://zod.dev/ |
+
+### UI & Styling
+
+| Topic | URL |
+|-------|-----|
+| shadcn/ui | https://ui.shadcn.com/docs |
+| Radix UI | https://radix-ui.com/primitives |
+| Tailwind CSS | https://tailwindcss.com/docs |
+| Framer Motion | https://motion.dev/ |
+| Lucide Icons | https://lucide.dev/icons/ |
+| Sonner | https://sonner.emilkowal.ski/ |
+
+### Patterns
+
+| Topic | URL |
+|-------|-----|
+| React Patterns | https://www.patterns.dev/react/ |
+| Container/Presentational | https://www.patterns.dev/react/presentational-container-pattern/ |
+| Hooks Pattern | https://www.patterns.dev/react/hooks-pattern/ |
+| Compound Pattern | https://www.patterns.dev/react/compound-pattern/ |
+| Vanilla Patterns | https://www.patterns.dev/vanilla/ |
+
+### Research Resources
+
+| Resource | URL | Purpose |
+|----------|-----|---------|
+| NPM Registry | https://www.npmjs.com/ | Find packages |
+| Bundlephobia | https://bundlephobia.com/ | Check bundle size |
+| NPM Trends | https://npmtrends.com/ | Compare packages |
+| Snyk Advisor | https://snyk.io/advisor/ | Security check |
+| Dev.to | https://dev.to/ | Blog posts |
+| LogRocket Blog | https://blog.logrocket.com/ | Tutorials |
+
+---
+
+## ⚡ Speed Commands
+
+```bash
+# Add shadcn component
+npx shadcn@latest add [button|card|dialog|form|input|table]
+
+# Search existing code
+grep -r "pattern" src/
+
+# Check for errors
+npm run lint
+
+# Search npm
+npm search [keyword]
+
+# Check package info
+npm info [package-name]
+```
+
+---
+
+## 🚀 New Feature Checklist
+
+```
+□ Step 0: RESEARCH FIRST
+   → Search npm for packages
+   → Search blogs for solutions
+   → Check package.json for existing packages
+
+□ Step 1: Find similar feature in codebase
+
+□ Step 2: Create files in order:
+   → types/[feature].ts
+   → query-key/[feature].ts
+   → api/[feature].ts (if needed)
+   → components/[feature]/
+   → pages/[Feature].tsx
+
+□ Step 3: Follow Container/Presentational pattern
+   → Container: state, API, logic
+   → Presentational: UI only, className props
+
+□ Step 4: Handle states
+   → Loading state
+   → Error state
+   → Empty state
+
+□ Step 5: Test and ship!
+```
+
+---
+
+## ❌ NEVER DO (Time Wasters)
+
+| Time Waster | Use Instead |
+|-------------|-------------|
+| Custom fetch wrapper | TanStack Query |
+| Manual form state | react-hook-form |
+| Building UI from scratch | shadcn CLI |
+| Custom toast | Sonner |
+| Custom date formatting | date-fns |
+| Custom loading spinner | `<Loading />` |
+| useState + useEffect for API | useQuery |
+| Building custom icons | Lucide React |
+| Custom debounce | lodash |
+| Custom animation system | Framer Motion |
+
+---
+
+## 📂 Project Structure At-a-Glance
+
+```
+src/
+├── api/            # Supabase calls
+├── components/     # UI (shadcn + feature folders)
+│   ├── ui/         # shadcn components (DON'T MODIFY)
+│   └── [feature]/  # Feature components
+├── config/         # Routes, config
+├── constants/      # Static data, enums
+├── contexts/       # React contexts
+├── hooks/          # Custom hooks
+├── integrations/   # Supabase client
+├── lib/            # Utilities (cn, logger)
+├── pages/          # Container components
+├── query-key/      # TanStack Query keys
+├── types/          # TypeScript types
+└── App.tsx         # Main app with routing
+```
+
+---
+
+## 🎯 Remember
+
+> **"The fastest code is code you don't write."**
+>
+> Research first. Use packages. Copy patterns. Ship fast.
+
+---
+
+## ✅ Pre-Implementation Universal Checklist
+
+Before writing ANY code:
+
+- [ ] **Researched npm** for existing package?
+- [ ] **Searched blogs** for solutions?
+- [ ] **Checked package.json** - already installed?
+- [ ] **Found similar code** in codebase?
+- [ ] **Know the pattern** to follow? (Container/Presentational)
+- [ ] **Created types** first?
+- [ ] **Using TanStack Query** for server data?
+- [ ] **Using react-hook-form** for forms?
+- [ ] **Using shadcn CLI** for UI components?
+- [ ] **className props** on all presentational components?

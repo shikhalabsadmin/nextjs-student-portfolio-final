@@ -1,0 +1,306 @@
+---
+description: React Design Patterns - Container/Presentational, Hooks, Component Patterns
+globs:
+  - "**/*.tsx"
+  - "**/*.ts"
+alwaysApply: true
+---
+
+# React Design Patterns
+
+**Reference:** https://www.patterns.dev/react/
+
+---
+
+## 🎯 MANDATORY: Container/Presentational Pattern
+
+**Reference:** https://www.patterns.dev/react/presentational-container-pattern/
+
+Every screen/page MUST follow this pattern. This is NON-NEGOTIABLE.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  pages/[Feature].tsx (CONTAINER)                                    │
+│                                                                     │
+│  Responsibilities:                                                  │
+│  • State management (useState, useReducer)                          │
+│  • Data fetching (useQuery, useMutation)                            │
+│  • Business logic                                                   │
+│  • Event handlers                                                   │
+│  • Loading/Error/Empty states                                       │
+│  • Passes data as props to View                                     │
+└──────────────────┬──────────────────────────────────────────────────┘
+                   │ props (data + callbacks)
+                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  components/[feature]/index.tsx (PRESENTATIONAL VIEW)               │
+│                                                                     │
+│  Responsibilities:                                                  │
+│  • UI rendering ONLY                                                │
+│  • Receives all data via props                                      │
+│  • NO state (unless UI-only like hover, open)                       │
+│  • NO API calls                                                     │
+│  • Composes child components                                        │
+└──────────────────┬──────────────────────────────────────────────────┘
+                   │
+     ┌─────────────┼─────────────┬─────────────────┐
+     ▼             ▼             ▼                 ▼
+  Child.tsx    Child.tsx    Child.tsx         Child.tsx
+  (UI only)    (UI only)    (UI only)         (UI only)
+```
+
+### Folder Structure for Each Feature
+
+```
+src/
+├── pages/
+│   └── StudentPortfolio.tsx      ← CONTAINER (state, API, logic)
+│
+├── components/
+│   └── student-portfolio/        ← PRESENTATIONAL folder
+│       ├── ProfileAvatar.tsx     ← Pure UI component
+│       ├── ProfileInfo.tsx       ← Pure UI component
+│       ├── ProfileBio.tsx        ← Pure UI component
+│       ├── AssignmentsGrid.tsx   ← Pure UI component
+│       └── index.tsx             ← Composes all UI (View)
+│
+├── types/
+│   └── student-portfolio.ts      ← All types for this feature
+│
+└── query-key/
+    └── student-portfolio.ts      ← Query keys for this feature
+```
+
+### Container Component Rules
+
+```typescript
+// ✅ CORRECT Container (pages/Feature.tsx)
+function FeaturePage() {
+  // 1. State
+  const [filter, setFilter] = useState("");
+  
+  // 2. Data fetching
+  const { data, isLoading, error } = useQuery({
+    queryKey: FEATURE_KEYS.list(),
+    queryFn: fetchData,
+  });
+  
+  // 3. Callbacks
+  const handleClick = useCallback(() => {
+    // logic here
+  }, []);
+  
+  // 4. Loading/Error states (in container, not view)
+  if (isLoading) return <Loading />;
+  if (error) return <Error />;
+  
+  // 5. Pass everything as props to View
+  return (
+    <FeatureView
+      data={data}
+      filter={filter}
+      onFilterChange={setFilter}
+      onItemClick={handleClick}
+    />
+  );
+}
+```
+
+### Presentational Component Rules
+
+```typescript
+// ✅ CORRECT Presentational (components/feature/index.tsx)
+interface FeatureViewProps {
+  data: Item[];
+  filter: string;
+  onFilterChange: (value: string) => void;
+  onItemClick: (id: string) => void;
+  className?: string; // Allow style customization
+}
+
+function FeatureView({ data, filter, onFilterChange, onItemClick, className }: FeatureViewProps) {
+  // NO useState (unless UI-only like dropdown open)
+  // NO useQuery
+  // NO useEffect for data
+  // ONLY render UI
+  
+  return (
+    <div className={cn("default-styles", className)}>
+      <SearchBar value={filter} onChange={onFilterChange} />
+      <ItemList items={data} onItemClick={onItemClick} />
+    </div>
+  );
+}
+```
+
+---
+
+## 🎨 Reusable Component Pattern
+
+**All presentational components MUST support style customization.**
+
+### Simple Components → `className` prop
+
+```typescript
+interface ProfileAvatarProps {
+  image: string | null;
+  name: string;
+  className?: string;  // ← REQUIRED for simple components
+}
+
+function ProfileAvatar({ image, name, className }: ProfileAvatarProps) {
+  return (
+    <div className={cn("h-20 w-20 rounded-full", className)}>
+      {/* content */}
+    </div>
+  );
+}
+```
+
+### Complex Components → `classNames` object prop
+
+```typescript
+interface ProfileInfoClassNames {
+  container?: string;
+  title?: string;
+  badge?: string;
+}
+
+interface ProfileInfoProps {
+  name: string;
+  grade: string;
+  classNames?: ProfileInfoClassNames;  // ← REQUIRED for complex components
+}
+
+function ProfileInfo({ name, grade, classNames }: ProfileInfoProps) {
+  return (
+    <div className={cn("", classNames?.container)}>
+      <h3 className={cn("text-3xl font-bold", classNames?.title)}>{name}</h3>
+      <span className={cn("text-sm", classNames?.badge)}>{grade}</span>
+    </div>
+  );
+}
+```
+
+---
+
+## 🪝 Hooks Pattern
+
+**Reference:** https://www.patterns.dev/react/hooks-pattern/
+
+### Custom Hooks for Data Fetching
+
+```typescript
+// ✅ CORRECT - Custom hook encapsulates data logic
+// hooks/useStudentPortfolio.ts
+export function useStudentPortfolio(studentId: string) {
+  const studentQuery = useQuery({
+    queryKey: STUDENT_PORTFOLIO_KEYS.studentInfo(studentId),
+    queryFn: () => getProfileInfo(studentId),
+  });
+  
+  const assignmentsQuery = useQuery({
+    queryKey: STUDENT_PORTFOLIO_KEYS.approvedAssignments(studentId),
+    queryFn: () => getApprovedAssignments(studentId),
+  });
+  
+  return {
+    student: studentQuery.data,
+    assignments: assignmentsQuery.data,
+    isLoading: studentQuery.isLoading || assignmentsQuery.isLoading,
+    error: studentQuery.error || assignmentsQuery.error,
+  };
+}
+```
+
+---
+
+## 🧩 Compound Component Pattern
+
+**Reference:** https://www.patterns.dev/react/compound-pattern/
+
+Use for related components that work together:
+
+```typescript
+// ✅ CORRECT - Compound components
+<Card>
+  <Card.Header>
+    <Card.Title>Title</Card.Title>
+  </Card.Header>
+  <Card.Content>Content here</Card.Content>
+  <Card.Footer>Footer</Card.Footer>
+</Card>
+```
+
+---
+
+## 📋 Pattern Selection Guide
+
+When asked to build a new screen/feature, follow this decision tree:
+
+```
+New Feature Request
+│
+├── Is it a page/screen?
+│   └── YES → Use Container/Presentational Pattern
+│       ├── Create pages/[Feature].tsx (container)
+│       ├── Create components/[feature]/ folder (presentational)
+│       ├── Create types/[feature].ts
+│       └── Create query-key/[feature].ts
+│
+├── Is it reusable logic?
+│   └── YES → Use Hooks Pattern
+│       └── Create hooks/use[Feature].ts
+│
+├── Is it a group of related components?
+│   └── YES → Consider Compound Pattern
+│
+└── Is it a simple UI element?
+    └── YES → Create single component with className prop
+```
+
+---
+
+## ❌ Anti-Patterns (NEVER DO)
+
+```typescript
+// ❌ BAD: Mixing data fetching with UI
+function UserCard({ userId }) {
+  const { data } = useQuery(['user', userId], fetchUser); // NO!
+  return <div>{data?.name}</div>;
+}
+
+// ❌ BAD: Prop drilling instead of composition
+<Parent data={data}>
+  <Child data={data}>
+    <GrandChild data={data} /> // NO! Too deep
+  </Child>
+</Parent>
+
+// ❌ BAD: No style customization
+function Button({ children }) {
+  return <button className="fixed-styles">{children}</button>; // NO!
+}
+
+// ❌ BAD: Business logic in presentational component
+function ItemList({ items }) {
+  const filtered = items.filter(i => i.active); // NO! Do in container
+  return <div>{filtered.map(...)}</div>;
+}
+```
+
+---
+
+## ✅ Pre-Implementation Checklist
+
+Before building any screen/feature:
+
+- [ ] Identified Container component (page)
+- [ ] Identified Presentational components (UI folder)
+- [ ] Created types file for the feature
+- [ ] Created query-key file for API calls
+- [ ] All presentational components have className/classNames props
+- [ ] No data fetching in presentational components
+- [ ] Loading/Error states handled in container

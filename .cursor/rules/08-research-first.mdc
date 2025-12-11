@@ -1,0 +1,273 @@
+---
+description: Research before coding - find packages, read blogs, don't reinvent
+globs:
+  - "**/*.ts"
+  - "**/*.tsx"
+alwaysApply: true
+---
+
+# 🔍 Research First - Be a Tech Researcher
+
+**GOLDEN RULE:** Before writing ANY custom code, research the web first.
+
+> "The best code is code you don't write. Someone probably solved this already."
+
+---
+
+## 🎯 The Research-First Workflow
+
+### Before Writing ANY Code, Do This:
+
+```
+1. SEARCH for npm package      → "npm [problem] react"
+2. SEARCH for blog/tutorial    → "[problem] react 2024 best practice"
+3. SEARCH for GitHub solutions → "github [problem] react"
+4. CHECK if package exists     → npmjs.com, bundlephobia.com
+5. ONLY THEN write custom code → If nothing found
+```
+
+---
+
+## 📦 Step 1: Search for NPM Packages
+
+### Search Queries to Use:
+
+| Need | Search Query |
+|------|--------------|
+| File upload | `npm file upload react dropzone` |
+| Date picker | `npm date picker react` |
+| Rich text editor | `npm rich text editor react` |
+| Charts | `npm charts react recharts` |
+| PDF viewer | `npm pdf viewer react` |
+| Image crop | `npm image crop react` |
+| Drag and drop | `npm drag drop react dnd` |
+| Infinite scroll | `npm infinite scroll react` |
+| Virtual list | `npm virtual list react tanstack` |
+| Data table | `npm data table react tanstack` |
+| Animation | `npm animation react framer` |
+| Form validation | `npm form validation react zod` |
+| State management | `npm state management react zustand` |
+| Authentication | `npm auth react supabase` |
+
+### Verify Package Quality:
+
+Before using any package, check:
+
+```
+□ Weekly downloads > 100k (popular)
+□ Last updated < 6 months (maintained)
+□ GitHub stars > 1k (trusted)
+□ Bundle size acceptable (bundlephobia.com)
+□ TypeScript support (types included)
+□ No security vulnerabilities (npm audit)
+```
+
+### Trusted Package Sources:
+
+| Source | URL | Why Trust |
+|--------|-----|-----------|
+| npmjs.com | https://www.npmjs.com/ | Official registry |
+| bundlephobia.com | https://bundlephobia.com/ | Check bundle size |
+| snyk.io | https://snyk.io/advisor/ | Security check |
+| npmtrends.com | https://npmtrends.com/ | Compare packages |
+
+---
+
+## 📝 Step 2: Search for Blog Posts & Tutorials
+
+### Search Queries to Use:
+
+| Problem | Search Query |
+|---------|--------------|
+| General solution | `[problem] react 2024 best practice` |
+| Performance issue | `[problem] react performance optimization` |
+| Architecture | `[problem] react architecture pattern` |
+| Error handling | `[error message] react solution` |
+| Integration | `[library] + [library] react integration` |
+
+### Trusted Blog Sources:
+
+| Source | URL | Why Trust |
+|--------|-----|-----------|
+| Dev.to | https://dev.to/ | Community vetted |
+| Medium (verified) | https://medium.com/ | Expert authors |
+| LogRocket Blog | https://blog.logrocket.com/ | Production focus |
+| Smashing Magazine | https://www.smashingmagazine.com/ | Quality content |
+| CSS-Tricks | https://css-tricks.com/ | Frontend experts |
+| Kent C. Dodds | https://kentcdodds.com/blog | React expert |
+| TanStack Blog | https://tanstack.com/blog | Official guides |
+| React Official | https://react.dev/blog | Source of truth |
+
+---
+
+## 🔬 Step 3: Research Decision Template
+
+**Before implementing any feature, fill this out:**
+
+```markdown
+## Research Summary for: [Feature Name]
+
+### Problem Statement
+[What are we trying to solve?]
+
+### NPM Package Search
+- Searched: "[query]"
+- Found packages:
+  1. [package-name] - [downloads/week] - [last updated]
+  2. [package-name] - [downloads/week] - [last updated]
+- Chosen: [package-name] because [reason]
+
+### Blog/Tutorial Search  
+- Searched: "[query]"
+- Found articles:
+  1. [Title] - [URL] - [Key takeaway]
+  2. [Title] - [URL] - [Key takeaway]
+
+### Decision
+□ Using existing package: [name]
+□ Following tutorial: [URL]
+□ Writing custom code because: [reason]
+```
+
+---
+
+## 🏆 Stable Packages by Category
+
+### Already in Project (USE THESE FIRST)
+
+| Category | Package | Docs |
+|----------|---------|------|
+| Data fetching | @tanstack/react-query | https://tanstack.com/query |
+| Forms | react-hook-form + zod | https://react-hook-form.com |
+| UI Components | shadcn/ui | https://ui.shadcn.com |
+| Styling | tailwindcss | https://tailwindcss.com |
+| Icons | lucide-react | https://lucide.dev |
+| Toasts | sonner | https://sonner.emilkowal.ski |
+| Animations | framer-motion | https://motion.dev |
+| Dates | date-fns | https://date-fns.org |
+| Database | @supabase/supabase-js | https://supabase.com/docs |
+| Rich Text | @tiptap/react | https://tiptap.dev |
+| File Upload | react-dropzone | https://react-dropzone.js.org |
+| Charts | recharts | https://recharts.org |
+| Carousel | embla-carousel-react | https://embla-carousel.com |
+
+### Commonly Needed (SEARCH BEFORE CUSTOM)
+
+| Need | Recommended Package | Downloads/Week |
+|------|---------------------|----------------|
+| Data tables | @tanstack/react-table | 1M+ |
+| Virtual lists | @tanstack/react-virtual | 500k+ |
+| PDF generation | @react-pdf/renderer | 300k+ |
+| PDF viewing | react-pdf | 400k+ |
+| Image cropping | react-image-crop | 200k+ |
+| Color picker | react-colorful | 300k+ |
+| Markdown | react-markdown | 1M+ |
+| Code highlight | prism-react-renderer | 500k+ |
+| Drag and drop | @dnd-kit/core | 500k+ |
+| Clipboard | use-clipboard-copy | 100k+ |
+| Keyboard shortcuts | react-hotkeys-hook | 200k+ |
+| Intersection | react-intersection-observer | 1M+ |
+| Resize observer | react-resize-detector | 500k+ |
+
+---
+
+## 🚫 NEVER Write Custom Code For:
+
+| Feature | Use Instead |
+|---------|-------------|
+| Date formatting | `date-fns` |
+| Form validation | `zod` |
+| HTTP requests | `@tanstack/react-query` |
+| Toast notifications | `sonner` |
+| Modal dialogs | `shadcn/ui dialog` |
+| Dropdowns | `shadcn/ui dropdown-menu` |
+| Data tables | `@tanstack/react-table` |
+| Virtual scrolling | `@tanstack/react-virtual` |
+| Animations | `framer-motion` |
+| Icons | `lucide-react` |
+| UUID generation | `nanoid` |
+| Debounce/throttle | `lodash` |
+| Deep clone | `lodash` |
+| Class merging | `cn()` from `@/lib/utils` |
+
+---
+
+## 📋 Research Checklist (MANDATORY)
+
+Before writing ANY custom code:
+
+- [ ] **Searched npm** for existing package?
+- [ ] **Checked package quality** (downloads, updates, stars)?
+- [ ] **Searched blogs** for solutions?
+- [ ] **Checked if already in package.json**?
+- [ ] **Checked existing codebase** for similar code?
+- [ ] **Documented research** in comments?
+
+---
+
+## 💡 Quick Research Commands
+
+```bash
+# Search npm
+npm search [keyword]
+
+# Check package info
+npm info [package-name]
+
+# Check bundle size (visit)
+# https://bundlephobia.com/package/[package-name]
+
+# Compare packages (visit)
+# https://npmtrends.com/[package1]-vs-[package2]
+```
+
+---
+
+## 🎯 Example Research Session
+
+**Problem:** Need to add file upload with drag-and-drop
+
+**Research:**
+
+```
+1. NPM Search: "npm file upload drag drop react"
+   → Found: react-dropzone (2M downloads/week, updated last week)
+   
+2. Blog Search: "react dropzone supabase upload 2024"
+   → Found: "File Upload with React Dropzone and Supabase" on Dev.to
+   
+3. Check package.json: Already has react-dropzone! ✅
+
+4. Decision: Use react-dropzone (already installed)
+   → DON'T write custom drag-drop logic
+```
+
+**Result:** 5 minutes of research saved 2 hours of coding!
+
+---
+
+## 🔥 Remember
+
+> **"Hours of coding can save minutes of research."** - Every developer ever
+>
+> **Be smart. Research first. Ship faster.**
+
+### The Research Mindset:
+
+1. **Someone probably solved this** → Search first
+2. **Popular packages are battle-tested** → Use them
+3. **Blog posts show real solutions** → Learn from them
+4. **Custom code is technical debt** → Avoid when possible
+5. **Time spent researching is time saved debugging** → Worth it
+
+---
+
+## ✅ After Research, Then Code
+
+Only write custom code when:
+
+1. ✅ Searched npm - no package found
+2. ✅ Searched blogs - no solution found  
+3. ✅ Requirement is truly unique
+4. ✅ Existing packages don't fit
+5. ✅ Documented why custom code is needed

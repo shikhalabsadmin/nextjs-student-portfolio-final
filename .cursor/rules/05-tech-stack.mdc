@@ -1,0 +1,275 @@
+---
+description: Tech stack and stable packages for Student Portfolio App
+globs:
+  - "**/*.ts"
+  - "**/*.tsx"
+alwaysApply: true
+---
+
+# Tech Stack - Student Portfolio App
+
+**GOLDEN RULE:** Use stable, battle-tested packages. Don't reinvent the wheel.
+
+**References:**
+- shadcn/ui: https://ui.shadcn.com/docs
+- TanStack Query: https://tanstack.com/query/latest
+- React patterns: https://www.patterns.dev/react/
+
+---
+
+## 🏆 Stable Package Stack (PRODUCTION-READY)
+
+### Core (DON'T CHANGE)
+
+| Package | Version | Purpose | Stability |
+|---------|---------|---------|-----------|
+| `react` | ^18.3.1 | UI library | ⭐⭐⭐⭐⭐ |
+| `react-router-dom` | ^6.26.2 | Routing | ⭐⭐⭐⭐⭐ |
+| `typescript` | ^5.5.3 | Type safety | ⭐⭐⭐⭐⭐ |
+| `vite` | ^5.4.14 | Build tool | ⭐⭐⭐⭐⭐ |
+
+### Data & State (USE THESE, DON'T CREATE CUSTOM)
+
+| Package | Version | Purpose | Docs |
+|---------|---------|---------|------|
+| `@tanstack/react-query` | ^5.62.8 | Server state | https://tanstack.com/query/latest |
+| `@supabase/supabase-js` | ^2.47.10 | Database | https://supabase.com/docs |
+| `zustand` | ^5.0.2 | Client state | https://zustand.docs.pmnd.rs/ |
+| `react-hook-form` | ^7.53.0 | Forms | https://react-hook-form.com/ |
+| `zod` | ^3.24.2 | Validation | https://zod.dev/ |
+
+### UI (USE SHADCN CLI, DON'T BUILD FROM SCRATCH)
+
+| Package | Purpose | Docs |
+|---------|---------|------|
+| `shadcn/ui` | Components | https://ui.shadcn.com/docs |
+| `@radix-ui/*` | Primitives | https://radix-ui.com/primitives |
+| `tailwindcss` | Styling | https://tailwindcss.com/docs |
+| `lucide-react` | Icons | https://lucide.dev/icons/ |
+| `sonner` | Toasts | https://sonner.emilkowal.ski/ |
+| `framer-motion` | Animations | https://motion.dev/ |
+
+### Utilities (ALREADY INSTALLED, USE THEM)
+
+| Package | Purpose | Example |
+|---------|---------|---------|
+| `date-fns` | Date formatting | `format(date, 'MMM d, yyyy')` |
+| `clsx` | Class conditionals | `clsx('base', isActive && 'active')` |
+| `tailwind-merge` | Merge classes | `cn('p-4', className)` |
+| `lodash` | Utilities | `debounce`, `throttle` |
+| `nanoid` | Unique IDs | `nanoid()` |
+
+---
+
+## ⚡ Speed Development Patterns
+
+### 1. Use TanStack Query (NOT useState + useEffect)
+
+```typescript
+// ❌ SLOW: Manual fetching
+const [data, setData] = useState([]);
+const [loading, setLoading] = useState(true);
+useEffect(() => {
+  fetch('/api/data').then(res => res.json()).then(setData).finally(() => setLoading(false));
+}, []);
+
+// ✅ FAST: TanStack Query handles everything
+const { data, isLoading } = useQuery({
+  queryKey: KEYS.list(id),
+  queryFn: () => fetchData(id),
+});
+```
+
+### 2. Use shadcn CLI (NOT Build from Scratch)
+
+```bash
+# ✅ FAST: Add components in seconds
+npx shadcn@latest add button card dialog form input select
+
+# ❌ SLOW: Building custom button component from scratch
+```
+
+### 3. Use react-hook-form + zod (NOT Manual Form State)
+
+```typescript
+// ✅ FAST: Form with validation in 10 lines
+const form = useForm<FormData>({
+  resolver: zodResolver(schema),
+});
+
+// ❌ SLOW: Manual onChange handlers for every field
+```
+
+### 4. Use Existing Hooks (NOT Create New Ones)
+
+```typescript
+// ✅ Already exists in codebase
+import { useAuthState } from "@/hooks/useAuthState";
+import { useStudentAssignments } from "@/hooks/useStudentAssignments";
+
+// ❌ Don't create new hooks for solved problems
+```
+
+---
+
+## 📦 Package Decision Matrix
+
+```
+Need to...
+│
+├── Fetch/cache server data?
+│   └── @tanstack/react-query (NEVER useState+useEffect)
+│
+├── Manage form state?
+│   └── react-hook-form + zod (NEVER manual state)
+│
+├── Store client state?
+│   └── zustand (for global) OR useState (for local)
+│
+├── Add UI component?
+│   └── npx shadcn@latest add [component]
+│
+├── Show notifications?
+│   └── sonner → toast.success("Done!")
+│
+├── Add animations?
+│   └── framer-motion (ALREADY INSTALLED)
+│
+├── Format dates?
+│   └── date-fns → format(date, 'PPP')
+│
+├── Generate unique ID?
+│   └── nanoid → nanoid()
+│
+├── Debounce/throttle?
+│   └── lodash → debounce(fn, 300)
+│
+└── Add icons?
+    └── lucide-react → <Icon className="h-4 w-4" />
+```
+
+---
+
+## 🎯 Quick Reference Snippets
+
+### TanStack Query
+
+```typescript
+// Fetch data
+const { data, isLoading, error } = useQuery({
+  queryKey: KEYS.detail(id),
+  queryFn: () => getItem(id),
+  enabled: !!id,
+  staleTime: 5 * 60 * 1000, // 5 minutes
+});
+
+// Mutate data
+const mutation = useMutation({
+  mutationFn: updateItem,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: KEYS.list() });
+    toast.success("Saved!");
+  },
+  onError: (error) => {
+    toast.error(error.message);
+  },
+});
+```
+
+### Supabase
+
+```typescript
+// Query
+const { data, error } = await supabase
+  .from("table")
+  .select("*")
+  .eq("column", value)
+  .order("created_at", { ascending: false });
+
+// Insert
+const { data, error } = await supabase
+  .from("table")
+  .insert({ ...values })
+  .select()
+  .single();
+
+// Update
+const { data, error } = await supabase
+  .from("table")
+  .update({ ...values })
+  .eq("id", id)
+  .select()
+  .single();
+```
+
+### Form with Validation
+
+```typescript
+const schema = z.object({
+  title: z.string().min(1, "Required"),
+  email: z.string().email("Invalid email"),
+});
+
+type FormData = z.infer<typeof schema>;
+
+const form = useForm<FormData>({
+  resolver: zodResolver(schema),
+  defaultValues: { title: "", email: "" },
+});
+```
+
+### Animations
+
+```typescript
+import { motion } from "framer-motion";
+
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.3 }}
+>
+  Content
+</motion.div>
+```
+
+---
+
+## 🚫 NEVER DO (Time Wasters)
+
+```typescript
+// ❌ Building custom fetch wrapper
+const useFetch = () => { ... }; // Use TanStack Query
+
+// ❌ Manual form validation
+if (!email.includes('@')) { ... } // Use zod
+
+// ❌ Custom debounce implementation
+function debounce(fn, delay) { ... } // Use lodash
+
+// ❌ Building custom toast system
+const ToastContext = createContext(); // Use sonner
+
+// ❌ Custom animation library
+const fadeIn = keyframes`...`; // Use framer-motion
+
+// ❌ Custom date formatting
+const formatDate = (date) => { ... }; // Use date-fns
+
+// ❌ Building UI components from scratch
+const Button = () => { ... }; // Use shadcn
+```
+
+---
+
+## ✅ Pre-Implementation Checklist
+
+Before writing ANY code, check:
+
+- [ ] Is there a package for this? (Probably yes)
+- [ ] Is it already in package.json? (Check first)
+- [ ] Is there existing code in the codebase? (Search first)
+- [ ] Can I use shadcn CLI? (`npx shadcn@latest add`)
+- [ ] Would TanStack Query solve this? (For server data)
+- [ ] Would react-hook-form solve this? (For forms)
+
+**Remember:** The fastest code is code you don't write. Use the packages!

@@ -1,0 +1,203 @@
+---
+description: Anti-analysis paralysis - quick decisions, KISS principle, stop overthinking
+globs:
+  - "**/*.ts"
+  - "**/*.tsx"
+alwaysApply: true
+---
+
+# 🛑 STOP OVERTHINKING
+
+**GOAL:** Make decisions fast. Ship working code. Don't overthink.
+
+**References:**
+- KISS Principle: https://www.patterns.dev/vanilla/
+- React Best Practices: https://react.dev/learn
+
+---
+
+## 🗣️ Communication Style
+
+**Be friendly, funny, and use simple Indian English:**
+
+- Use casual, friendly tone (like talking to a colleague)
+- Add light humor when appropriate (keep it professional)
+- Avoid heavy technical jargon - explain simply
+- Use everyday words, not fancy terms
+- Be encouraging, not preachy
+- Keep explanations short and sweet
+
+**Examples:**
+
+```
+❌ "Implementing a memoization strategy for optimized re-renders"
+✅ "Caching this so it doesn't run again and again unnecessarily"
+
+❌ "Leveraging the facade pattern for abstraction"
+✅ "Making a simple wrapper so you don't deal with the messy stuff"
+
+❌ "This violates the single responsibility principle"
+✅ "This file is doing too many things, let's split it"
+```
+
+---
+
+## When You Catch Yourself Thinking Too Much, Read This
+
+---
+
+## ⚡ Quick Decision Framework
+
+### 1. Does it work? Ship it.
+
+```
+Working code > Perfect code
+Done > Perfect
+Simple > Clever
+```
+
+### 2. Decision in 30 seconds or less
+
+| If you're deciding between... | Just pick... |
+|----|-----|
+| Two similar approaches | The simpler one |
+| Adding a feature "just in case" | Don't add it |
+| Custom solution vs library | The library |
+| More abstraction | Less abstraction |
+| "What if we need..." | What we need NOW |
+
+### 3. The 3-Strike Rule
+
+If you've thought about it 3 times → **Just start coding**
+
+---
+
+## 🚫 STOP Signs (You're Overthinking If...)
+
+- [ ] You're designing for "future requirements"
+- [ ] You're creating abstractions for 1 use case
+- [ ] You've been planning for >10 minutes without writing code
+- [ ] You're adding "flexibility" nobody asked for
+- [ ] You're optimizing before measuring
+- [ ] You're writing more than 50 lines for a simple feature
+- [ ] You're creating a new pattern when existing ones work
+
+### 🎯 Universal Check (For ANYTHING not listed above)
+
+**Ask yourself these 3 questions:**
+
+1. **"Will this matter in 1 hour?"** → If no, just pick one and move on
+2. **"What's the worst that happens if I'm wrong?"** → Usually: refactor later (not a big deal)
+3. **"Am I solving a real problem or imaginary one?"** → If imaginary, stop
+
+**Still stuck? Use this:**
+```
+"I'm overthinking about [X]. 
+The simplest solution is [Y]. 
+I'll do [Y] and move on."
+```
+
+**Remember:** You can ALWAYS refactor later. Nothing is permanent in code.
+
+---
+
+## ✅ Just Do This
+
+### For UI:
+```
+1. Copy similar existing component
+2. Modify for your needs
+3. Done
+```
+
+### For Data:
+```
+1. useQuery/useMutation
+2. Handle loading/error
+3. Done
+```
+
+### For New Feature:
+```
+1. Find similar feature in codebase
+2. Copy the pattern
+3. Adapt to your needs
+4. Done
+```
+
+---
+
+## 🎯 The Golden Rules
+
+### Rule 1: Make it work FIRST
+```typescript
+// ✅ DO THIS FIRST
+const result = items.filter(i => i.active);
+
+// ❌ DON'T START HERE
+const filterActiveItems = createFilterFactory(
+  'active',
+  configurableOptions,
+  cacheStrategy
+);
+```
+
+### Rule 2: Copy > Create
+- See a similar component? **Copy it**
+- See a similar hook? **Copy it**
+- See a similar pattern? **Copy it**
+- THEN modify for your needs
+
+### Rule 3: 20 lines > 200 lines
+If your solution needs 200 lines, you're overcomplicating it.
+Break it down or find a simpler approach.
+
+### Rule 4: Ask "Do I need this?"
+- "Do I need this abstraction?" → Probably not
+- "Do I need this config option?" → Probably not
+- "Do I need this edge case?" → Probably not
+- "Do I need this optimization?" → Measure first
+
+---
+
+## 🔥 Instant Answers
+
+| Question | Answer |
+|----|-----|
+| "Should I create a utility function?" | Only if used 3+ times |
+| "Should I add TypeScript generics?" | Only if truly needed |
+| "Should I handle this edge case?" | Only if it can actually happen |
+| "Should I optimize this?" | Only if measured and slow |
+| "Should I add error handling?" | Yes, always |
+| "Should I add loading state?" | Yes, always |
+| "Should I abstract this?" | No, not yet |
+| "Should I add config options?" | No |
+| "What if requirements change?" | Refactor then |
+
+---
+
+## 💡 Remember
+
+> **The best code is code that doesn't exist.**
+> The second best is simple code that works.
+
+### Your job is to:
+1. Solve the current problem
+2. In the simplest way
+3. That works
+4. RIGHT NOW
+
+### Your job is NOT to:
+- Predict the future
+- Build "flexible" systems
+- Create abstractions
+- Optimize prematurely
+- Handle hypothetical scenarios
+
+---
+
+## 🏁 START NOW
+
+Stop reading. Start coding.
+
+The simplest solution is usually correct.

@@ -1,0 +1,301 @@
+---
+description: Vanilla JavaScript Design Patterns Reference
+globs:
+  - "**/*.ts"
+  - "**/*.tsx"
+alwaysApply: false
+---
+
+# Vanilla JavaScript Design Patterns
+
+**GOAL:** Use proven patterns for utilities, services, and non-React code.
+
+**References:**
+- Vanilla Patterns: https://www.patterns.dev/vanilla/
+- Singleton: https://www.patterns.dev/vanilla/singleton-pattern
+- Factory: https://www.patterns.dev/vanilla/factory-pattern
+- Observer: https://www.patterns.dev/vanilla/observer-pattern
+- Module: https://www.patterns.dev/vanilla/module-pattern
+
+---
+
+Use these patterns when building utilities, services, and non-React code.
+
+---
+
+## 🎯 Pattern Selection Guide
+
+| Need | Pattern | Reference |
+|------|---------|-----------|
+| Single instance (DB, Logger) | Singleton | https://www.patterns.dev/vanilla/singleton-pattern |
+| Control access to object | Proxy | https://www.patterns.dev/vanilla/proxy-pattern |
+| Create objects from template | Factory | https://www.patterns.dev/vanilla/factory-pattern |
+| React to state changes | Observer | https://www.patterns.dev/vanilla/observer-pattern |
+| Encapsulate code | Module | https://www.patterns.dev/vanilla/module-pattern |
+| Add functionality | Mixin | https://www.patterns.dev/vanilla/mixin-pattern |
+| Coordinate communication | Mediator | https://www.patterns.dev/vanilla/mediator-middleware-pattern |
+
+---
+
+## 🔒 Singleton Pattern
+
+**When:** Need exactly one instance (database connection, logger, config).
+
+**Reference:** https://www.patterns.dev/vanilla/singleton-pattern
+
+```typescript
+// ✅ CORRECT - Singleton for Supabase client
+// integrations/supabase/client.ts
+let instance: SupabaseClient | null = null;
+
+export const getSupabaseClient = () => {
+  if (!instance) {
+    instance = createClient(SUPABASE_URL, SUPABASE_KEY);
+  }
+  return instance;
+};
+
+// Export singleton
+export const supabase = getSupabaseClient();
+```
+
+---
+
+## 🏭 Factory Pattern
+
+**When:** Create objects without specifying exact class.
+
+**Reference:** https://www.patterns.dev/vanilla/factory-pattern
+
+```typescript
+// ✅ CORRECT - Factory for creating notifications
+type NotificationType = "success" | "error" | "warning";
+
+interface Notification {
+  type: NotificationType;
+  message: string;
+  show: () => void;
+}
+
+const createNotification = (type: NotificationType, message: string): Notification => {
+  return {
+    type,
+    message,
+    show: () => toast[type](message),
+  };
+};
+
+// Usage
+const notification = createNotification("success", "Saved!");
+notification.show();
+```
+
+---
+
+## 👀 Observer Pattern
+
+**When:** React to state changes (pub/sub, event emitters).
+
+**Reference:** https://www.patterns.dev/vanilla/observer-pattern
+
+```typescript
+// ✅ CORRECT - Simple observer for auth state
+type AuthObserver = (user: User | null) => void;
+
+class AuthSubject {
+  private observers: AuthObserver[] = [];
+  
+  subscribe(observer: AuthObserver) {
+    this.observers.push(observer);
+    return () => this.unsubscribe(observer);
+  }
+  
+  unsubscribe(observer: AuthObserver) {
+    this.observers = this.observers.filter(o => o !== observer);
+  }
+  
+  notify(user: User | null) {
+    this.observers.forEach(observer => observer(user));
+  }
+}
+
+export const authSubject = new AuthSubject();
+```
+
+---
+
+## 📦 Module Pattern
+
+**When:** Encapsulate related code, expose only public API.
+
+**Reference:** https://www.patterns.dev/vanilla/module-pattern
+
+```typescript
+// ✅ CORRECT - Module pattern for logger
+// lib/logger.ts
+const createLogger = (moduleName: string) => {
+  // Private
+  const formatMessage = (level: string, message: string) => 
+    `[${moduleName}] ${level}: ${message}`;
+  
+  // Public API
+  return {
+    info: (message: string, data?: object) => {
+      console.log(formatMessage("INFO", message), data);
+    },
+    error: (message: string, error?: unknown) => {
+      console.error(formatMessage("ERROR", message), error);
+    },
+    debug: (message: string, data?: object) => {
+      if (process.env.NODE_ENV === "development") {
+        console.debug(formatMessage("DEBUG", message), data);
+      }
+    },
+  };
+};
+
+export const logger = createLogger("App");
+export const authLogger = createLogger("Auth");
+```
+
+---
+
+## 🔀 Mediator Pattern
+
+**When:** Coordinate communication between components.
+
+**Reference:** https://www.patterns.dev/vanilla/mediator-middleware-pattern
+
+```typescript
+// ✅ CORRECT - Event mediator
+type EventHandler = (data: unknown) => void;
+
+class EventMediator {
+  private handlers = new Map<string, EventHandler[]>();
+  
+  on(event: string, handler: EventHandler) {
+    const existing = this.handlers.get(event) || [];
+    this.handlers.set(event, [...existing, handler]);
+  }
+  
+  emit(event: string, data?: unknown) {
+    const handlers = this.handlers.get(event) || [];
+    handlers.forEach(handler => handler(data));
+  }
+  
+  off(event: string, handler: EventHandler) {
+    const handlers = this.handlers.get(event) || [];
+    this.handlers.set(event, handlers.filter(h => h !== handler));
+  }
+}
+
+export const eventBus = new EventMediator();
+
+// Usage
+eventBus.on("assignment:submitted", (data) => {
+  // Handle event
+});
+eventBus.emit("assignment:submitted", { id: "123" });
+```
+
+---
+
+## 🎭 Proxy Pattern
+
+**When:** Control access to an object (validation, caching, logging).
+
+**Reference:** https://www.patterns.dev/vanilla/proxy-pattern
+
+```typescript
+// ✅ CORRECT - Proxy for API with caching
+const createCachedApi = <T>(api: T, cacheDuration = 5000): T => {
+  const cache = new Map<string, { data: unknown; timestamp: number }>();
+  
+  return new Proxy(api as object, {
+    get(target, prop) {
+      const original = Reflect.get(target, prop);
+      
+      if (typeof original !== "function") return original;
+      
+      return async (...args: unknown[]) => {
+        const key = `${String(prop)}-${JSON.stringify(args)}`;
+        const cached = cache.get(key);
+        
+        if (cached && Date.now() - cached.timestamp < cacheDuration) {
+          return cached.data;
+        }
+        
+        const result = await original.apply(target, args);
+        cache.set(key, { data: result, timestamp: Date.now() });
+        return result;
+      };
+    },
+  }) as T;
+};
+```
+
+---
+
+## ⚡ Performance Patterns
+
+### Dynamic Import
+
+**Reference:** https://www.patterns.dev/vanilla/dynamic-import
+
+```typescript
+// ✅ Lazy load heavy components
+const HeavyChart = lazy(() => import("@/components/HeavyChart"));
+
+// In component
+<Suspense fallback={<Loading />}>
+  <HeavyChart data={data} />
+</Suspense>
+```
+
+### Bundle Splitting
+
+**Reference:** https://www.patterns.dev/vanilla/bundle-splitting
+
+Routes are already code-split via React Router lazy loading in App.tsx.
+
+---
+
+## 🚫 When NOT to Use These Patterns
+
+```typescript
+// ❌ Don't use Singleton for component state
+// Use React Context or state management instead
+
+// ❌ Don't use Observer when React Query handles it
+// TanStack Query already provides reactive data
+
+// ❌ Don't over-engineer simple functions
+// If it's a one-liner, don't wrap it in a pattern
+```
+
+---
+
+## 📖 Quick Reference
+
+| Scenario | Use This Pattern |
+|----------|------------------|
+| Database/API client | Singleton |
+| Creating different types of objects | Factory |
+| Real-time updates | Observer |
+| Utility libraries | Module |
+| API caching layer | Proxy |
+| Component communication | Mediator |
+
+---
+
+## ✅ Pattern Selection Checklist
+
+Before implementing utilities/services:
+
+- [ ] Is this a single instance need? → Singleton
+- [ ] Creating different object types? → Factory
+- [ ] Need to react to changes? → Observer
+- [ ] Encapsulating related code? → Module
+- [ ] Controlling access to object? → Proxy
+- [ ] Coordinating communication? → Mediator
+- [ ] Is it simple enough to skip patterns? → Just write it

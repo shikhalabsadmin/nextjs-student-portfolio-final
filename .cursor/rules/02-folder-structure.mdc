@@ -1,0 +1,237 @@
+---
+description: Folder structure for Student Portfolio App
+globs:
+  - "**/*.ts"
+  - "**/*.tsx"
+alwaysApply: true
+---
+
+# Folder Structure - Student Portfolio App
+
+**GOAL:** Every file has a place. Always know where code belongs.
+
+**References:**
+- React Project Structure: https://react.dev/learn/start-a-new-react-project
+- Feature-based Architecture: https://www.patterns.dev/react/
+- Container/Presentational: https://www.patterns.dev/react/presentational-container-pattern/
+
+---
+
+## 📁 Project Structure (STRICT)
+
+```
+src/
+├── api/                      # API layer (Supabase calls)
+│   ├── profiles.ts           # Profile API functions
+│   ├── assignment.ts         # Assignment CRUD
+│   └── assignment-files.ts   # File uploads
+│
+├── components/               # All UI components
+│   ├── ui/                   # shadcn/ui (DON'T MODIFY)
+│   ├── [feature]/            # Feature-specific components
+│   │   ├── ComponentA.tsx    # Individual component
+│   │   ├── ComponentB.tsx    # Individual component
+│   │   └── index.tsx         # Composes all (View)
+│   └── layouts/              # Layout components
+│
+├── pages/                    # Page components (Containers)
+│   ├── StudentPortfolio.tsx  # Container with state/API
+│   ├── StudentDashboard.tsx
+│   └── Index.tsx
+│
+├── hooks/                    # Custom React hooks
+│   ├── useAuthState.ts
+│   └── use[Feature].ts
+│
+├── types/                    # TypeScript definitions
+│   ├── student-portfolio.ts  # Feature-specific types
+│   └── auth.ts
+│
+├── query-key/                # TanStack Query keys
+│   ├── student-portfolio.ts
+│   └── profile.ts
+│
+├── constants/                # Static data & enums
+│   ├── assignment-status.ts
+│   └── grade-subjects.ts
+│
+├── contexts/                 # React Context providers
+│   └── PortfolioPreviewContext.tsx
+│
+├── config/                   # App configuration
+│   └── routes.ts
+│
+├── lib/                      # Utilities & services
+│   ├── utils.ts              # cn() function
+│   └── logger.ts
+│
+├── integrations/             # External services
+│   └── supabase/
+│       └── client.ts
+│
+└── App.tsx                   # Main app with routing
+```
+
+---
+
+## 📍 Where Code Belongs
+
+### New Page/Screen → Create 4 Files
+
+```
+1. pages/[Feature].tsx           ← Container (state, API, logic)
+2. components/[feature]/         ← Folder for UI components
+   ├── [Component].tsx           ← Individual UI components
+   └── index.tsx                 ← Composes all (View)
+3. types/[feature].ts            ← Types for this feature
+4. query-key/[feature].ts        ← Query keys for API calls
+```
+
+### API Functions → `api/`
+
+```typescript
+// ✅ api/profiles.ts
+export const getProfileInfo = async (id: string) => {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", id)
+    .single();
+  return { data, error };
+};
+```
+
+### Custom Hooks → `hooks/`
+
+```typescript
+// ✅ hooks/useStudentAssignments.ts
+export function useStudentAssignments(userId: string) {
+  return useQuery({
+    queryKey: ASSIGNMENT_KEYS.list(userId),
+    queryFn: () => getAssignments(userId),
+  });
+}
+```
+
+### Types → `types/`
+
+```typescript
+// ✅ types/student-portfolio.ts
+export interface StudentProfile {
+  id: string;
+  full_name: string | null;
+  grade: string | null;
+}
+
+export interface ProfileAvatarProps {
+  image: string | null;
+  name: string;
+  className?: string;
+}
+```
+
+### Query Keys → `query-key/`
+
+```typescript
+// ✅ query-key/student-portfolio.ts
+export const STUDENT_PORTFOLIO_KEYS = {
+  studentInfo: (id: string) => ["studentInfo", id] as const,
+  assignments: (id: string) => ["assignments", id] as const,
+} as const;
+```
+
+### UI Components → `components/[feature]/`
+
+```typescript
+// ✅ components/student-portfolio/ProfileAvatar.tsx
+function ProfileAvatar({ image, name, className }: ProfileAvatarProps) {
+  return (
+    <div className={cn("h-20 w-20 rounded-full", className)}>
+      {/* UI only, no API calls */}
+    </div>
+  );
+}
+```
+
+---
+
+## 📝 File Naming Conventions
+
+| Type | Convention | Example |
+|------|------------|---------|
+| Pages | PascalCase | `StudentPortfolio.tsx` |
+| Components | PascalCase | `ProfileAvatar.tsx` |
+| Component folder | kebab-case | `student-portfolio/` |
+| Hooks | camelCase with `use` | `useAuthState.ts` |
+| Types | kebab-case | `student-portfolio.ts` |
+| Query keys | kebab-case | `student-portfolio.ts` |
+| API | kebab-case | `assignment-files.ts` |
+| Utils | kebab-case | `date-utils.ts` |
+
+---
+
+## 🚫 What NOT to Do
+
+```typescript
+// ❌ BAD: API call in component
+// components/UserCard.tsx
+const UserCard = () => {
+  const { data } = useQuery(...); // NO! Move to page
+};
+
+// ❌ BAD: Types in component file
+// components/Card.tsx
+interface CardProps { ... } // NO! Move to types/
+
+// ❌ BAD: Inline query keys
+useQuery({ queryKey: ["users", id], ... }); // NO! Use query-key/
+
+// ❌ BAD: Random utility files
+src/helpers/something.ts // NO! Use lib/
+
+// ❌ BAD: Business logic in component
+// components/ItemList.tsx
+const filtered = items.filter(i => i.active); // NO! Move to page
+```
+
+---
+
+## ✅ Pre-Creation Checklist
+
+Before creating a new file, ask:
+
+- [ ] Is this a page? → `pages/`
+- [ ] Is this UI? → `components/[feature]/`
+- [ ] Is this a hook? → `hooks/`
+- [ ] Is this a type? → `types/`
+- [ ] Is this an API call? → `api/`
+- [ ] Is this a query key? → `query-key/`
+- [ ] Is this a utility? → `lib/`
+- [ ] Is this static data? → `constants/`
+
+---
+
+## 🎯 Feature Implementation Template
+
+When implementing a new feature like "Teacher Dashboard":
+
+```
+1. Create types/teacher-dashboard.ts
+   - Define all interfaces
+
+2. Create query-key/teacher-dashboard.ts
+   - Define query keys
+
+3. Create api/teacher.ts (if new API needed)
+   - API functions
+
+4. Create components/teacher-dashboard/
+   - StatsCard.tsx
+   - AssignmentList.tsx
+   - FilterBar.tsx
+   - index.tsx (composes all)
+
+5. Create pages/TeacherDashboard.tsx
+   - Container with state/API
+   - Uses components/teacher-dashboard
+```
